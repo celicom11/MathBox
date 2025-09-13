@@ -86,17 +86,16 @@ enum EnumTexAtom {
 // Math item types
 enum EnumMathItemType {
    eacUNK = -1,         // exention glyphs/fillers and other non selectable items
-   eacWORD,             // variable name, number, operator, punctuation,etc or text
-   eacBRACKETS,         // Open/Close pair: with inner child, e.g. \left(...\right)
-   eacHBOX,             // Inner boxed subformula, e.g. nominator in fraction, integrant, radicand, etc.
+   eacWORD,             // variable's name, number, operator, punctuation,etc or text
+   eacHBOX,             // HBox or inner boxed subformula
    eacOVER,             // Over: item with an overbrace child
    eacUNDER,            // Under: item with an underbrace child
    eacACCENT,           // Acc: item with an accent child (bar,hat,vec,tilde, etc.)
    eacINDEXED,          // [all]: item with subscript/superscript indexes; its default in TeX, but not here!
    eacRADICAL,          // radical/root item with base and argument
    eacFRACTION,         // Inner: fraction item with numerator and denominator
-   eacBIGOP,            // OP: integrals,sum, prod, etc,
-   eacOPLIM,            // operators name + optional limits.Used for (\lim, \liminf, \min, \max, \gcd, etc.)
+   eacBIGOP,            // OP(large): integrals,sum, prod, etc. + optional \limits
+   eacMATHOP,           // OP(small): math operatorx + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
    eacCANCEL,           // item with a cancel line (diagonal cross-out)
    eacNOT,              // item with a slash (negation)
    eacSUBSTACK,         // ~vbox, item with substack child (for multi-level limits etc.)
@@ -129,6 +128,21 @@ public:
          m_eTexStyle = EnumTexStyle(m_eTexStyle + 1);
    }
 };
+//Tex Glue info
+struct STexGlue {
+   uint16_t nStretchOrder{ 0 };      //0=normal, 1=fil, 2=fill, 3=filll
+   uint16_t nShrinkOrder{ 0 };       //0=normal, 1=fil, 2=fill, 3=filll
+   float    fStretchCapacity{ 0 };   //in EM or in fill units if InfStretchOrder>0
+   float    fShrinkCapacity{ 0 };    //in EM or in fill units if InfShrinkOrder>0
+   float    fNorm{ 0 };              //in EM 
+   float    fActual{ 0 };            //in EM 
+   void ResizeByRatio(float fRatio) {
+      if (fRatio >= 0.0f)
+         fActual = fNorm + fStretchCapacity*fRatio;
+      else
+         fActual = fNorm + fShrinkCapacity*fRatio;
+   }
+};
 //base class for math items, abstract!
 class CMathItem {
 protected:
@@ -150,11 +164,6 @@ public:
    bool IsOneGlyph() const { return m_bOneGlyph; }
    const CMathStyle& GetStyle() { return m_Style; }
    const STexBox& Box() const { return m_Box; }
-   EnumTexAtom AtomType(bool bRight = false) const { 
-      if(eacBRACKETS == m_eType)
-         return bRight ? etaCLOSE : etaOPEN;
-      return m_eAtom; 
-   }
    EnumMathItemType Type() const { return m_eType; }
    //METHODS
    void DenominateBinRel() {
@@ -169,6 +178,10 @@ public:
       m_Box.MoveTo(m_Box.Left() + nDX, m_Box.Top() + nDY);
    }
    //VIRTUALS
+   virtual EnumTexAtom AtomType(bool bLast = false) const { return m_eAtom;}
+   virtual const STexGlue* GetGlue() const { return nullptr; } //default: not resizable!
+   //resize to Norm + fRatio*StretchCapacity() - for all Glue orders! fRatio<0 means shrink!
+   virtual void ResizeByRatio(uint16_t nOrder, float fRatio) {} //default: not resizable!
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
    virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0;
 };

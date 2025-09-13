@@ -13,3 +13,5 @@
 /DemoApp.sln
 /MathBoxTest/x64/Debug
 /MathBoxDemo.sln
+/MathBoxDemo/x64/Debug
+/MathBoxTest/MathBoxTest.vcxproj.user

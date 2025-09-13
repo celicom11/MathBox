@@ -4,47 +4,52 @@
 
 class CHBoxItem : public CContainerItem {
    //DATA
-   bool               m_bHasInfShrinkGlue{ false };
-   uint16_t           m_nInfStretchLevel{ 0 };
-   float              m_fWidth{ 0 }; //~const; desired width in EM
-   vector<CGlueItem*> m_vGlues;
+   const float        m_fFixedWidth{ 0 }; //fixed width, \hbox to XXX
+   STexGlue           m_Glue;             //virtual glue!
+   vector<CGlueItem*> m_vGlues;           //inter-item glues, may contain nullptrs
 public:
    //CTOR/DTOR
    CHBoxItem() = delete;
    CHBoxItem(const CMathStyle& style, float fWidth = 0.0f ) :
-      CContainerItem(eacHBOX, style), m_fWidth(fWidth) {
+      CContainerItem(eacHBOX, style), m_fFixedWidth(fWidth) {
+      m_Glue.fActual = m_Glue.fNorm = fWidth;
+      m_Box.nAdvWidth = F2NEAREST(m_fFixedWidth);
    }
    ~CHBoxItem() {
       Clear();
    }
    //ATTS
-   float TargetWidth() const { return m_fWidth; }
-   float ActualWidth() const;
-   float NormWidth() const;
-   float MinWidth() const;
-   float MaxStretch() const;
-   float CalcBadness() const; //>0 -undefill, 0-perfect, <0-overfill
-   uint16_t InfShrinkLevel() const {
-      return m_bHasInfShrinkGlue ? 1 : 0;
+   float FixedWidth() const { return m_fFixedWidth; }
+   bool IsAuto() const { return m_fFixedWidth <= 0.0f; }
+   void ContentInfo(OUT uint32_t& nItems, uint32_t& nActGlues) const { //for debugging/testing only
+      nItems = (uint32_t)m_vItems.size();
+      nActGlues = 0;
+      for (const CGlueItem* pItem : m_vGlues) {
+         if (pItem)
+            ++nActGlues;
+      }
    }
-   uint16_t InfStretchLevel() const { return m_nInfStretchLevel; }
-   uint16_t CountInfStretchGlues(uint16_t nLevel) const;
-   uint16_t CountInfShrinkableGlues() const;
+   float CalcBadness() const; //>0 -undefill, 0-perfect, <0-overfill
    //METHODS
    void Clear() {
       CContainerItem::Clear();
       for (CGlueItem* pGlue : m_vGlues)
          delete pGlue;
       m_vGlues.clear();
+      m_Glue = STexGlue();
    }
    bool AddItem(CMathItem* pItem);
-   //must be called after all items are added
-   //adjusts items both vertically and horizontally to fit in m_Box.Width with min Badness
-   //returns false items can't fit the box/
-   bool UpdateLayout(float fWidth);
+   void Update();
+   //CMathItem implementation
+   EnumTexAtom AtomType(bool bLast = false) const override { 
+      if(m_vItems.empty())
+         return m_eAtom; //default
+      return bLast? m_vItems.back()->AtomType() : m_vItems.front()->AtomType();
+   }
+   const STexGlue* GetGlue() const override { return &m_Glue; }
+   void ResizeByRatio(uint16_t nOrder, float fRatio) override;
 private:
-   void ShrinkInfGluesBy_(float fShrink);
-   void ShrinkBy_(float fRatio);  //level 0 shrink
-   void StretchInfGluesBy_(uint16_t nLevel, float fStretch);
-   void StretchBy_(float fRatio); //level 0 stretch
+   //adjusts items both vertically and horizontally to fit in m_fFixedWidth with min Badness
+   void UpdateLayout_();
+
 };

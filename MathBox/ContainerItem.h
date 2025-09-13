@@ -12,6 +12,7 @@ public:
    }
    ~CContainerItem() { Clear(); }
    //ATTS
+   const vector<CMathItem*>& Items() const { return m_vItems; }
    bool IsEmpty() const { return m_vItems.empty(); }
    //METHODS
    void Clear() {
