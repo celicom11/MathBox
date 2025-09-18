@@ -2,8 +2,8 @@
 ## Test1.
 Initial test to compare of the Overleaf rendering (top, PdfLaTex compiler, 12pts, Display Mode)) of the script 
 ```
+\usepackage{lmodern} % For Latin Modern text
 \usepackage{amsmath} % For math environments and some math features
-\usepackage{fixcmex} % To address glitches with lmodern
 \usepackage[fontsize=12pt]{fontsize}
 \usepackage[margin=0.5cm]{geometry}
 \begin{document}

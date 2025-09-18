@@ -13,7 +13,7 @@
 using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}
-
+#define CHECK_HR(hr) {if(FAILED(hr)){_ASSERT(0);return hr;}}
 //linker
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")

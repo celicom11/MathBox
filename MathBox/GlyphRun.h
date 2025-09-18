@@ -15,15 +15,18 @@ struct SDWGlyph {
 };
 class CGlyphRun : public IDWriteGeometrySink
 {
-   D2D1_POINT_2F               m_ptfCur{ 0,0 };       //tmp. outline tracker
-   SBounds                     m_Bounds{ 0,0,0,0 };   //bounds around base_origin in design units
-   SBoundsF                    m_BoundsF{ 0,0,0,0 };  //tmp. outline box
-   vector<SDWGlyph>            m_vGlyphs;             //glyphs in the run
-   vector<DWRITE_GLYPH_OFFSET> m_vOffsets;            //optional, glyph offsets for complex geometry
+   IDWriteFontFace*              m_pFontFace{NULL};      //external, dnd
+   D2D1_POINT_2F                 m_ptfCur{ 0,0 };       //tmp. outline tracker
+   SBounds                       m_Bounds{ 0,0,0,0 };   //bounds around base_origin in design units
+   SBoundsF                      m_BoundsF{ 0,0,0,0 };  //tmp. outline box
+   vector<SDWGlyph>              m_vGlyphs;             //glyphs in the run
+   vector<DWRITE_GLYPH_OFFSET>   m_vOffsets;            //optional, glyph offsets for complex geometry
 public:
    //CTORS
-   CGlyphRun() = default;
+   CGlyphRun(IDWriteFontFace* pFontFace): 
+      m_pFontFace(pFontFace) {};
    CGlyphRun(CGlyphRun&& other) noexcept :
+      m_pFontFace(other.m_pFontFace),
       m_Bounds(other.m_Bounds), m_vGlyphs(std::move(other.m_vGlyphs)) {
    }
    //ATTS
@@ -38,14 +41,14 @@ public:
       m_vGlyphs.clear();
       m_Bounds = { 0,0,0,0 };
    }
-   HRESULT SetGlyphs(vector<UINT32> vUnicode, IDWriteFontFace* pFontFace) {
+   HRESULT SetGlyphs(vector<UINT32> vUnicode) {
       vector<UINT16> vIndices(vUnicode.size());
-      HRESULT hr = pFontFace->GetGlyphIndicesW(vUnicode.data(), (UINT32)vUnicode.size(), vIndices.data());
+      HRESULT hr = m_pFontFace->GetGlyphIndicesW(vUnicode.data(), (UINT32)vUnicode.size(), vIndices.data());
       if (FAILED(hr))
          return hr;
-      return SetGlyphIndices(vIndices, vUnicode, pFontFace);
+      return SetGlyphIndices(vIndices, vUnicode);
    }
-   HRESULT SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode, IDWriteFontFace* pFontFace);
+   HRESULT SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode);
    void Draw(const SDWRenderInfo& dwri, D2D1_POINT_2F ptfBaseOrigin, float fScale = 1.0f);
    //IUnknown stub
    STDMETHOD_(ULONG, AddRef)() override { return 1; }

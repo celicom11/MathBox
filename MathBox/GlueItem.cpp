@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GlueItem.h"
+#include "HBoxItem.h"
 
 namespace { //static helpers
    // TeX atom spacing matrix in D/T mode; values in muskip units/MuSkipType
@@ -36,8 +37,15 @@ CGlueItem::MuSkipType CGlueItem::_GetMuSkipType_(const CMathStyle& style, CMathI
    if(pPrev->Type() == eacGLUE || pNext->Type() == eacGLUE)
       return emstNoSpace;//no extra space between glues!
    //map prev/next types to matrix indices 0=Ord, 1=Op, 2=Bin, 3=Rel, 4=Open, 5=Close, 6=Punct, 7=Inner
-   int nPrevClass = pPrev->AtomType(true); //get last atom type in case of brackets
-   int nNextClass = pNext->AtomType(false);//get first atom type in case of brackets
+   int nPrevClass = pPrev->AtomType(); 
+   //in case of inner formula (HBOX+Inner), get atom type of the last item
+   if (pPrev->Type() == eacHBOX && nPrevClass == etaINNER)
+      nPrevClass = ((CHBoxItem*)pPrev)->Items().back()->AtomType();
+   int nNextClass = pNext->AtomType();
+   //in case of inner formula (HBOX+Inner), get atom type of the first item
+   if (pNext->Type() == eacHBOX && nNextClass == etaINNER)
+      nPrevClass = ((CHBoxItem*)pNext)->Items().front()->AtomType();
+
    if (style.Style() <= etsText)
       return (MuSkipType)ATOM_SPACING_MATRIX[nPrevClass][nNextClass];
    //else

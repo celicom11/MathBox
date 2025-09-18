@@ -2,9 +2,9 @@
 #include "GlyphRun.h"
 
 
-HRESULT CGlyphRun::SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode, IDWriteFontFace* pFontFace) {
+HRESULT CGlyphRun::SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode) {
    vector< DWRITE_GLYPH_METRICS> vMetrics(vIndices.size());
-   HRESULT hr = pFontFace->GetDesignGlyphMetrics(vIndices.data(), (UINT32)vIndices.size(), vMetrics.data());
+   HRESULT hr = m_pFontFace->GetDesignGlyphMetrics(vIndices.data(), (UINT32)vIndices.size(), vMetrics.data());
    if (FAILED(hr))
       return hr;
    //add new SWGlyphs
@@ -20,7 +20,7 @@ HRESULT CGlyphRun::SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnic
    //recalc ink box 	
    m_BoundsF = { FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX };
    const float fFontPts = 64.0f; //arbitrary, only relative values matter
-   hr = pFontFace->GetGlyphRunOutline(PTS2DIPS(fFontPts), vIndices.data(), nullptr, nullptr,
+   hr = m_pFontFace->GetGlyphRunOutline(PTS2DIPS(fFontPts), vIndices.data(), nullptr, nullptr,
       (UINT32)vIndices.size(), FALSE, FALSE, this);
    if (FAILED(hr))
       return hr;
@@ -40,7 +40,7 @@ void CGlyphRun::Draw(const SDWRenderInfo& dwri, D2D1_POINT_2F ptfBaseOrigin, flo
    for (UINT32 i = 0; i < m_vGlyphs.size(); ++i) {
       vGlyphIndices[i] = m_vGlyphs[i].index;
    }
-   glyphRun.fontFace = dwri.pFontFace;
+   glyphRun.fontFace = m_pFontFace;
    glyphRun.fontEmSize = PTS2DIPS(dwri.fFontSizePts * fScale);
    glyphRun.glyphCount = (UINT32)m_vGlyphs.size();
    glyphRun.glyphIndices = vGlyphIndices.data();

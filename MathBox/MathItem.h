@@ -62,7 +62,6 @@ struct SDWRenderInfo {
    bool                 bDrawBoxes{ false };       //debugging aid
    float                fFontSizePts{ 0.0f };      //document font size, in points
    ID2D1RenderTarget*   pRT{ nullptr };
-   IDWriteFontFace*     pFontFace{ nullptr };
    ID2D1Brush*          pBrush{ nullptr };
    ID2D1Brush*          pSelBrush{ nullptr };      //selection support
 };
@@ -81,13 +80,13 @@ enum EnumTexAtom {
    etaOPEN,             // Open: left delimiters, e.g. (,[,{,|,etc.
    etaCLOSE,            // Close: right delimiters, e.g. |,),],},etc.
    etaPUNCT,            // Punct: punctuation, e.g. comma,semicolon,etc.
-   etaINNER             // Inner: boxed subformula, e.g. nominator in fraction, integrant in integral, etc.
+   etaINNER             // Inner: boxed subformula, e.g fraction
 };
 // Math item types
 enum EnumMathItemType {
    eacUNK = -1,         // exention glyphs/fillers and other non selectable items
    eacWORD,             // variable's name, number, operator, punctuation,etc or text
-   eacHBOX,             // HBox or inner boxed subformula
+   eacHBOX,             // HBox or Inner \left..\right subformula
    eacOVER,             // Over: item with an overbrace child
    eacUNDER,            // Under: item with an underbrace child
    eacACCENT,           // Acc: item with an accent child (bar,hat,vec,tilde, etc.)
@@ -161,7 +160,7 @@ public:
    virtual ~CMathItem() {}
    //ATTS
    bool IsSelected() const { return m_bSelected; }
-   bool IsOneGlyph() const { return m_bOneGlyph; }
+   EnumTexAtom AtomType() const { return m_eAtom; }
    const CMathStyle& GetStyle() { return m_Style; }
    const STexBox& Box() const { return m_Box; }
    EnumMathItemType Type() const { return m_eType; }
@@ -178,10 +177,25 @@ public:
       m_Box.MoveTo(m_Box.Left() + nDX, m_Box.Top() + nDY);
    }
    //VIRTUALS
-   virtual EnumTexAtom AtomType(bool bLast = false) const { return m_eAtom;}
    virtual const STexGlue* GetGlue() const { return nullptr; } //default: not resizable!
    //resize to Norm + fRatio*StretchCapacity() - for all Glue orders! fRatio<0 means shrink!
    virtual void ResizeByRatio(uint16_t nOrder, float fRatio) {} //default: not resizable!
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
    virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0;
+};
+//
+//LMM glyph MATH tables + other info
+struct SLMMGlyph {
+   uint32_t nUnicode{ 0 };
+   uint16_t nIndex{ 0 };
+   uint16_t eTexAtom{ 0 };             //EnumTexAtom
+   uint16_t nTopAccentX{ 0 };          //MATH
+   uint16_t nItalCorrection{ 0 };      //MATH
+   string   sName;
+   string   sLaTexCmd;
+};
+DECLARE_INTERFACE(ILMMInfo) {
+   virtual ~ILMMInfo() {}
+   virtual SLMMGlyph* GetLMMGlyph(uint32_t nUnicode) = 0;
+   virtual SLMMGlyph* GetLMMGlyphByIdx(uint16_t nIndex) = 0;
 };

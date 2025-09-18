@@ -36,20 +36,20 @@ namespace {
    }
 }
 CWordItem::CWordItem(IDWriteFontFace* pFontFace, const CMathStyle& style, EnumMathItemType eType, float fUserScale) :
-   CMathItem(eType, style, fUserScale) {
-   m_pFontFace = pFontFace;
+   CMathItem(eType, style, fUserScale), m_GlyphRun(pFontFace)
+{
    m_eType = eType;
    m_fUserScale = fUserScale;
 }
 bool CWordItem::SetText(const vector<UINT32>& vUniCodePoints) {
-   HRESULT hr = m_GlyphRun.SetGlyphs(vUniCodePoints, m_pFontFace);
+   HRESULT hr = m_GlyphRun.SetGlyphs(vUniCodePoints);
    if (FAILED(hr))
       return false;
    OnInit_();
    return true;
 }
 bool CWordItem::SetGlyphIndexes(const vector<UINT16>& vGIndexes) {
-   HRESULT hr = m_GlyphRun.SetGlyphIndices(vGIndexes, vector<UINT32>(vGIndexes.size(), 0), m_pFontFace);
+   HRESULT hr = m_GlyphRun.SetGlyphIndices(vGIndexes, vector<UINT32>(vGIndexes.size(), 0));
    if (FAILED(hr))
       return false;
    OnInit_();
@@ -76,11 +76,9 @@ void CWordItem::OnInit_() {
    m_Box.nAdvWidth = F2NEAREST(nAdvWidth * fScale);
    m_Box.nLBearing = F2NEAREST(m_GlyphRun.Glyphs().front().metrics.leftSideBearing * fScale);
    m_Box.nRBearing = F2NEAREST(m_GlyphRun.Glyphs().back().metrics.rightSideBearing * fScale);
-   //more updates
-   m_bOneGlyph = (m_GlyphRun.Glyphs().size() == 1);
 
    //set atom type
-   if (m_bOneGlyph) {
+   if (m_GlyphRun.Glyphs().size() == 1) {
       UINT32 nCP = m_GlyphRun.Glyphs().front().codepoint;
       if(_IsPunct(nCP))
          m_eAtom = etaPUNCT;

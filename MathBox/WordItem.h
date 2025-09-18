@@ -3,10 +3,9 @@
 #include "GlyphRun.h"
 
 class CWordItem : public CMathItem {
-   IDWriteFontFace* m_pFontFace;          //external, dnd!
    CGlyphRun        m_GlyphRun;
 public:
-   //CTOR/INIT
+//CTOR/INIT
    CWordItem() = delete;
    CWordItem(IDWriteFontFace* pFontFace, const CMathStyle& style, EnumMathItemType eType = eacWORD, float fUserScale = 1.0f);
    bool SetText(PCWSTR szText) {
@@ -19,7 +18,10 @@ public:
    }
    bool SetText(const vector<UINT32>& vUniCodePoints);
    bool SetGlyphIndexes(const vector<UINT16>& vGIndexes);
-   //CMathItem Implementation
+//ATTS
+   const CGlyphRun& GlyphRun() const { return m_GlyphRun; }
+   void SetAtom(EnumTexAtom eAtom) { m_eAtom = eAtom; } //sometimes has to be set by the creator
+//CMathItem Implementation
    void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override;
 private:
    void OnInit_();

@@ -1,17 +1,10 @@
 ﻿################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
-
-/.vs
-/Debug
-/DemoApp/Debug
-/DemoApp/x64/Debug
+.vs/
+*/.vs/*
+x64/
+*/x64/*
 /LatinModernMath/LMMGlyphInfo.pyproj
-/LatinModernMath/LMMGlyphInfo.sln
-/x64/Debug
-/DemoApp.vcxproj.user
-/DemoApp.sln
-/MathBoxTest/x64/Debug
-/MathBoxDemo.sln
-/MathBoxDemo/x64/Debug
-/MathBoxTest/MathBoxTest.vcxproj.user
+*.sln
+*.user

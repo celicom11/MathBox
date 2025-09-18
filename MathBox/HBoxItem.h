@@ -41,11 +41,6 @@ public:
    bool AddItem(CMathItem* pItem);
    void Update();
    //CMathItem implementation
-   EnumTexAtom AtomType(bool bLast = false) const override { 
-      if(m_vItems.empty())
-         return m_eAtom; //default
-      return bLast? m_vItems.back()->AtomType() : m_vItems.front()->AtomType();
-   }
    const STexGlue* GetGlue() const override { return &m_Glue; }
    void ResizeByRatio(uint16_t nOrder, float fRatio) override;
 private:

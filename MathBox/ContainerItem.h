@@ -6,15 +6,16 @@ class CContainerItem : public CMathItem {
 protected:
    vector<CMathItem*>		m_vItems;		//may be empty!
 public:
-   //CTOR/DTOR
-   CContainerItem(EnumMathItemType eType, const CMathStyle& style) :
+ //CTOR/DTOR
+   CContainerItem(EnumMathItemType eType, const CMathStyle& style, EnumTexAtom eAtom = etaORD) :
       CMathItem(eType, style) {
+      m_eAtom = eAtom;
    }
    ~CContainerItem() { Clear(); }
-   //ATTS
+ //ATTS
    const vector<CMathItem*>& Items() const { return m_vItems; }
    bool IsEmpty() const { return m_vItems.empty(); }
-   //METHODS
+ //METHODS
    void Clear() {
       for (CMathItem* pTBox : m_vItems)
          delete pTBox;
@@ -46,7 +47,8 @@ public:
    void SetAxisHeight(int32_t nAxisHeight) {
       m_Box.nAxisHeight = nAxisHeight;
    }
-   //VFUNC implementation
+   void AddWidth(int32_t nSX) { m_Box.nAdvWidth += nSX; } //needed for some item on construction
+ //VFUNC implementation
    void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {
       D2D1_POINT_2F ptMyAnchor{
         ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
