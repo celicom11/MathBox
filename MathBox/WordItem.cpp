@@ -1,42 +1,11 @@
 #include "stdafx.h"
 #include "WordItem.h"
+#include "LMFontManager.h"
 
-namespace {
-   bool _IsIn(UINT32 nCP, const UINT32* pCP0, const UINT32* pCP1) {
-      for (const UINT32* pCP = pCP0; pCP < pCP1; ++pCP) {
-         if (*pCP == nCP)
-            return true;
-      }
-      return false;
-   }
-   bool _IsBin(UINT32 nCP) {
-      return _IsIn(nCP, _aUniBIN, _aUniBIN + _countof(_aUniBIN));
-   }
-   bool _IsRel(UINT32 nCP) {
-      return _IsIn(nCP, _aUniREL, _aUniREL + _countof(_aUniREL)) ||
-         (nCP >= _rngUniREL1[0] && nCP <= _rngUniREL1[1]) ||
-         (nCP >= _rngUniREL2[0] && nCP <= _rngUniREL2[1]) ||
-         (nCP >= _rngUniREL3[0] && nCP <= _rngUniREL3[1]);
-         
-   }
-   bool _IsDelim(UINT32 nCP) {
-      return _IsIn(nCP, _aUniDELIM, _aUniDELIM + _countof(_aUniDELIM));
-   }
-   bool _IsPunct(UINT32 nCP) {
-      return _IsIn(nCP, _aUniPUNCT, _aUniPUNCT + _countof(_aUniPUNCT));
-   }
-   bool _IsAccent(UINT32 nCP) {
-      return _IsIn(nCP, _aUniACCENT, _aUniACCENT + _countof(_aUniACCENT));
-   }
-   bool _IsBigOp(UINT32 nCP) {
-      return _IsIn(nCP, _aUniBigOP, _aUniBigOP + _countof(_aUniBigOP));
-   }
-   bool _IsArrow(UINT32 nCP) {
-      return (nCP >= _rngUniArrows[0] && nCP <= _rngUniArrows[1]);
-   }
-}
-CWordItem::CWordItem(IDWriteFontFace* pFontFace, const CMathStyle& style, EnumMathItemType eType, float fUserScale) :
-   CMathItem(eType, style, fUserScale), m_GlyphRun(pFontFace)
+extern CLMFontManager g_LMFManager;
+
+CWordItem::CWordItem(int nFontIdx, const CMathStyle& style, EnumMathItemType eType, float fUserScale) :
+   CMathItem(eType, style, fUserScale), m_GlyphRun(nFontIdx)
 {
    m_eType = eType;
    m_fUserScale = fUserScale;
@@ -77,20 +46,24 @@ void CWordItem::OnInit_() {
    m_Box.nLBearing = F2NEAREST(m_GlyphRun.Glyphs().front().metrics.leftSideBearing * fScale);
    m_Box.nRBearing = F2NEAREST(m_GlyphRun.Glyphs().back().metrics.rightSideBearing * fScale);
 
+   //TODO: move to WordItemBuilder!
    //set atom type
-   if (m_GlyphRun.Glyphs().size() == 1) {
-      UINT32 nCP = m_GlyphRun.Glyphs().front().codepoint;
-      if(_IsPunct(nCP))
-         m_eAtom = etaPUNCT;
-      else if(_IsBin(nCP))
-         m_eAtom = etaBIN;
-      else if (_IsRel(nCP) || _IsArrow(nCP)) //treat arrows as REL
-         m_eAtom = etaREL;
-      else if(_IsDelim(nCP))
-         m_eAtom = etaOPEN; //assume open, will be fixed in CMathRow
-      else if(_IsBigOp(nCP))
-         m_eAtom = etaOP;
-      else
-         m_eAtom = etaORD;
+   if (m_GlyphRun.Glyphs().size() == 1 && m_GlyphRun.GetFontIdx() == 0) {
+      UINT32 nGlyphIdx = m_GlyphRun.Glyphs().front().index;
+      const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyphByIdx(0, nGlyphIdx);
+      if (pLmmGlyph) {
+         switch (pLmmGlyph->eClass) {
+         case egcLOP:   m_eAtom = etaOP; break;
+         case egcBin:   m_eAtom = etaBIN; break;
+         case egcRel:   m_eAtom = etaREL; break;
+         case egcOpen:  m_eAtom = etaOPEN; break;
+         case egcClose: m_eAtom = etaCLOSE; break;
+         case egcPunct: m_eAtom = etaPUNCT; break;
+            //case egcAccent:m_eAtom = ; break;
+            //case egcOver:  m_eAtom = ; break;
+            //case egcUnder: m_eAtom = ; break;
+         default:       m_eAtom = etaORD;
+         }
+      }
    }
 }

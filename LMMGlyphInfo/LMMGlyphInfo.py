@@ -3,46 +3,59 @@ from fontTools.ttLib import TTFont
 import csv
 import os
 
-def get_eTexClass(glyph_name, codepoint):
+def get_eGlyphClass(codepoint):
     """
-    Heuristic to determine TeX class from glyph name and Unicode codepoint.
-    Returns: 0-ORD(default), 1-(Large)Op, 2-Bin, 3-Rel, 4-Delimiter (Open/Close), 
-             5-Punct, 6-Over, 7-Under, 8-Top Accent, 9-Radical, 10-Glue/Skip
+Ord = 0,LOP,Bin,Rel,Open,Close,Punct,Accent,Over,Under 
     """
-    name_lower = glyph_name.lower()
-    
     # Large operators
-    if any(x in name_lower for x in ["sum", "prod", "int", "oint", "bigcap", "bigcup", "bigwedge", "bigvee"]):
-        return 1  # Op
+    if codepoint in (0x2140,0x220F,0x2210,0x2211,0x222B,0x222C,0x222D,0x222E,0x222F,0x2230,0x2231,0x2232,0x2233,0x22C0,0x22C1,0x22C2,
+                     0x22C3,0x27D5,0x27D6,0x27D7,0x27D8,0x27D9,0x29F8,0x29F9,0x2A00,0x2A01,0x2A02,0x2A03,0x2A04,0x2A05,0x2A06,0x2A07,
+                     0x2A08,0x2A09,0x2A0A,0x2A0B,0x2A0C,0x2A0D,0x2A0E,0x2A0F,0x2A10,0x2A11,0x2A12,0x2A13,0x2A14,0x2A15,0x2A16,0x2A17,
+                     0x2A18,0x2A19,0x2A1A,0x2A1B,0x2A1C,0x2A1D,0x2A1E,0x2A1F,0x2A20,0x2A21):
+        return 1
     
     # Binary operators
-    if any(x in name_lower for x in ["plus", "minus", "times", "div", "ast", "star", "cdot", "bullet", "oplus", "otimes", "wedge", "vee", "cap", "cup"]):
-        return 2  # etcBIN
+    if codepoint in (0x002B,0x00B1, 
+                     0x00D7,0x00F7,0x2020,0x2021,0x2022,0x2040,0x2044,0x214B,0x2212,0x2213,0x2214,0x2215,0x2216,0x2217,0x2218,0x2219,
+                     0x2227,0x2228,0x2229,0x222A,0x2238,0x223E,0x2240,0x228C,0x228D,0x228E,0x2293,0x2294,0x2295,0x2296,0x2297,0x2298,
+                     0x2299,0x229A,0x229B,0x229C,0x229D,0x229E,0x229F,0x22A0,0x22A1,0x22BA,0x22BB,0x22BC,0x22BD,0x22C4,0x22C5,0x22C6,
+                     0x22C7,0x22C9,0x22CA,0x22CB,0x22CC,0x22CE,0x22CF,0x22D2,0x22D3,0x2305,0x2306,0x233D,0x25B3,0x25B7,0x25C1,0x25CB,
+                     0x25EB,0x27C7,0x27D1,0x27E0,0x27E1,0x27E2,0x27E3,0x2A2F,0x2A3F):
+        return 2
     
     # Relations
-    if any(x in name_lower for x in ["equal", "lt", "gt", "le", "ge", "neq", "equiv", "sim", "approx", "subset", "supset", "in", "ni", "parallel", "perp"]):
-        return 3  # etcREL
-    
+    if codepoint in (0x003C,0x003D,0x003E,0x2050,0x221D,0x2322,0x2323,0x2906,0x2907,0x2A95,0x2A96,0x2AAF,0x2AB0,0x2B31,0x2B33,0x2208,
+                     0x2209,0x220A,0x220B,0x220C,0x220D):
+        return 3
+    if (codepoint >= 0x2A85 and codepoint <= 0x2A8C) or (codepoint >= 0x2190 and codepoint <= 0x21FF) or\
+ (codepoint >= 0x2223 and codepoint <= 0x22F1) or (codepoint >= 0x27DA and codepoint <= 0x27FF):
+        return 3
     # Open delimiters
-    if any(x in name_lower for x in ["lparen", "lbrack", "lbrace", "langle", "lceil", "lfloor"]) or glyph_name in ["(", "[", "{"]:
-        return 4  # etcOPEN
-    
+    if codepoint in (0x0028,0x005B,0x007B,0x007C,0x2016,0x2308,0x230A,0x231C,0x231E,0x23B0,0x2772,0x27C5,0x27CC,
+                     0x27E6,0x27E8,0x27EA,0x27EC,0x27EE): 
+        return 4 
+
     # Close delimiters  
-    if any(x in name_lower for x in ["rparen", "rbrack", "rbrace", "rangle", "rceil", "rfloor"]) or glyph_name in [")", "]", "}"]:
-        return 5  # etcCLOSE
+    if codepoint in (0x0029,0x005D,0x007D,0x2309,0x230B,0x231D,0x231F,0x23B1,0x2773,0x27C6,0x27E7,0x27E9,0x27EB):
+        return 5
     
     # Punctuation
-    if any(x in name_lower for x in ["period", "comma", "colon", "semicolon", "dots", "ldots", "cdots"]) or glyph_name in [".", ",", ";", ":"]:
-        return 6  # etcPUNCT
+    if codepoint in (',',';',':','.','?','!'):
+        return 6
     
     # Accents
-    if any(x in name_lower for x in ["hat", "bar", "vec", "tilde", "dot", "ddot", "acute", "grave", "breve", "check", "ring"]):
-        return 10  # etcACCENT
+    if codepoint in (0x0300,0x0301,0x0302,0x0303,0x0304,0x0305,0x0306,0x0307,0x0308,0x0309,0x030A,0x030C,0x0310,
+                     0x0312,0x0315,0x031A,0x20D0,0x20D1,0x20D2,0x20D7,0x20DB,0x20DC,0x20E7,0x20E8,0x20E9,0x20F0):
+        return 7
     
-    # Radicals
-    if any(x in name_lower for x in ["radical", "surd", "sqrt"]):
-        return 11  # etcRADI
+    # Over
+    if codepoint in (0x23B4,0x23DC,0x23DE):
+        return 8
     
+    # Under
+    if codepoint in (0x23B5,0x23DD,0x23DF):
+        return 9
+
     # Default to ordinary
     return 0  # etcORD
 
@@ -102,7 +115,7 @@ def main():
         writer = csv.writer(csvfile)
         
         # Write header - CORRECTED COLUMN ORDER
-        writer.writerow(['nCodePoint', 'sName', 'sLaTex', 'eTexClass', 'nTopAccentX', 'nItalicCorr'])
+        writer.writerow(['nCodePoint', 'sName', 'sLaTex', 'eGlyphClass', 'nTopAccentX', 'nItalicCorr'])
         
         # Process each glyph
         for glyphIndex, glyphName in enumerate(glyphOrder):
@@ -127,33 +140,35 @@ def main():
                         char = '<'  
                     elif char == '>':
                         char = '>'
-                    sLaTex = utf8_to_latex.get(char, "0")
+                    sLaTex = utf8_to_latex.get(char, "")
                 except ValueError:
-                    sLaTex = "0"
+                    sLaTex = ""
             else:
-                sLaTex = "0"
+                sLaTex = ""
             
             # Remove backslash from LaTeX macro
-            if sLaTex != "0" and sLaTex.startswith("\\"):
+            if sLaTex.startswith("\\"):
                 sLaTex = sLaTex[1:]
             
             # Determine TeX class
-            eTexClass = get_eTexClass(glyphName, nCodePoint)
+            eGlyphClass = get_eGlyphClass(nCodePoint)
             
             # Get MATH table values
             nTopAccentX = top_accent_x.get(glyphIndex, 0)
             nItalicCorr = italic_corrections.get(glyphIndex, 0)
             
             # Handle sName - empty for uniXXXX names
-            if nCodePoint == 0 and glyphName.startswith('uni') and len(glyphName) == 7:  # uniXXXX format
+            if glyphName.startswith('uni') and len(glyphName) == 7:  # uniXXXX format
                 sName = ""
-            elif nCodePoint == 0 and glyphName.startswith('u1') and len(glyphName) == 6:  # u1XXXX format
+            elif glyphName.startswith('u1') and len(glyphName) == 6:  # u1XXXX format
+                sName = ""
+            elif glyphName.startswith('u2') and len(glyphName) == 6:  # u1XXXX format
                 sName = ""
             else:
                 sName = glyphName
             
             # Write row with corrected column order
-            writer.writerow([codepoint_str, sName, sLaTex, eTexClass, nTopAccentX, nItalicCorr])
+            writer.writerow([codepoint_str, sName, sLaTex, eGlyphClass, nTopAccentX, nItalicCorr])
             
             # Progress indicator
             if glyphIndex % 100 == 0:

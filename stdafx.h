@@ -10,6 +10,8 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <fstream>
+#include <unordered_map>
 using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}

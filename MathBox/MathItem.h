@@ -74,13 +74,13 @@ enum EnumTexStyle {
 // TeX atom's basic types, for inter-spacing rules
 enum EnumTexAtom {
    etaORD=0,            // Ord: variable name or text
-   etaOP,               // Op: Large operator, e.g. integral, sum, etc.
+   etaOP,               // Op: Large AND math operator, e.g. integral, sum, gcd, etc.
    etaBIN,              // Bin: binary operation, e.g. +,-,*,etc.
    etaREL,              // Rel: relation, e.g. =,<,>,etc.
    etaOPEN,             // Open: left delimiters, e.g. (,[,{,|,etc.
    etaCLOSE,            // Close: right delimiters, e.g. |,),],},etc.
    etaPUNCT,            // Punct: punctuation, e.g. comma,semicolon,etc.
-   etaINNER             // Inner: boxed subformula, e.g fraction
+   etaINNER             // Inner: boxed subformula, NOTE: fraction is Ord now!
 };
 // Math item types
 enum EnumMathItemType {
@@ -185,17 +185,33 @@ public:
 };
 //
 //LMM glyph MATH tables + other info
+enum EnumGlyphClass {
+   egcOrd = 0, //mathordand others/default
+   egcLOP,     //largeop
+   egcBin,     //mathbin
+   egcRel,     //mathrel, including arrows
+   egcOpen,    //mathopen
+   egcClose,   //mathclose
+   egcPunct,   //mathpunct
+   egcAccent,  //mathaccent, mathbotaccent
+   egcOver,    //mathover
+   egcUnder,   //mathunder
+};
 struct SLMMGlyph {
    uint32_t nUnicode{ 0 };
    uint16_t nIndex{ 0 };
-   uint16_t eTexAtom{ 0 };             //EnumTexAtom
+   uint16_t eClass{ 0 };               //EnumGlyphClass
    uint16_t nTopAccentX{ 0 };          //MATH
    uint16_t nItalCorrection{ 0 };      //MATH
-   string   sName;
-   string   sLaTexCmd;
+   string   sName;                     //cmap glyph name
+   string   sLaTexCmd;                 //latex-unicode.json
 };
-DECLARE_INTERFACE(ILMMInfo) {
-   virtual ~ILMMInfo() {}
-   virtual SLMMGlyph* GetLMMGlyph(uint32_t nUnicode) = 0;
-   virtual SLMMGlyph* GetLMMGlyphByIdx(uint16_t nIndex) = 0;
+
+struct SLatexFontCmd {
+   PCSTR    szLatexCmd{ NULL };              // key
+   PCSTR    szLatexUnicodeCmd{ NULL };       // optional, key from latex-unicode.json
+   bool     bUseLMM{ false };                // for all (if nLetterDigitsFont=0) or for symbol/operators only if 'true'
+   int16_t  nLetterDigitsFont{ 0 };          // 0-LMM, 1-lmroman10-regular, etc., or -1 for FONT_DOC
+   bool     bPreserveTextSpacing{ false };   // true preserves word spaces, false uses math spacing
 };
+

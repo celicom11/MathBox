@@ -2,8 +2,11 @@
 #include "IndexedBuilder.h"
 #include "ContainerItem.h"
 #include "WordItem.h"
+#include "LMFontManager.h"
 
-CMathItem* CIndexedBuilder::BuildIndexed(ILMMInfo* pLMMInfo, const CMathStyle& style, float fUserScale,
+extern CLMFontManager g_LMFManager;
+
+CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserScale,
                                           CMathItem* pBase, CMathItem* pSupers, CMathItem* pSubs) {
    _ASSERT_RET(pBase && (pSupers || pSubs), nullptr);
    float fScale = fUserScale * style.StyleScale();
@@ -11,12 +14,14 @@ CMathItem* CIndexedBuilder::BuildIndexed(ILMMInfo* pLMMInfo, const CMathStyle& s
    pRetBox->AddBox(pBase, 0, 0);
    uint16_t nItalicCorrection = 0;
    //bool bBaseIsSym = false; //not in use?
-   if (pBase->Type() == eacWORD && pLMMInfo) {
+   if (pBase->Type() == eacWORD ) {
       const CGlyphRun& glyphRun = ((CWordItem*)pBase)->GlyphRun();
-      //bBaseIsSym = glyphRun.Glyphs().size() == 1;
-      const SLMMGlyph* pLMMGlyph = pLMMInfo->GetLMMGlyphByIdx(glyphRun.Glyphs().back().index);
-      if (pLMMGlyph)
-         nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection* fScale);
+      if (glyphRun.GetFontIdx() == FONT_LMM) {
+         const SDWGlyph& dwgLast = glyphRun.Glyphs().back();
+         const SLMMGlyph* pLMMGlyph = g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, dwgLast.index);
+         if (pLMMGlyph)
+            nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale);
+      }
    }
    //position superscript
    int32_t nSuperShiftUp = F2NEAREST((style.IsCramped() ? otfSuperscriptShiftUpCramped : otfSuperscriptShiftUp)*fScale);

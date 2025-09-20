@@ -172,6 +172,10 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="MathBox\LMFontManager.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="MathBox\RadicalBuilder.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -208,6 +212,7 @@
     <ClInclude Include="MathBox\HBoxItem.h" />
     <ClInclude Include="MathBox\IndexedBuilder.h" />
     <ClInclude Include="MathBox\LMMConsts.h" />
+    <ClInclude Include="MathBox\LMFontManager.h" />
     <ClInclude Include="MathBox\MathItem.h" />
     <ClInclude Include="MathBox\RadicalBuilder.h" />
     <ClInclude Include="MathBox\WordItem.h" />

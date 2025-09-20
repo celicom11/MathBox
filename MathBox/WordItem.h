@@ -7,7 +7,7 @@ class CWordItem : public CMathItem {
 public:
 //CTOR/INIT
    CWordItem() = delete;
-   CWordItem(IDWriteFontFace* pFontFace, const CMathStyle& style, EnumMathItemType eType = eacWORD, float fUserScale = 1.0f);
+   CWordItem(int nFontIdx, const CMathStyle& style, EnumMathItemType eType = eacWORD, float fUserScale = 1.0f);
    bool SetText(PCWSTR szText) {
       vector<UINT32> vUniCodePoints;
       while (*szText) {

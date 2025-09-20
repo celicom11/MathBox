@@ -3,7 +3,9 @@
 #include "WordItem.h"
 #include "FillerItem.h"
 #include "ContainerItem.h"
+#include "LMFontManager.h"
 
+extern CLMFontManager g_LMFManager;
 //static helpers
 namespace {
    //returns radical's variant glyph index
@@ -38,8 +40,9 @@ CMathItem* CRadicalBuilder::BuildRadical(const CMathStyle& style, float fUserSca
 CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand,
    UINT16 nRadicalVariant, CMathItem* pRadDegree) {
    float fScale = fUserScale * style.StyleScale();
+
    // Build GlyphRun/RadicalSignBox with the lmmRadical
-   CWordItem* pRSign = new CWordItem(m_pFontFace, style, eacWORD, fUserScale);
+   CWordItem* pRSign = new CWordItem(0, style, eacWORD, fUserScale);
    //pRSign->SetText(L"\x221A");
    pRSign->SetGlyphIndexes({ nRadicalVariant });
    //Build overbar line
@@ -77,9 +80,9 @@ CMathItem* CRadicalBuilder::AssembleRadical_(const CMathStyle& style, float fUse
    if (bDisplayStyle)
       nTargetHEM += F2NEAREST(6 * otfRadicalRuleThickness * fScale);//extra gap at the bottom
    //2. Build bottom, and top glyphs
-   CWordItem* pRSignBtm = new CWordItem(m_pFontFace, style, eacWORD, fUserScale);
+   CWordItem* pRSignBtm = new CWordItem(0, style, eacWORD, fUserScale);
    pRSignBtm->SetText({ nRadicalBottomCode });
-   CWordItem* pRSignTop = new CWordItem(m_pFontFace, style, eacUNK, fUserScale);
+   CWordItem* pRSignTop = new CWordItem(0, style, eacUNK, fUserScale);
    pRSignTop->SetGlyphIndexes({ lmmRadical_tp });
    //3. Build vertical line extender (test: do not use lmmRadical_ex!)
    int32_t nExtenderHEM = nTargetHEM - F2NEAREST(fScale * (lmmRadicalBtmH_Em + lmmRadicalTopH_Em));

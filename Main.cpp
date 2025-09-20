@@ -4,7 +4,10 @@
 #include "MathBox\RadicalBuilder.h"
 #include "MathBox\FractionBuilder.h"
 #include "MathBox\IndexedBuilder.h"
+#include "MathBox\LMFontManager.h"
 
+//globals
+CLMFontManager g_LMFManager;
 // Custom HINST_THISCOMPONENT for module handle
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
@@ -22,16 +25,13 @@ struct D2DResources {
    IDWriteFactory*            pDWriteFactory = nullptr;
    ID2D1HwndRenderTarget*     pRenderTarget = nullptr;
    ID2D1SolidColorBrush*      pBlackBrush = nullptr;
-   vector<IDWriteFontFace*>   m_vFontFaces; //11 lm fonts, 0 - LMM!
    //DWRITE_FONT_METRICS        m_fm;
    ~D2DResources() {
       SafeRelease(&pD2DFactory);
       SafeRelease(&pDWriteFactory);
       SafeRelease(&pRenderTarget);
       SafeRelease(&pBlackBrush);
-      for (IDWriteFontFace* pFontFace : m_vFontFaces) {
-         SafeRelease(&pFontFace);
-      }
+      g_LMFManager.Clear();
    }
 
    HRESULT Initialize(HWND hwnd) {
@@ -39,6 +39,10 @@ struct D2DResources {
       CHECK_HR(hr);
       hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
          reinterpret_cast<IUnknown**>(&pDWriteFactory));
+      CHECK_HR(hr);
+      WCHAR wszDir[MAX_PATH] = { 0 };
+      GetCurrentDirectoryW(_countof(wszDir), wszDir);
+      hr = g_LMFManager.Init(wszDir, pDWriteFactory);
       CHECK_HR(hr);
       RECT rc;
       GetClientRect(hwnd, &rc);
@@ -51,54 +55,6 @@ struct D2DResources {
       pRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
       CHECK_HR(hr);
       hr = pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBlackBrush);
-      static const PCWSTR _aLMFonts[] {
-         L"latinmodern-math.otf",
-         L"lmroman10-regular.otf",
-         L"lmroman10-bold.otf",
-         L"lmroman10-italic.otf",
-         L"lmroman10-bolditalic.otf",
-         L"lmsans10-regular.otf",
-         L"lmsans10-bold.otf",
-         L"lmsans10-oblique.otf",
-         L"lmsans10-boldoblique.otf",
-         L"lmmono10-regular.otf",
-         L"lmmono10-italic.otf",
-      };
-      for (PCWSTR szFontFile : _aLMFonts) {
-         IDWriteFontFace* pFontFace = nullptr;
-         hr = LoadLatinModernFont(szFontFile, &pFontFace);
-         CHECK_HR(hr);
-         m_vFontFaces.push_back(pFontFace);
-      }
-      // Font metrics for baseline calculations (design units)
-      // m_vFontFaces[0]->GetMetrics(&m_fm);
-      //_ASSERT(m_fm.designUnitsPerEm == otfUnitsPerEm);
-
-      return hr;
-   }
-   HRESULT LoadLatinModernFont(PCWSTR szFontFile, OUT IDWriteFontFace** ppFontFace) {
-      WCHAR pstrExePath[MAX_PATH] = { 0 };
-      GetCurrentDirectoryW(_countof(pstrExePath), pstrExePath);
-      wstring sFontPath = wstring(pstrExePath) + L"\\LatinModernFonts\\" + szFontFile;
-      IDWriteFontFile* pFontFile = nullptr;
-      HRESULT hr = pDWriteFactory->CreateFontFileReference(sFontPath.c_str(), nullptr, &pFontFile);
-      CHECK_HR(hr);
-      BOOL isSupported;
-      DWRITE_FONT_FILE_TYPE fileType;
-      DWRITE_FONT_FACE_TYPE faceType;
-      UINT32 numberOfFonts;
-      pFontFile->Analyze(&isSupported, &fileType, &faceType, &numberOfFonts);
-
-      IDWriteFontFile* fontFileArray[] = { pFontFile };
-      hr = pDWriteFactory->CreateFontFace(
-         faceType, //DWRITE_FONT_FACE_TYPE_CFF,
-         1, // file count
-         fontFileArray,
-         0, // face index
-         DWRITE_FONT_SIMULATIONS_NONE,
-         ppFontFace
-      );
-      pFontFile->Release();
       return hr;
    }
 };
@@ -227,20 +183,20 @@ private:
       for (float fSizePt : aFontSize) {
          // build \sqrt\sqrt[ABC]{\frac{x_1^2}{2}}
          //x_1^2
-         CWordItem* pBase = new CWordItem(m_d2d.m_vFontFaces[3], style, eacWORD, fSizePt / m_fFontSizePt);
+         CWordItem* pBase = new CWordItem(3, style, eacWORD, fSizePt / m_fFontSizePt);
          //hRes = pX->SetText({ 0x1D465 }); //\mathit{x}
          hRes = pBase->SetText({ L'f'}); //\mathit{f}
          if (FAILED(hRes))
             return;//ERROR
-         CWordItem* pSuperS = new CWordItem(m_d2d.m_vFontFaces[0], styleSuper, eacWORD);
+         CWordItem* pSuperS = new CWordItem(0, styleSuper, eacWORD);
          hRes = pSuperS->SetText({ (UINT32)L'2' });
          if (FAILED(hRes))
             return;//ERROR
-         CWordItem* pSubS = new CWordItem(m_d2d.m_vFontFaces[0], styleSubs, eacWORD);
+         CWordItem* pSubS = new CWordItem(0, styleSubs, eacWORD);
          hRes = pSubS->SetText({ (UINT32)L'1'});
          if (FAILED(hRes))
             return;//ERROR
-         CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(NULL, style, 1.0f, pBase, pSuperS, pSubS);
+         CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pSuperS, pSubS);
          int32_t nNextY = 0;
          if (!m_MainBox.Box().IsEmpty())//keep baselines aligned
             nNextY = m_MainBox.Box().BaselineY() - pIndexed->Box().Ascent();
@@ -251,7 +207,7 @@ private:
    }
    void BuildMainBox_() {
       HRESULT hRes;
-      CRadicalBuilder radicalBuilder(m_d2d.m_vFontFaces[0]);
+      CRadicalBuilder radicalBuilder;
 
       CMathStyle style(m_MainBox.GetStyle());
       const float aFontSize[] = { 9, 12 , 14, 18 , 21, 24, 30, 40, 50 };
@@ -274,26 +230,26 @@ private:
       for (float fSizePt : aFontSize) {
          // build \sqrt\sqrt[ABC]{\frac{x_1^2}{2}}
          //x_1^2
-         CWordItem* pX = new CWordItem(m_d2d.m_vFontFaces[3], styleNumerator, eacWORD, fSizePt / m_fFontSizePt);
+         CWordItem* pX = new CWordItem(3, styleNumerator, eacWORD, fSizePt / m_fFontSizePt);
          //hRes = pX->SetText({ 0x1D465 }); //\mathit{x}
          hRes = pX->SetText({ L'x'}); //\mathit{f}
          if (FAILED(hRes))
             return;//ERROR
-         CWordItem* pSuperS = new CWordItem(m_d2d.m_vFontFaces[0], styleSuper, eacWORD);
+         CWordItem* pSuperS = new CWordItem(0, styleSuper, eacWORD);
          hRes = pSuperS->SetText({ (UINT32)L'2' });
          if (FAILED(hRes))
             return;//ERROR
-         CWordItem* pSubS = new CWordItem(m_d2d.m_vFontFaces[0], styleSubs, eacWORD);
+         CWordItem* pSubS = new CWordItem(0, styleSubs, eacWORD);
          hRes = pSubS->SetText({ (UINT32)L'1' });
          if (FAILED(hRes))
             return;//ERROR
-         CMathItem* pNum = CIndexedBuilder::BuildIndexed(NULL, styleNumerator, 1.0f, pX, pSuperS, pSubS);
+         CMathItem* pNum = CIndexedBuilder::BuildIndexed(styleNumerator, 1.0f, pX, pSuperS, pSubS);
          //
-         CWordItem* pDenom = new CWordItem(m_d2d.m_vFontFaces[0], styleDenom, eacUNK);
+         CWordItem* pDenom = new CWordItem(0, styleDenom, eacUNK);
          hRes = pDenom->SetText({ (UINT32)L'2' });
          CMathItem* pRadicand = CFractionBuilder::BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
          //Degree/Index
-         CWordItem* pRadDegree = new CWordItem(m_d2d.m_vFontFaces[3], styleDegree, eacUNK);
+         CWordItem* pRadDegree = new CWordItem(3, styleDegree, eacUNK);
          //mathit ABC
          hRes = pRadDegree->SetText(L"ABC");
          if (FAILED(hRes))

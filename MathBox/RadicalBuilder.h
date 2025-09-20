@@ -3,11 +3,9 @@
 
 //Radical's Factory
 class CRadicalBuilder {
-   IDWriteFontFace* m_pFontFace{ nullptr };	//external, dnd!
 public:
    //CTOR
-   CRadicalBuilder() = delete;
-   CRadicalBuilder(IDWriteFontFace* pFontFace) : m_pFontFace(pFontFace) {}
+   CRadicalBuilder() = default;
    CMathItem* BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree = nullptr);
 private:
    CMathItem* BuildSimpleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand,

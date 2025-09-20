@@ -1,10 +1,23 @@
 #include "stdafx.h"
 #include "GlyphRun.h"
+#include "LMFontManager.h"
 
+extern CLMFontManager g_LMFManager;
 
+HRESULT CGlyphRun::SetGlyphs(vector<UINT32> vUnicode) {
+   vector<UINT16> vIndices(vUnicode.size());
+   IDWriteFontFace* pFontFace = g_LMFManager.GetFont(m_nFontIdx);
+   _ASSERT_RET(pFontFace, E_FAIL);
+   HRESULT hr = pFontFace->GetGlyphIndicesW(vUnicode.data(), (UINT32)vUnicode.size(), vIndices.data());
+   if (FAILED(hr))
+      return hr;
+   return SetGlyphIndices(vIndices, vUnicode);
+}
 HRESULT CGlyphRun::SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode) {
    vector< DWRITE_GLYPH_METRICS> vMetrics(vIndices.size());
-   HRESULT hr = m_pFontFace->GetDesignGlyphMetrics(vIndices.data(), (UINT32)vIndices.size(), vMetrics.data());
+   IDWriteFontFace* pFontFace = g_LMFManager.GetFont(m_nFontIdx);
+   _ASSERT_RET(pFontFace, E_FAIL);
+   HRESULT hr = pFontFace->GetDesignGlyphMetrics(vIndices.data(), (UINT32)vIndices.size(), vMetrics.data());
    if (FAILED(hr))
       return hr;
    //add new SWGlyphs
@@ -20,7 +33,7 @@ HRESULT CGlyphRun::SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnic
    //recalc ink box 	
    m_BoundsF = { FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX };
    const float fFontPts = 64.0f; //arbitrary, only relative values matter
-   hr = m_pFontFace->GetGlyphRunOutline(PTS2DIPS(fFontPts), vIndices.data(), nullptr, nullptr,
+   hr = pFontFace->GetGlyphRunOutline(PTS2DIPS(fFontPts), vIndices.data(), nullptr, nullptr,
       (UINT32)vIndices.size(), FALSE, FALSE, this);
    if (FAILED(hr))
       return hr;
@@ -40,7 +53,10 @@ void CGlyphRun::Draw(const SDWRenderInfo& dwri, D2D1_POINT_2F ptfBaseOrigin, flo
    for (UINT32 i = 0; i < m_vGlyphs.size(); ++i) {
       vGlyphIndices[i] = m_vGlyphs[i].index;
    }
-   glyphRun.fontFace = m_pFontFace;
+   IDWriteFontFace* pFontFace = g_LMFManager.GetFont(m_nFontIdx);
+   _ASSERT_RET(pFontFace, );
+
+   glyphRun.fontFace = pFontFace;
    glyphRun.fontEmSize = PTS2DIPS(dwri.fFontSizePts * fScale);
    glyphRun.glyphCount = (UINT32)m_vGlyphs.size();
    glyphRun.glyphIndices = vGlyphIndices.data();

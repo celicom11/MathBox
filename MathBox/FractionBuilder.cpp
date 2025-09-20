@@ -6,7 +6,7 @@
 CMathItem* CFractionBuilder::BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
-   CContainerItem* pRetBox = new CContainerItem(eacFRACTION, style, etaINNER);
+   CContainerItem* pRetBox = new CContainerItem(eacFRACTION, style, etaORD);
    //1. Build fraction rule - it is an anchor!
    CFillerItem* pFracRule =
       new CFillerItem(max(pNum->Box().Width(), pDenom->Box().Width()), F2NEAREST((2 * otfFractionRuleThickness) * fScale));
