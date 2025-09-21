@@ -43,7 +43,6 @@ CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float f
 
    // Build GlyphRun/RadicalSignBox with the lmmRadical
    CWordItem* pRSign = new CWordItem(0, style, eacWORD, fUserScale);
-   //pRSign->SetText(L"\x221A");
    pRSign->SetGlyphIndexes({ nRadicalVariant });
    //Build overbar line
    CFillerItem* pRadicalOverbar =

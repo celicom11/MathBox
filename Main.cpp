@@ -1,10 +1,10 @@
 #include "stdafx.h"
-#include "MathBox\WordItem.h"
 #include "MathBox\ContainerItem.h"
 #include "MathBox\RadicalBuilder.h"
 #include "MathBox\FractionBuilder.h"
 #include "MathBox\IndexedBuilder.h"
 #include "MathBox\LMFontManager.h"
+#include "MathBox\WordItemBuilder.h"
 
 //globals
 CLMFontManager g_LMFManager;
@@ -95,8 +95,8 @@ public:
       if (SUCCEEDED(hr)) {
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
-            BuildMainBox_();
-            //BuildMainBoxTest_();
+            BuildRadicals_();
+            //BuildIndexed_("f");
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -163,14 +163,10 @@ private:
       ValidateRect(m_hwnd, nullptr);
    }
 
-   // The core logic to render the growing radical
-   void BuildMainBoxTest_() {
-      HRESULT hRes;
-
+   // build $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
+   void BuildIndexed_(PCSTR szBase) {
       CMathStyle style(m_MainBox.GetStyle());
       const float aFontSize[] = { 9, 12 , 14, 18 , 21, 24, 30, 40, 50};
-      //const UINT32 uRad1 = 0x01D453; //'𝘧' (MATHEMATICAL ITALIC SMALL F)
-      //const UINT32 uRad2 = L'P';
       uint32_t nLeftEm = 0;
       //styles for indexed Numerator
       CMathStyle styleSuper(style);
@@ -181,21 +177,12 @@ private:
       styleSubs.SetCramped(true);
 
       for (float fSizePt : aFontSize) {
-         // build \sqrt\sqrt[ABC]{\frac{x_1^2}{2}}
-         //x_1^2
-         CWordItem* pBase = new CWordItem(3, style, eacWORD, fSizePt / m_fFontSizePt);
-         //hRes = pX->SetText({ 0x1D465 }); //\mathit{x}
-         hRes = pBase->SetText({ L'f'}); //\mathit{f}
-         if (FAILED(hRes))
-            return;//ERROR
-         CWordItem* pSuperS = new CWordItem(0, styleSuper, eacWORD);
-         hRes = pSuperS->SetText({ (UINT32)L'2' });
-         if (FAILED(hRes))
-            return;//ERROR
-         CWordItem* pSubS = new CWordItem(0, styleSubs, eacWORD);
-         hRes = pSubS->SetText({ (UINT32)L'1'});
-         if (FAILED(hRes))
-            return;//ERROR
+         CMathItem* pBase = CWordItemBuilder::BuildWordItem("\\textit", szBase, style, fSizePt / m_fFontSizePt);
+         _ASSERT_RET(pBase, );
+         CMathItem* pSuperS = CWordItemBuilder::BuildWordItem("","2", styleSuper, 1.0f);
+         _ASSERT_RET(pSuperS, );
+         CMathItem* pSubS = CWordItemBuilder::BuildWordItem("", "1", styleSubs, 1.0f);
+         _ASSERT_RET(pSubS, );
          CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pSuperS, pSubS);
          int32_t nNextY = 0;
          if (!m_MainBox.Box().IsEmpty())//keep baselines aligned
@@ -205,14 +192,11 @@ private:
       }
       m_MainBox.NormalizeOrigin(0, 0);
    }
-   void BuildMainBox_() {
-      HRESULT hRes;
-      CRadicalBuilder radicalBuilder;
-
+   // render the growing radical
+   // builds \sqrt{\sqrt[\textit{ABC}]{\frac{\textit{\fontsize{##pt}{??pt}\selectfont x}_1^2}{2}}}
+   void BuildRadicals_() {
       CMathStyle style(m_MainBox.GetStyle());
       const float aFontSize[] = { 9, 12 , 14, 18 , 21, 24, 30, 40, 50 };
-      //const UINT32 uRad1 = 0x01D453; //'𝘧' (MATHEMATICAL ITALIC SMALL F)
-      //const UINT32 uRad2 = L'P';
       uint32_t nLeftEm = 0;
       CMathStyle styleNumerator(m_MainBox.GetStyle());
       styleNumerator.Decrease();
@@ -227,42 +211,32 @@ private:
       styleSubs.SetCramped(true);
 
       CMathStyle styleDegree(etsScriptScript);
+      const PCSTR szBase = "x";
       for (float fSizePt : aFontSize) {
-         // build \sqrt\sqrt[ABC]{\frac{x_1^2}{2}}
-         //x_1^2
-         CWordItem* pX = new CWordItem(3, styleNumerator, eacWORD, fSizePt / m_fFontSizePt);
-         //hRes = pX->SetText({ 0x1D465 }); //\mathit{x}
-         hRes = pX->SetText({ L'x'}); //\mathit{f}
-         if (FAILED(hRes))
-            return;//ERROR
-         CWordItem* pSuperS = new CWordItem(0, styleSuper, eacWORD);
-         hRes = pSuperS->SetText({ (UINT32)L'2' });
-         if (FAILED(hRes))
-            return;//ERROR
-         CWordItem* pSubS = new CWordItem(0, styleSubs, eacWORD);
-         hRes = pSubS->SetText({ (UINT32)L'1' });
-         if (FAILED(hRes))
-            return;//ERROR
-         CMathItem* pNum = CIndexedBuilder::BuildIndexed(styleNumerator, 1.0f, pX, pSuperS, pSubS);
+         //{base}_1^2
+         CMathItem* pBase = CWordItemBuilder::BuildWordItem("\\textit", szBase, styleNumerator, fSizePt / m_fFontSizePt);
+         _ASSERT_RET(pBase, );
+         CMathItem* pSuperS = CWordItemBuilder::BuildWordItem("", "2", styleSuper, 1.0f);
+         _ASSERT_RET(pSuperS, );
+         CMathItem* pSubS = CWordItemBuilder::BuildWordItem("", "1", styleSubs, 1.0f);
+         _ASSERT_RET(pSubS, );
+         CMathItem* pNum = CIndexedBuilder::BuildIndexed(styleNumerator, 1.0f, pBase, pSuperS, pSubS);
          //
-         CWordItem* pDenom = new CWordItem(0, styleDenom, eacUNK);
-         hRes = pDenom->SetText({ (UINT32)L'2' });
+         CMathItem* pDenom = CWordItemBuilder::BuildWordItem("", "2", styleDenom, 1.0f);
+         _ASSERT_RET(pDenom, );
          CMathItem* pRadicand = CFractionBuilder::BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
          //Degree/Index
-         CWordItem* pRadDegree = new CWordItem(3, styleDegree, eacUNK);
-         //mathit ABC
-         hRes = pRadDegree->SetText(L"ABC");
-         if (FAILED(hRes))
-            return;//ERROR
+         CMathItem* pRadDegree = CWordItemBuilder::BuildWordItem("\\textit", "ABC", styleDegree, 1.0f);
+         _ASSERT_RET(pRadDegree, );
 
-         CMathItem* pRadical0 = radicalBuilder.BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadicand, pRadDegree);
+         CMathItem* pRadical0 = CRadicalBuilder::BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadicand, pRadDegree);
          if (!pRadical0) {
             _ASSERT(0);
             delete pRadicand;
             delete pRadDegree;
             return;
          }
-         CMathItem* pRadical = radicalBuilder.BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadical0);
+         CMathItem* pRadical = CRadicalBuilder::BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadical0);
          if (!pRadical) {
             _ASSERT(0);
             delete pRadicand;
@@ -273,7 +247,7 @@ private:
          if (!m_MainBox.Box().IsEmpty())//keep baselines aligned
             nNextY = m_MainBox.Box().BaselineY() - pRadical->Box().Ascent();
          m_MainBox.AddBox(pRadical, nLeftEm, nNextY);
-         nLeftEm += pRadical->Box().Width() + 1090;
+         nLeftEm += pRadical->Box().Width() + 800;
       }
       m_MainBox.NormalizeOrigin(0, 0);
    }

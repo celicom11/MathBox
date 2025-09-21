@@ -2,70 +2,6 @@
 #include "LMFontManager.h"
 
 namespace {
-   //DATA
-   static const PCWSTR _aLMFonts[]{
-   L"latinmodern-math.otf",
-   L"lmroman10-regular.otf",
-   L"lmroman10-bold.otf",
-   L"lmroman10-italic.otf",
-   L"lmroman10-bolditalic.otf",
-   L"lmsans10-regular.otf",
-   L"lmsans10-bold.otf",
-   L"lmsans10-oblique.otf",
-   L"lmsans10-boldoblique.otf",
-   L"lmmono10-regular.otf",
-   L"lmmono10-italic.otf"
-   };
-   //LaTex font command map
-   static const unordered_map<string, SLatexFontCmd> _mapTex2FontCmd{
-      // Text Font Styles, all preserves spacing in math
-      {"\\text",        {"\\text",   "", true, FONT_DOC, true}},                 // Uses LMM/Doc font 
-      {"\\textrm",      {"\\textrm", "", false, FONT_ROMAN_REGULAR, true}},      // Roman text
-      {"\\textsf",      {"\\textsf", "", false, FONT_SANS_REGULAR, true}},       // Sans serif text
-      {"\\texttt",      {"\\texttt", "", false, FONT_MONO_REGULAR, true}},       // Typewriter text
-      {"\\textbf",      {"\\textbf", "", false, FONT_ROMAN_BOLD, true}},         // Bold text
-      {"\\textmd",      {"\\textmd", "", false, FONT_ROMAN_REGULAR, true}},      // Medium weight (normal) text
-      {"\\textup",      {"\\textup", "", false, FONT_ROMAN_REGULAR, true}},      // Upright text
-      {"\\textit",      {"\\textit", "", false, FONT_ROMAN_ITALIC, true}},       // Italic text
-      {"\\textsl",      {"\\textsl", "", true, FONT_ROMAN_ITALIC, true}},        // Slanted text (mixed: LMM + slanted)
-      {"\\textsc",      {"\\textsc", "", true, FONT_ROMAN_REGULAR, true}},       // Small caps (mixed: LMM + small caps)
-      {"\\textnormal",  {"\\textnormal", "", false, FONT_ROMAN_REGULAR, true}},  // Normal document font
-      {"\\emph",        {"\\emph", "", false, FONT_ROMAN_ITALIC, true}},         // Emphasis (usually italic)
-      // Math Font Styles  
-      {"\\it",          {"\\it", "\\mathit", true, FONT_ROMAN_ITALIC}},
-      {"\\mathnormal",  {"\\mathnormal", "\\mathit", true, FONT_LMM}}, // Uses LMM default math italic
-      {"\\mathit",      {"\\mathit", "\\mathit", true, FONT_ROMAN_ITALIC}},
-      {"\\mathrm",      {"\\mathrm", "", true, FONT_ROMAN_REGULAR}},
-      {"\\mathbf",      {"\\mathbf", "\\mathbf", true, FONT_ROMAN_BOLD}},
-      {"\\mathbfup",    {"\\mathbfup", "\\mathbf", true, FONT_ROMAN_BOLD}},
-      {"\\mathbfit",    {"\\mathbfit", "\\mathbf", true, FONT_ROMAN_BOLDITALIC}},
-      {"\\mathscr",     {"\\mathscr", "\\mathcal", true, FONT_LMM}},
-      {"\\mathbfscr",   {"\\mathbfscr", "\\bm{\\mathcal", true, FONT_LMM}},
-      {"\\mathcal",     {"\\mathcal", "\\mathcal", true, FONT_LMM}},
-      {"\\mathbfcal",   {"\\mathbfcal", "\\bm{\\mathcal", true, FONT_LMM}},
-      {"\\mathsf",      {"\\mathsf", "\\mathsf", true, FONT_SANS_REGULAR}},
-      {"\\mathsfup",    {"\\mathsfup", "\\mathsf", true, FONT_SANS_REGULAR}},
-      {"\\mathsfit",    {"\\mathsfit", "\\mathsf{\\mathit", true, FONT_SANS_OBLIQUE}},
-      {"\\mathbfsfup",  {"\\mathbfsfup", "\\bm{\\mathsf", true, FONT_SANS_BOLD}},
-      {"\\mathtt",      {"\\mathtt", "\\mathtt", true, FONT_MONO_REGULAR}},
-      {"\\mathbb",      {"\\mathbb", "\\mathbb", true, FONT_LMM}},
-      {"\\mathbbit",    {"\\mathbbit", "\\mathbbit", true, FONT_LMM}}, // Limited chars, fallback to mathnormal
-      {"\\mathfrak",    {"\\mathfrak", "\\mathfrak", true, FONT_LMM}},
-      {"\\mathbffrak",  {"\\mathbffrak", "\\bm{\\mathfrak", true, FONT_LMM}},
-      // Legacy/compatibility commands (less commonly used)
-      {"\\rm",          {"\\rm", "", false, FONT_ROMAN_REGULAR}},             // Legacy roman (deprecated)
-      {"\\sf",          {"\\sf", "", false, FONT_SANS_REGULAR}},              // Legacy sans serif (deprecated)  
-      {"\\tt",          {"\\tt", "", false, FONT_MONO_REGULAR}},              // Legacy typewriter (deprecated)
-      {"\\bf",          {"\\bf", "", false, FONT_ROMAN_BOLD}},                // Legacy bold (deprecated)
-      {"\\sl",          {"\\sl", "", false, FONT_ROMAN_ITALIC}},              // Legacy slanted (deprecated)
-      {"\\sc",          {"\\sc", "", false, FONT_ROMAN_REGULAR}},             // Legacy small caps (deprecated)
-      {"\\em",          {"\\em", "", false, FONT_ROMAN_ITALIC}},              // Legacy emphasis (deprecated)
-      // Unicode-math specific commands (if using unicode-math package)
-      {"\\mathss",      {"\\mathss", "\\mathsf", true, FONT_SANS_REGULAR}},      // Sans serif (unicode-math)
-      {"\\mathssit",    {"\\mathssit", "\\mathsf{\\mathit}", true, FONT_SANS_OBLIQUE}} // Sans serif italic (unicode-math)
-   };
-
-   //METHODS
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
    inline bool _IsGAP(char wc) { return wc == ' ' || wc == '\t'; }
    inline bool _IsSpace(char wc) { return _IsGAP(wc) || _IsCRLF(wc); }
@@ -91,23 +27,44 @@ namespace {
 }
 bool CLMFontManager::_IsTexFontCommand(PCSTR szCmd){
    _ASSERT_RET(szCmd && *szCmd == '\\', false);
-   return _mapTex2FontCmd.find(szCmd) != _mapTex2FontCmd.end();
+   for (const SLatexFontCmd& lfCmd  : _aTexFontCmds) {
+      if (0 == strcmp(szCmd, lfCmd.szLatexCmd))
+         return true;
+   }
+   return false;
 }
-bool CLMFontManager::_GetLatexFontCmdInfo(const string& sFontCmd, SLatexFontCmd& lfCmd) {
+//symbol glyps \Pi and or operators \mathplus, etc.
+const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
+   if (!szCmd || szCmd[0] != '\\')
+      return nullptr;
+   ++szCmd; //skip \\
+   // LMM font - search by LaTex cmd!
+   const auto itGI = std::find_if(m_vGlyphInfo.begin(), m_vGlyphInfo.end(),
+      [szCmd](const SLMMGlyph* pG) {
+         return pG->sLaTexCmd== szCmd;
+      });
+
+   return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
+
+}
+bool CLMFontManager::_GetLaTexFontCmdInfo(const string& sFontCmd, OUT SLatexFontCmd& lfCmdOut) {
    _ASSERT_RET(sFontCmd.size()>1 && sFontCmd[0] == '\\', false);
-   auto itS2LFC = _mapTex2FontCmd.find(sFontCmd);
-   if (itS2LFC == _mapTex2FontCmd.end())
-      return false;
-   //copy lfCmd
-   lfCmd = itS2LFC->second;
-   return true;
+   for (const SLatexFontCmd& lfCmd : _aTexFontCmds) {
+      if (sFontCmd == lfCmd.szLatexCmd) {
+         lfCmdOut = lfCmd;
+         return true;
+      }
+   }
+   return false;
 }
 //
 HRESULT CLMFontManager::Init(const wstring& sAppDir, IDWriteFactory* pDWriteFactory) {
    HRESULT hRes = LoadLatinModernFonts_(sAppDir, pDWriteFactory);
+   CHECK_HR(hRes);
    // Font metrics for baseline calculations (design units)
    // m_vFontFaces[0]->GetMetrics(&m_fm);
    //_ASSERT(m_fm.designUnitsPerEm == otfUnitsPerEm);
+   
    bool bOk = LoadLMMGlyphInfo_(sAppDir + L"\\LMMGlyphInfo\\LatinModernMathGlyphs.csv");
    _ASSERT_RET(bOk, E_FAIL);
    return S_OK;
@@ -142,7 +99,6 @@ const SLMMGlyph* CLMFontManager::GetLMMGlyph(int16_t nFontIdx, uint32_t nUnicode
 
    return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
 }
-
 
 ///
 HRESULT CLMFontManager::LoadLatinModernFonts_(const wstring& sAppDir, IDWriteFactory* pDWriteFactory) {

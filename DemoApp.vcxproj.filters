@@ -33,6 +33,9 @@
     <ClCompile Include="MathBox\LMFontManager.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\WordItemBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -70,6 +73,9 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\LMFontManager.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\WordItemBuilder.h">
       <Filter>MathBox</Filter>
     </ClInclude>
   </ItemGroup>

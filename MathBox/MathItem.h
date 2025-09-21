@@ -207,11 +207,3 @@ struct SLMMGlyph {
    string   sLaTexCmd;                 //latex-unicode.json
 };
 
-struct SLatexFontCmd {
-   PCSTR    szLatexCmd{ NULL };              // key
-   PCSTR    szLatexUnicodeCmd{ NULL };       // optional, key from latex-unicode.json
-   bool     bUseLMM{ false };                // for all (if nLetterDigitsFont=0) or for symbol/operators only if 'true'
-   int16_t  nLetterDigitsFont{ 0 };          // 0-LMM, 1-lmroman10-regular, etc., or -1 for FONT_DOC
-   bool     bPreserveTextSpacing{ false };   // true preserves word spaces, false uses math spacing
-};
-

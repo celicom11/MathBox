@@ -16,7 +16,7 @@ public:
    IDWriteFontFace* GetFont(int16_t nFontIdx) const {
       return nFontIdx >= 0 && nFontIdx < m_vFontFaces.size() ? m_vFontFaces[nFontIdx] : nullptr;
    }
-//METHODS
+ //METHODS
    void Clear() {
       for (SLMMGlyph* pG : m_vGlyphInfo) {
          delete pG;
@@ -35,8 +35,11 @@ public:
       _ASSERT_RET(nFontIdx == 0, nullptr);//only by Unicode if nFOntIdx>0! 
       return nIndex < m_vGlyphInfo.size() ? m_vGlyphInfo[nIndex] : nullptr;
    }
-   static bool _IsTexFontCommand(PCSTR szCmd);
-   static bool _GetLatexFontCmdInfo(const string& sFontCmd, SLatexFontCmd& lfCmd);
+   const SLMMGlyph* GetLMMGlyphByCmd(PCSTR szCmd) const;
+   // STATIC
+   static bool _IsTexFontCommand(PCSTR szCmd);  //TOBE MOVED TO PARSER
+   static bool _IsMathOperator(PCSTR szCmd);    //TOBE MOVED TO PARSER
+   static bool _GetLaTexFontCmdInfo(const string& sFontCmd, OUT SLatexFontCmd& lfCmdOut);
 private:
    bool LoadLMMGlyphInfo_(const wstring& sAppDir);
    HRESULT LoadLatinModernFonts_(const wstring& sAppDir, IDWriteFactory* pDWriteFactory);

@@ -4,7 +4,7 @@
 
 extern CLMFontManager g_LMFManager;
 
-CWordItem::CWordItem(int nFontIdx, const CMathStyle& style, EnumMathItemType eType, float fUserScale) :
+CWordItem::CWordItem(int16_t nFontIdx, const CMathStyle& style, EnumMathItemType eType, float fUserScale) :
    CMathItem(eType, style, fUserScale), m_GlyphRun(nFontIdx)
 {
    m_eType = eType;
@@ -45,25 +45,4 @@ void CWordItem::OnInit_() {
    m_Box.nAdvWidth = F2NEAREST(nAdvWidth * fScale);
    m_Box.nLBearing = F2NEAREST(m_GlyphRun.Glyphs().front().metrics.leftSideBearing * fScale);
    m_Box.nRBearing = F2NEAREST(m_GlyphRun.Glyphs().back().metrics.rightSideBearing * fScale);
-
-   //TODO: move to WordItemBuilder!
-   //set atom type
-   if (m_GlyphRun.Glyphs().size() == 1 && m_GlyphRun.GetFontIdx() == 0) {
-      UINT32 nGlyphIdx = m_GlyphRun.Glyphs().front().index;
-      const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyphByIdx(0, nGlyphIdx);
-      if (pLmmGlyph) {
-         switch (pLmmGlyph->eClass) {
-         case egcLOP:   m_eAtom = etaOP; break;
-         case egcBin:   m_eAtom = etaBIN; break;
-         case egcRel:   m_eAtom = etaREL; break;
-         case egcOpen:  m_eAtom = etaOPEN; break;
-         case egcClose: m_eAtom = etaCLOSE; break;
-         case egcPunct: m_eAtom = etaPUNCT; break;
-            //case egcAccent:m_eAtom = ; break;
-            //case egcOver:  m_eAtom = ; break;
-            //case egcUnder: m_eAtom = ; break;
-         default:       m_eAtom = etaORD;
-         }
-      }
-   }
 }
