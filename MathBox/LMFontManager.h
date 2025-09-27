@@ -37,9 +37,8 @@ public:
    }
    const SLMMGlyph* GetLMMGlyphByCmd(PCSTR szCmd) const;
    // STATIC
-   static bool _IsTexFontCommand(PCSTR szCmd);  //TOBE MOVED TO PARSER
-   static bool _IsMathOperator(PCSTR szCmd);    //TOBE MOVED TO PARSER
-   static bool _GetLaTexFontCmdInfo(const string& sFontCmd, OUT SLatexFontCmd& lfCmdOut);
+   static bool _GetTextFontStyle(const string& sFontCmd, OUT STextFontStyle& tfStyle);
+   static bool _GetMathFontStyle(const string& sFontCmd, OUT SMathFontStyle& mfStyle);
 private:
    bool LoadLMMGlyphInfo_(const wstring& sAppDir);
    HRESULT LoadLatinModernFonts_(const wstring& sAppDir, IDWriteFactory* pDWriteFactory);

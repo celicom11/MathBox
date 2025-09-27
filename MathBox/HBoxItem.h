@@ -39,7 +39,7 @@ public:
       m_Glue = STexGlue();
    }
    bool AddItem(CMathItem* pItem);
-   void Update();
+   void Update(); //MUST be called after last AddItem!
    //CMathItem implementation
    const STexGlue* GetGlue() const override { return &m_Glue; }
    void ResizeByRatio(uint16_t nOrder, float fRatio) override;

@@ -1,10 +1,11 @@
 #include "stdafx.h"
-#include "MathBox\ContainerItem.h"
+//#include "MathBox\ContainerItem.h"
 #include "MathBox\RadicalBuilder.h"
 #include "MathBox\FractionBuilder.h"
 #include "MathBox\IndexedBuilder.h"
 #include "MathBox\LMFontManager.h"
 #include "MathBox\WordItemBuilder.h"
+#include "MathBox\HBoxItem.h"
 
 //globals
 CLMFontManager g_LMFManager;
@@ -65,7 +66,8 @@ class DemoApp {
    float               m_fFontSizePt{ 12.0f }; //document font size, in points
    HWND                m_hwnd;
    D2DResources        m_d2d;
-   CContainerItem      m_MainBox;//TODO: HBOX
+   CContainerItem      m_MainBox;
+   //CHBoxItem           m_MainBox;
 public:
    DemoApp() : m_hwnd(nullptr), m_MainBox(eacHBOX, etsDisplay) {}
    ~DemoApp() {}
@@ -95,8 +97,10 @@ public:
       if (SUCCEEDED(hr)) {
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
-            BuildRadicals_();
+            //BuildRadicals_();
             //BuildIndexed_("f");
+            //BuildTexts_();
+            BuildMathFonts_();
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -162,7 +166,69 @@ private:
       }
       ValidateRect(m_hwnd, nullptr);
    }
-
+   // build various $$Text\ 0+1+2+3$$
+   void BuildTexts_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      const STexGlue glueSpace{ 0,0,0,0,833,833 };
+      PCSTR szTestText = "Text 0+1+2+3";
+      int32_t nY = 100, nInterLine = 1500;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("text",       szTestText, style, 1.0f),100, nY); 
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textit", szTestText, style, 1.0f),100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("emph", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsl", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      szTestText = "Textrm 0+1+2+3";
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textrm", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textup", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textnormal", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textmd", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      szTestText = "Textsf 0+1+2+3";
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsf", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      szTestText = "Texttt 0+1+2+3";
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("texttt", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      szTestText = "Textbf 0+1+2+3";
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textbf", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+      szTestText = "Textsc 0+1+2+3";
+      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsc", szTestText, style, 1.0f), 100, nY);
+      nY += nInterLine;
+   }
+   // build various $$3x^2 \in R \subset Q$$
+   void BuildMathFonts_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      CMathStyle styleSuper(m_MainBox.GetStyle());
+      styleSuper.Decrease();
+      if (styleSuper.Style() == etsText)
+         styleSuper.Decrease();
+      PCSTR aMathFonts[]{ "mathnormal", "it", "mathit","mathrm","mathbf","mathbfup","mathbfit","mathscr",
+                        "mathbfscr","mathcal","mathbfcal","mathsf","mathsfup","mathsfit","mathbfsfup","mathtt",
+                        "mathbb","mathbbit","mathfrak","mathbffrak" };
+      int32_t nY = 100, nInterLine = 1750;
+      for (PCSTR szFont : aMathFonts) {
+         CHBoxItem* pHBox = new CHBoxItem(style);
+         //build parts
+         CMathItem* pNum = CWordItemBuilder::BuildMathWord(szFont, "3",true, style);
+         pHBox->AddItem(pNum);
+         CMathItem* pBase = CWordItemBuilder::BuildMathWord(szFont, "x", false, style);
+         _ASSERT(pBase);
+         CMathItem* pIndex = CWordItemBuilder::BuildMathWord(szFont, "2", true, styleSuper);
+         _ASSERT(pIndex);
+         pHBox->AddItem(CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pIndex, nullptr));
+         bool bOk = CWordItemBuilder::BuildMathText(szFont, "\\in R \\subset Q", style, *pHBox);
+          _ASSERT(bOk);
+         m_MainBox.AddBox(pHBox, 100, nY);
+         nY += nInterLine;
+      }
+   }
    // build $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
    void BuildIndexed_(PCSTR szBase) {
       CMathStyle style(m_MainBox.GetStyle());
@@ -177,11 +243,11 @@ private:
       styleSubs.SetCramped(true);
 
       for (float fSizePt : aFontSize) {
-         CMathItem* pBase = CWordItemBuilder::BuildWordItem("\\textit", szBase, style, fSizePt / m_fFontSizePt);
+         CMathItem* pBase = CWordItemBuilder::BuildText("textit", szBase, style, fSizePt / m_fFontSizePt);
          _ASSERT_RET(pBase, );
-         CMathItem* pSuperS = CWordItemBuilder::BuildWordItem("","2", styleSuper, 1.0f);
+         CMathItem* pSuperS = CWordItemBuilder::BuildText("","2", styleSuper, 1.0f);
          _ASSERT_RET(pSuperS, );
-         CMathItem* pSubS = CWordItemBuilder::BuildWordItem("", "1", styleSubs, 1.0f);
+         CMathItem* pSubS = CWordItemBuilder::BuildText("", "1", styleSubs, 1.0f);
          _ASSERT_RET(pSubS, );
          CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pSuperS, pSubS);
          int32_t nNextY = 0;
@@ -214,19 +280,19 @@ private:
       const PCSTR szBase = "x";
       for (float fSizePt : aFontSize) {
          //{base}_1^2
-         CMathItem* pBase = CWordItemBuilder::BuildWordItem("\\textit", szBase, styleNumerator, fSizePt / m_fFontSizePt);
+         CMathItem* pBase = CWordItemBuilder::BuildText("\\textit", szBase, styleNumerator, fSizePt / m_fFontSizePt);
          _ASSERT_RET(pBase, );
-         CMathItem* pSuperS = CWordItemBuilder::BuildWordItem("", "2", styleSuper, 1.0f);
+         CMathItem* pSuperS = CWordItemBuilder::BuildText("", "2", styleSuper, 1.0f);
          _ASSERT_RET(pSuperS, );
-         CMathItem* pSubS = CWordItemBuilder::BuildWordItem("", "1", styleSubs, 1.0f);
+         CMathItem* pSubS = CWordItemBuilder::BuildText("", "1", styleSubs, 1.0f);
          _ASSERT_RET(pSubS, );
          CMathItem* pNum = CIndexedBuilder::BuildIndexed(styleNumerator, 1.0f, pBase, pSuperS, pSubS);
          //
-         CMathItem* pDenom = CWordItemBuilder::BuildWordItem("", "2", styleDenom, 1.0f);
+         CMathItem* pDenom = CWordItemBuilder::BuildText("", "2", styleDenom, 1.0f);
          _ASSERT_RET(pDenom, );
          CMathItem* pRadicand = CFractionBuilder::BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
          //Degree/Index
-         CMathItem* pRadDegree = CWordItemBuilder::BuildWordItem("\\textit", "ABC", styleDegree, 1.0f);
+         CMathItem* pRadDegree = CWordItemBuilder::BuildText("\\textit", "ABC", styleDegree, 1.0f);
          _ASSERT_RET(pRadDegree, );
 
          CMathItem* pRadical0 = CRadicalBuilder::BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadicand, pRadDegree);
@@ -247,7 +313,7 @@ private:
          if (!m_MainBox.Box().IsEmpty())//keep baselines aligned
             nNextY = m_MainBox.Box().BaselineY() - pRadical->Box().Ascent();
          m_MainBox.AddBox(pRadical, nLeftEm, nNextY);
-         nLeftEm += pRadical->Box().Width() + 800;
+         nLeftEm += pRadical->Box().Width() + 833;
       }
       m_MainBox.NormalizeOrigin(0, 0);
    }

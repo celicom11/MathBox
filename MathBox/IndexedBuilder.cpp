@@ -15,13 +15,13 @@ CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserSca
    uint16_t nItalicCorrection = 0;
    //bool bBaseIsSym = false; //not in use?
    if (pBase->Type() == eacWORD ) {
-      const CGlyphRun& glyphRun = ((CWordItem*)pBase)->GlyphRun();
-      if (glyphRun.GetFontIdx() == FONT_LMM) {
-         const SDWGlyph& dwgLast = glyphRun.Glyphs().back();
-         const SLMMGlyph* pLMMGlyph = g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, dwgLast.index);
-         if (pLMMGlyph)
-            nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale);
-      }
+      const CGlyphRun& glyphRun = static_cast<CWordItem*>(pBase)->GlyphRun();
+      const SDWGlyph& dwgLast = glyphRun.Glyphs().back();
+      const SLMMGlyph* pLMMGlyph = glyphRun.GetFontIdx() == FONT_LMM ?
+         g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, dwgLast.index) :
+         g_LMFManager.GetLMMGlyph(glyphRun.GetFontIdx(), dwgLast.codepoint);
+      if (pLMMGlyph)
+         nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale);
    }
    //position superscript
    int32_t nSuperShiftUp = F2NEAREST((style.IsCramped() ? otfSuperscriptShiftUpCramped : otfSuperscriptShiftUp)*fScale);

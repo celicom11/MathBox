@@ -25,19 +25,16 @@ namespace {
          vOut.push_back(szStr1);
    }
 }
-bool CLMFontManager::_IsTexFontCommand(PCSTR szCmd){
-   _ASSERT_RET(szCmd && *szCmd == '\\', false);
-   for (const SLatexFontCmd& lfCmd  : _aTexFontCmds) {
-      if (0 == strcmp(szCmd, lfCmd.szLatexCmd))
-         return true;
-   }
-   return false;
-}
 //symbol glyps \Pi and or operators \mathplus, etc.
 const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
    if (!szCmd || szCmd[0] != '\\')
       return nullptr;
    ++szCmd; //skip \\
+   //special aliases/legacy
+   if (0 == strcmp(szCmd, "mathfrak{R}"))
+      szCmd = "Re";
+   else if (0 == strcmp(szCmd, "mathfrak{I}"))
+      szCmd = "Im";
    // LMM font - search by LaTex cmd!
    const auto itGI = std::find_if(m_vGlyphInfo.begin(), m_vGlyphInfo.end(),
       [szCmd](const SLMMGlyph* pG) {
@@ -47,16 +44,28 @@ const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
    return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
 
 }
-bool CLMFontManager::_GetLaTexFontCmdInfo(const string& sFontCmd, OUT SLatexFontCmd& lfCmdOut) {
-   _ASSERT_RET(sFontCmd.size()>1 && sFontCmd[0] == '\\', false);
-   for (const SLatexFontCmd& lfCmd : _aTexFontCmds) {
-      if (sFontCmd == lfCmd.szLatexCmd) {
-         lfCmdOut = lfCmd;
+bool CLMFontManager::_GetTextFontStyle(const string& sFontCmd, OUT STextFontStyle& tfStyle) {
+   _ASSERT_RET(sFontCmd.size() > 1, false);
+   for (const STextFontStyle& tfCmd : _aTexFontCmds) {
+      if (sFontCmd == tfCmd.szTextFontStyle) {
+         tfStyle = tfCmd;
+         return true;
+      }
+   }
+   return false;
+
+}
+bool CLMFontManager::_GetMathFontStyle(const string& sFontCmd, OUT SMathFontStyle& mfStyle) {
+   _ASSERT_RET(sFontCmd.size() > 1, false);
+   for (const SMathFontStyle& mfCmd : _aMathFontCmds) {
+      if (sFontCmd == mfCmd.szMathFontStyle) {
+         mfStyle = mfCmd;
          return true;
       }
    }
    return false;
 }
+
 //
 HRESULT CLMFontManager::Init(const wstring& sAppDir, IDWriteFactory* pDWriteFactory) {
    HRESULT hRes = LoadLatinModernFonts_(sAppDir, pDWriteFactory);
@@ -78,15 +87,17 @@ const SLMMGlyph* CLMFontManager::GetLMMGlyph(int16_t nFontIdx, uint32_t nUnicode
       _LMMG.eClass = egcOrd;
       _LMMG.nUnicode = nUnicode;
       _LMMG.nIndex = 0;
-      _LMMG.nItalCorrection = 0;
       _LMMG.nTopAccentX = 0;
 
-      // Set italic correction for italic fonts
-      if (nFontIdx == FONT_ROMAN_ITALIC || nFontIdx == FONT_ROMAN_BOLDITALIC ||
-         nFontIdx == FONT_SANS_OBLIQUE || nFontIdx == FONT_SANS_BOLDOBLIQUE) {
-         //TODO!
-         //_LMMG.nItalCorrection = GetEstimatedItalicCorrection(nUnicode);
-      }
+      // Set italic correction for italic fonts from OS/2, ySuperscriptXOffset
+      switch (nFontIdx) {
+      case FONT_ROMAN_ITALIC:           
+      case FONT_ROMAN_BOLDITALIC:   _LMMG.nItalCorrection = 87;    break;
+      case FONT_SANS_OBLIQUE:       
+      case FONT_SANS_BOLDOBLIQUE:   _LMMG.nItalCorrection = 74;    break;
+      case FONT_MONO_ITALIC:        _LMMG.nItalCorrection = 87;    break;
+      default: _LMMG.nItalCorrection = 0;
+      } 
 
       return &_LMMG;
    }
@@ -153,6 +164,7 @@ bool CLMFontManager::LoadLMMGlyphInfo_(const wstring& sPathCSV) {
          continue;//skip header
       }
       m_vGlyphInfo.push_back(new SLMMGlyph);
+      m_vGlyphInfo.back()->nIndex = (uint16_t)m_vGlyphInfo.size()-1;
       PCSTR szUnicode = vRow[0].c_str();
       _ASSERT_RET(szUnicode && (*szUnicode == '0' || *szUnicode == 'x'), false);
       if (*szUnicode == 'x') {
