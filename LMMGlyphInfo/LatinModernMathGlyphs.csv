@@ -12,7 +12,7 @@ x28,parenleft,lparen,4,0,0
 x29,parenright,rparen,5,0,0
 x2A,asterisk,,0,398,0
 x2B,plus,mathplus,2,0,0
-x2C,comma,mathcomma,0,0,0
+x2C,comma,mathcomma,6,0,0
 x2D,hyphen,,0,0,0
 x2E,period,mathperiod,0,0,0
 x2F,slash,mathslash,0,0,0
@@ -26,8 +26,8 @@ x36,six,,0,318,0
 x37,seven,,0,103,13
 x38,eight,,0,261,0
 x39,nine,,0,242,0
-x3A,colon,mathcolon,0,0,0
-x3B,semicolon,mathsemicolon,0,0,0
+x3A,colon,mathcolon,6,0,0
+x3B,semicolon,mathsemicolon,6,0,0
 x3C,less,less,3,0,0
 x3D,equal,equal,3,0,0
 x3E,greater,greater,3,0,0
