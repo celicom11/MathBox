@@ -22,7 +22,7 @@ struct STexBox {
    int32_t nLBearing{ 0 }, nRBearing{ 0 };   // for glyph boxes!
    int32_t nAxisHeight{ 0 };                 // optional, distance from baseline to math axis, 0: not defined
    //ATTS
-   bool IsEmpty() const { return nAdvWidth == 0; }
+   bool IsEmpty() const { return nAdvWidth == 0 && nHeight == 0; }
    bool IsVCenterable() const { return nAxisHeight != 0; }
    int32_t Ascent() const { return nAscent; }
    int32_t Depth() const { return nHeight - nAscent; }
@@ -201,7 +201,7 @@ struct SLMMGlyph {
    uint32_t nUnicode{ 0 };
    uint16_t nIndex{ 0 };
    uint16_t eClass{ 0 };               //EnumGlyphClass
-   uint16_t nTopAccentX{ 0 };          //MATH
+   int16_t  nTopAccentX{ 0 };          //MATH
    uint16_t nItalCorrection{ 0 };      //MATH
    string   sName;                     //cmap glyph name
    string   sLaTexCmd;                 //latex-unicode.json

@@ -24,6 +24,13 @@ namespace {
       if (*szStr1) //last string
          vOut.push_back(szStr1);
    }
+   inline PCSTR _ReplaceAlias(PCSTR szCmd) {
+      for (auto aCmdAliases : _aLatexAliases) {
+         if (0 == strcmp(szCmd, aCmdAliases[0]))
+            return aCmdAliases[1];
+      }
+      return szCmd;
+   }
 }
 //symbol glyps \Pi and or operators \mathplus, etc.
 const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
@@ -31,10 +38,7 @@ const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
       return nullptr;
    ++szCmd; //skip \\
    //special aliases/legacy
-   if (0 == strcmp(szCmd, "mathfrak{R}"))
-      szCmd = "Re";
-   else if (0 == strcmp(szCmd, "mathfrak{I}"))
-      szCmd = "Im";
+   szCmd = _ReplaceAlias(szCmd);
    // LMM font - search by LaTex cmd!
    const auto itGI = std::find_if(m_vGlyphInfo.begin(), m_vGlyphInfo.end(),
       [szCmd](const SLMMGlyph* pG) {

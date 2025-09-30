@@ -37,8 +37,16 @@ void CWordItem::Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
 
 void CWordItem::OnInit_() {
    float fScale = m_fUserScale * m_Style.StyleScale();
-   m_Box.nHeight = F2NEAREST((m_GlyphRun.Bounds().nMaxY - m_GlyphRun.Bounds().nMinY) * fScale);
-   m_Box.nAscent = -F2NEAREST(m_GlyphRun.Bounds().nMinY * fScale);
+   if (m_GlyphRun.Bounds().nMinY >= 0) {
+      m_Box.nAscent = 0;
+      m_Box.nHeight = F2NEAREST(m_GlyphRun.Bounds().nMaxY * fScale);
+   }
+   else if (m_GlyphRun.Bounds().nMaxY <= 0)
+      m_Box.nAscent = m_Box.nHeight = -F2NEAREST(m_GlyphRun.Bounds().nMinY * fScale);
+   else {
+      m_Box.nHeight = F2NEAREST((m_GlyphRun.Bounds().nMaxY - m_GlyphRun.Bounds().nMinY) * fScale);
+      m_Box.nAscent = -F2NEAREST(m_GlyphRun.Bounds().nMinY * fScale);
+   }
    UINT32 nAdvWidth = 0;
    for (const SDWGlyph& glyph : m_GlyphRun.Glyphs())
       nAdvWidth += glyph.metrics.advanceWidth;

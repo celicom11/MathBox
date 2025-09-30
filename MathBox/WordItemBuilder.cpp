@@ -283,6 +283,5 @@ bool CWordItemBuilder::BuildMathText(const string& sFontCmd, const string& sText
       else if (0 == *szPos)
          break;
    }
-   hbox.Update();
    return !hbox.IsEmpty();
 }

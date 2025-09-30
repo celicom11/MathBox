@@ -132,6 +132,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="MathBox\AccentBuilder.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="MathBox\FractionBuilder.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -208,6 +214,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MathBox\AccentBuilder.h" />
     <ClInclude Include="MathBox\ContainerItem.h" />
     <ClInclude Include="MathBox\FillerItem.h" />
     <ClInclude Include="MathBox\FractionBuilder.h" />

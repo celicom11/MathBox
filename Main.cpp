@@ -1,14 +1,15 @@
 #include "stdafx.h"
-//#include "MathBox\ContainerItem.h"
 #include "MathBox\RadicalBuilder.h"
 #include "MathBox\FractionBuilder.h"
 #include "MathBox\IndexedBuilder.h"
 #include "MathBox\LMFontManager.h"
 #include "MathBox\WordItemBuilder.h"
 #include "MathBox\HBoxItem.h"
+#include "MathBox\AccentBuilder.h"
 
 //globals
 CLMFontManager g_LMFManager;
+
 // Custom HINST_THISCOMPONENT for module handle
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
@@ -63,7 +64,7 @@ struct D2DResources {
 // --- Main Application Class ---
 
 class DemoApp {
-   float               m_fFontSizePt{ 12.0f }; //document font size, in points
+   float               m_fFontSizePt{ 24.0f }; //document font size, in points
    HWND                m_hwnd;
    D2DResources        m_d2d;
    CContainerItem      m_MainBox;
@@ -100,7 +101,8 @@ public:
             //BuildRadicals_();
             //BuildIndexed_("f");
             //BuildTexts_();
-            BuildMathFonts_();
+            //BuildMathFonts_();
+            BuildAccentItems_();
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -225,6 +227,7 @@ private:
          pHBox->AddItem(CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pIndex, nullptr));
          bool bOk = CWordItemBuilder::BuildMathText(szFont, "\\in R \\subset Q", style, *pHBox);
           _ASSERT(bOk);
+          pHBox->Update();
          m_MainBox.AddBox(pHBox, 100, nY);
          nY += nInterLine;
       }
@@ -258,7 +261,6 @@ private:
       }
       m_MainBox.NormalizeOrigin(0, 0);
    }
-   // render the growing radical
    // builds \sqrt{\sqrt[\textit{ABC}]{\frac{\textit{\fontsize{##pt}{??pt}\selectfont x}_1^2}{2}}}
    void BuildRadicals_() {
       CMathStyle style(m_MainBox.GetStyle());
@@ -317,9 +319,57 @@ private:
       }
       m_MainBox.NormalizeOrigin(0, 0);
    }
+   // build \ocirc{a},\hat{b},\tilde{c},\dot{d},\ddot{e},\bar{f},\check{g},\acute{h},\grave{x},\breve{y},\vec{z},...
+   CHBoxItem* BuildAccentItems1_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      const PCSTR aAccents[]{ "\\ocirc","\\hat","\\tilde","\\dot","\\ddot","\\bar","\\check","\\acute",
+         "\\grave","\\breve","\\vec","\\threeunderdot","\\underleftarrow","\\underrightarrow"};
+      const PCSTR aBase[]{ "a","b","c","d","e","f","g","h","x","y","z","x","x","x"};
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      for(size_t i=0; i<_countof(aAccents); ++i) {
+         //build base
+         CMathItem* pBase = CWordItemBuilder::BuildMathWord("", aBase[i], false, style);
+         _ASSERT(pBase);
+         CMathItem* pAccentItem = CAccentBuilder::BuildAccented(style, 1.0f, pBase, aAccents[i]);
+         _ASSERT(pAccentItem);
+         pHBox->AddItem(pAccentItem);
+         CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+         pHBox->AddItem(pComma);
+      }
+      pHBox->Update();
+      return pHBox;
+   }
+   CHBoxItem* BuildAccentItems2_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      const PCSTR aAccents[]{ 
+         "\\ocirc","\\hat","\\tilde","\\dot","\\ddot","\\bar","\\check","\\acute",
+         "\\grave","\\breve","\\vec","\\threeunderdot","\\underleftarrow","\\underrightarrow" };
+      const PCSTR aBase[]{ "a","b","c","d","e","f","g","h","x","y","z","x","x","x" };
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      for (size_t i = 0; i < _countof(aAccents); ++i) {
+         //build base
+         CMathItem* pBase = CWordItemBuilder::BuildMathWord("", aBase[i], false, style);
+         _ASSERT(pBase);
+         CMathItem* pAccentItem = CAccentBuilder::BuildAccented(style, 1.0f, pBase, aAccents[i]);
+         _ASSERT(pAccentItem);
+         CMathItem* pAccentItem2= CAccentBuilder::BuildAccented(style, 1.0f, pAccentItem, aAccents[i?i-1:11]);
+         _ASSERT(pAccentItem2);
+         pHBox->AddItem(pAccentItem2);
+         CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+         pHBox->AddItem(pComma);
+      }
+      pHBox->Update();
+      return pHBox;
+   }
+   void BuildAccentItems_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      int32_t nY = 100, nInterLine = 1750;
+      m_MainBox.AddBox(BuildAccentItems1_(), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildAccentItems2_(), 100, nY);
+      //}
+   }
 };
-
-// --- WinMain Entry Point ---
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
    HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0);
