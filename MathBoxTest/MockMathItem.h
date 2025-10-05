@@ -13,7 +13,7 @@ class CMockMathItem : public CMathItem {
             m_eType = eacMATHOP;//or eacBIGOP
             break;
          case etaINNER:
-            m_eType = eacFRACTION;
+            m_eType = eacVBOX;
             break;
          default: m_eType = eacWORD;
       }

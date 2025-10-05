@@ -9,9 +9,7 @@
 
 //
 //forward declarations
-struct ID2D1HwndRenderTarget;
-struct IDWriteFontFace;
-struct DWRITE_FONT_METRICS;
+struct ID2D1RenderTarget;
 struct ID2D1Brush;
 
 //abstract TexBox. all coordinates are in EM/font design units!!! 
@@ -20,10 +18,8 @@ struct STexBox {
    int32_t nAdvWidth{ 0 }, nHeight{ 0 };     // Ink-Box width = nAdvWidth - side bearings!
    int32_t nAscent{ 0 };                     // distance from TOP to baseline
    int32_t nLBearing{ 0 }, nRBearing{ 0 };   // for glyph boxes!
-   int32_t nAxisHeight{ 0 };                 // optional, distance from baseline to math axis, 0: not defined
    //ATTS
    bool IsEmpty() const { return nAdvWidth == 0 && nHeight == 0; }
-   bool IsVCenterable() const { return nAxisHeight != 0; }
    int32_t Ascent() const { return nAscent; }
    int32_t Depth() const { return nHeight - nAscent; }
    int32_t Height() const { return nHeight; }
@@ -36,7 +32,7 @@ struct STexBox {
    int32_t Top() const { return nY; }
    int32_t Bottom() const { return nY + nHeight; }
    int32_t BaselineY() const { return nY + nAscent; }
-   int32_t AxisY() const { return BaselineY() - nAxisHeight; } //absolute Y of math axis
+   int32_t AxisY() const { return BaselineY() - otfAxisHeight; } //absolute Y of math axis
    int32_t InkLeft() const { return Left() + nLBearing; }
    int32_t InkRight() const { return Right() - nRBearing; }
    int32_t InkWidth() const { return InkRight() - InkLeft(); }
@@ -56,6 +52,16 @@ struct STexBox {
       nX = x0; nY = y0;
       nHeight = y1 - y0;
       nAdvWidth = x1 - x0;
+   }
+   void SetMathAxis(int32_t nAxisY) {
+      //nY + nAscent - otfAxisHeight = nAxisY =>
+      nAscent = nAxisY + otfAxisHeight - nY;
+   }
+   void Copy(const STexBox& b) {
+      nX = b.nX; nY = b.nY;
+      nAdvWidth = b.nAdvWidth; nHeight = b.nHeight;
+      nAscent = b.nAscent;
+      nLBearing = b.nLBearing; nRBearing = b.nRBearing;
    }
 };
 struct SDWRenderInfo {
@@ -89,15 +95,14 @@ enum EnumMathItemType {
    eacHBOX,             // HBox or Inner \left..\right subformula
    eacOVER,             // Over: item with an overbrace child
    eacUNDER,            // Under: item with an underbrace child
-   eacACCENT,           // Acc: item with an accent child (bar,hat,vec,tilde, etc.)
+   eacACCENT,           // Acc: item with an accent child (\bar, \hat, \vec, \tilde, etc.)
    eacINDEXED,          // [all]: item with subscript/superscript indexes; its default in TeX, but not here!
-   eacRADICAL,          // radical/root item with base and argument
-   eacFRACTION,         // Inner: fraction item with numerator and denominator
+   eacRADICAL,          // Ord: radical/root item with base and argument
+   eacVBOX,             // Ord: fraction or stacked items: \frac, \binom, \stackrel, \substack, \atop, \genfrac, \overset, etc.
    eacBIGOP,            // OP(large): integrals,sum, prod, etc. + optional \limits
-   eacMATHOP,           // OP(small): math operatorx + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
-   eacCANCEL,           // item with a cancel line (diagonal cross-out)
-   eacNOT,              // item with a slash (negation)
-   eacSUBSTACK,         // ~vbox, item with substack child (for multi-level limits etc.)
+   eacMATHOP,           // OP(small): math op + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
+   //eacCANCEL,         // item with a cancel line (diagonal cross-out)
+   //eacNOT,            // item with a slash (negation)
    eacGLUE,             // -: invisible spacing item of variable width
 };
 //Tex style helper class
@@ -206,4 +211,40 @@ struct SLMMGlyph {
    string   sName;                     //cmap glyph name
    string   sLaTexCmd;                 //latex-unicode.json
 };
-
+//PARSER DEFS - TODO: move to parser's decls
+enum EnumLatexCmdArgType {
+   elcatNull = -1,// empty, no argument
+   elcatItem = 0, // ~any, CMathItem*
+   elcatGlyph,   // single glyph/symbol is expected
+   elcatDim,      // size: #{pt|em}
+   elcatTexStyle, // 0,1,2,3 only!
+   elcatMultiLine // multi-liner arguments, split by "\\\\" (e.g. \substack)
+};
+enum EnumLCATParenthesis {
+   elcapAny = 0,  // optional {} brackets
+   elcapFig,      // non-optional {} brackets
+   elcapSquare,   // non-optional [] brackets
+};
+struct SLaTexCmdArgInfo {
+   bool                 bOpt{ false };
+   bool                 bBase{ false };
+   bool                 bScript{ false };          // decreased style, of the Base OR the cmd input style if no base!
+   int16_t              nArgPos{ 0 };              // -1 = BEFORE command,0 -inside command (e.g. "_{}^{}), >0 after command
+   EnumLatexCmdArgType  eLCAT{ elcatItem };
+   EnumLCATParenthesis  eParenthesis{ elcapAny };
+};
+struct SLaTexCmdArgValue {
+   EnumLatexCmdArgType  eLCAT;
+   union {
+      int16_t     nVal;
+      float       fVal;
+      CMathItem* pMathItem{ nullptr };
+   }       uVal;
+};
+DECLARE_INTERFACE(IMathItemBuilder) {
+   virtual ~IMathItemBuilder() {}
+   virtual bool CanTakeCommand(PCSTR szCmd) const = 0;
+   virtual bool GetCommandInfo(PCSTR szCmd, OUT bool& bTextMode, OUT const vector<SLaTexCmdArgInfo>*& vArgInfo) const = 0;
+   virtual CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale, 
+                                 const vector<SLaTexCmdArgValue>& vArgValues) const = 0;
+};

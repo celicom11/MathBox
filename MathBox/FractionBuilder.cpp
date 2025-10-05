@@ -6,13 +6,11 @@
 CMathItem* CFractionBuilder::BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
-   CContainerItem* pRetBox = new CContainerItem(eacFRACTION, style, etaORD);
+   CContainerItem* pRetBox = new CContainerItem(eacVBOX, style, etaORD);
    //1. Build fraction rule - it is an anchor!
    CFillerItem* pFracRule =
       new CFillerItem(max(pNum->Box().Width(), pDenom->Box().Width()), F2NEAREST((2 * otfFractionRuleThickness) * fScale));
    pRetBox->AddBox(pFracRule, 0, 0);
-   pRetBox->SetAscent(F2NEAREST((otfFractionRuleThickness + otfAxisHeight) * fScale));
-   pRetBox->SetAxisHeight(F2NEAREST((otfFractionRuleThickness / 2 + otfAxisHeight) * fScale));
    //2. Params to calculate the required gaps
    const int32_t nMinNumGap = bDisplayStyle ? otfFractionNumDisplayStyleGapMin : otfFractionNumeratorGapMin;
    const int32_t nMinDenomGap = bDisplayStyle ? otfFractionDenomDisplayStyleGapMin : otfFractionDenominatorGapMin;
@@ -34,5 +32,6 @@ CMathItem* CFractionBuilder::BuildFraction(const CMathStyle& style, float fUserS
          pRetBox->Box().BaselineY() + F2NEAREST(nBaseToDenomBase * fScale) - pDenom->Box().Ascent());
    pRetBox->AddBox(pDenom, nDenomLeft, nDenomY);
    pRetBox->NormalizeOrigin(0, 0);
+   pRetBox->SetMathAxis((pFracRule->Box().Top() + pFracRule->Box().Bottom())/2);
    return pRetBox;
 }

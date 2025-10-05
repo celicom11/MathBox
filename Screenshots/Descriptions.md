@@ -61,3 +61,13 @@ Testing various math-fonts (and superscript!) items.
 \[\mathbffrak{3x^2 \in R \subset Q}\]
 ```
 One noticable difference is that Overleaf/LuaLaTex uses regular font for digits in "\mathbfit" scope, while MathBox - bold digits. Which way is correct??
+
+## Test3.
+Testing stacked items (VBox) with 24pt font (bottom) vs LuaLaTeX with amsmath+stackengine packages(top).
+```
+\stackMath
+{_{a}^{b}},{^{a}_{b}},\underset{a}{b},\overset{a}{b},
+\substack{b\\a},\substack{a\\b},\substack{\displaystyle b\\\displaystyle a},\substack{\displaystyle a\\\displaystyle b},\stackrel{\scriptscriptstyle >}{<},\stackrel{\scriptscriptstyle ?}{=},
+\stackunder[0em]{a}{b},\stackunder[0.1em]{a}{b},\stackunder[0.2em]{a}{b},\stackunder[0.3em]{a}{b},
+```
+Noticable but not a crucial difference is in line spacing for \substack lines.

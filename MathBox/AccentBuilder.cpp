@@ -101,5 +101,9 @@ CMathItem* CAccentBuilder::BuildAccented(const CMathStyle& style, float fUserSca
    pRet->AddBox(pAccent, nBaseAccentX - nAccentX, //align attachment points of the base and the accent!
                          nAccentY);
    pRet->NormalizeOrigin(0, 0);
+   //restore pAccentBase's box horizontal metrics
+   pRet->Box().nAdvWidth = pAccentBase->Box().Width();
+   pRet->Box().nLBearing = pAccentBase->Box().nLBearing;
+   pRet->Box().nRBearing = pAccentBase->Box().nRBearing;
    return pRet;
 }

@@ -39,6 +39,9 @@
     <ClCompile Include="MathBox\AccentBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\VBoxBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -82,6 +85,9 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\AccentBuilder.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\VBoxBuilder.h">
       <Filter>MathBox</Filter>
     </ClInclude>
   </ItemGroup>

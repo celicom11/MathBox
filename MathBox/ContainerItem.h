@@ -15,6 +15,7 @@ public:
  //ATTS
    const vector<CMathItem*>& Items() const { return m_vItems; }
    bool IsEmpty() const { return m_vItems.empty(); }
+   STexBox& Box() { return m_Box; } //needed for builder's adjustments
  //METHODS
    void Clear() {
       for (CMathItem* pTBox : m_vItems)
@@ -41,12 +42,8 @@ public:
       }
       m_Box.MoveTo(nXOrig, nYOrig);
    }
-   void SetAscent(int32_t nAscent) {
-      m_Box.nAscent = nAscent;
-   }
-   void SetAxisHeight(int32_t nAxisHeight) {
-      m_Box.nAxisHeight = nAxisHeight;
-   }
+   void SetAscent(int32_t nAscent) { m_Box.nAscent = nAscent; }
+   void SetMathAxis(int32_t nAxisY) { m_Box.SetMathAxis(nAxisY); }
    void AddWidth(int32_t nSX) { m_Box.nAdvWidth += nSX; } //needed for some item on construction
  //VFUNC implementation
    void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {
