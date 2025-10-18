@@ -7,6 +7,9 @@
 #include "MathBox\HBoxItem.h"
 #include "MathBox\AccentBuilder.h"
 #include "MathBox\VBoxBuilder.h"
+#include "MathBox\UnderOverBuilder.h"
+#include "MathBox\OpenCloseBuilder.h"
+#include "MathBox\LOpBuilder.h"
 
 //globals
 CLMFontManager g_LMFManager;
@@ -100,11 +103,13 @@ public:
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
             //BuildRadicals_();
-            //BuildIndexed_("f");
+            //BuildIndexed_("af");
             //BuildTexts_();
             //BuildMathFonts_();
             //BuildAccentItems_();
-            BuildVBoxes_();
+            //BuildVBoxes_();
+            //BuildOpenClose_();
+            BuildLargeOps_();
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -170,10 +175,9 @@ private:
       }
       ValidateRect(m_hwnd, nullptr);
    }
-   // build various $$Text\ 0+1+2+3$$
+   // various $$Text\ 0+1+2+3$$
    void BuildTexts_() {
       CMathStyle style(m_MainBox.GetStyle());
-      const STexGlue glueSpace{ 0,0,0,0,833,833 };
       PCSTR szTestText = "Text 0+1+2+3";
       int32_t nY = 100, nInterLine = 1500;
       m_MainBox.AddBox(CWordItemBuilder::BuildText("text",       szTestText, style, 1.0f),100, nY); 
@@ -206,7 +210,7 @@ private:
       m_MainBox.AddBox(CWordItemBuilder::BuildText("textsc", szTestText, style, 1.0f), 100, nY);
       nY += nInterLine;
    }
-   // build various $$3x^2 \in R \subset Q$$
+   // various $$3x^2 \in R \subset Q$$
    void BuildMathFonts_() {
       CMathStyle style(m_MainBox.GetStyle());
       CMathStyle styleSuper(m_MainBox.GetStyle());
@@ -234,11 +238,10 @@ private:
          nY += nInterLine;
       }
    }
-   // build $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
+   // $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
    void BuildIndexed_(PCSTR szBase) {
       CMathStyle style(m_MainBox.GetStyle());
       const float aFontSize[] = { 9, 12 , 14, 18 , 21, 24, 30, 40, 50};
-      uint32_t nLeftEm = 0;
       //styles for indexed Numerator
       CMathStyle styleSuper(style);
       styleSuper.Decrease();
@@ -246,23 +249,150 @@ private:
          styleSuper.Decrease();
       CMathStyle styleSubs(styleSuper);
       styleSubs.SetCramped(true);
-
-      for (float fSizePt : aFontSize) {
+      CHBoxItem* pHBox = new CHBoxItem(style);
+/*      for (float fSizePt : aFontSize) {
          CMathItem* pBase = CWordItemBuilder::BuildText("textit", szBase, style, fSizePt / m_fFontSizePt);
          _ASSERT_RET(pBase, );
-         CMathItem* pSuperS = CWordItemBuilder::BuildText("","2", styleSuper, 1.0f);
+         CMathItem* pSuperS = CWordItemBuilder::BuildMathWord("","2", true, styleSuper, 1.0f);
          _ASSERT_RET(pSuperS, );
-         CMathItem* pSubS = CWordItemBuilder::BuildText("", "1", styleSubs, 1.0f);
+         CMathItem* pSubS = CWordItemBuilder::BuildMathWord("", "1", true, styleSubs, 1.0f);
          _ASSERT_RET(pSubS, );
          CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pBase, pSuperS, pSubS);
-         int32_t nNextY = 0;
-         if (!m_MainBox.Box().IsEmpty())//keep baselines aligned
-            nNextY = m_MainBox.Box().BaselineY() - pIndexed->Box().Ascent();
-         m_MainBox.AddBox(pIndexed, nLeftEm, nNextY);
-         nLeftEm += pIndexed->Box().Width() + 1600;
-      }
-      m_MainBox.NormalizeOrigin(0, 0);
+         pHBox->AddItem(pIndexed);
+         CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+         pHBox->AddItem(pComma);
+      }*/
+      CUnderOverBuilder builder;
+      //\overparen{ABCDEF}^{n\,times}
+      CMathItem* pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      CMathItem* pSupers = CWordItemBuilder::BuildMathWord("", "n times", false, styleSubs);
+      SLaTexCmdArgValue arg1{ elcatItem, {0} }; arg1.uVal.pMathItem = pBase;
+      CMathItem* pVBox = builder.BuildItem("\\overparen", style, 1.0f, { arg1 });
+      CMathItem* pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pVBox, pSupers, nullptr);
+      pHBox->AddItem(pIndexed);
+
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overbrace{ABCDE}^{n\,times}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      pSupers = CWordItemBuilder::BuildMathWord("", "n times", false, styleSubs);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overbrace", style, 1.0f, { arg1 });
+      pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pVBox, pSupers, nullptr);
+      pHBox->AddItem(pIndexed);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+      //\underbracket{ABCDE}_{n\,times}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      pSupers = CWordItemBuilder::BuildMathWord("", "n times", false, styleSubs);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\underbracket", style, 1.0f, { arg1 });
+      pIndexed = CIndexedBuilder::BuildIndexed(style, 1.0f, pVBox, nullptr, pSupers);
+      pHBox->AddItem(pIndexed);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+      pHBox->Update();
+      m_MainBox.AddBox(pHBox, 0, 330);
    }
+   // $$\int_{a}^{b} x^2 \,dx, \int_{a}\limits^{b} x^2 \,dx,$$
+   // $\int_{a}^{b} x^2 \,dx, \int_{a}\limits^{b} x^2 \,dx,$
+   void BuildLargeOps_() {
+      CMathStyle styleD(etsDisplay);
+      CMathStyle styleT(etsText);
+      //styles for indexed Numerator
+      CMathStyle styleSuper(etsScript);
+      CMathStyle styleSubs(etsScript);
+      styleSubs.SetCramped(true);
+      CHBoxItem* pHBox = new CHBoxItem(styleD);
+      CLOpBuilder builder;
+      //\int_{a}^{b} x^2 \,dx
+      CMathItem* pBase = CWordItemBuilder::BuildMathWord("", "x", false, styleD);
+      CMathItem* pSupers = CWordItemBuilder::BuildMathWord("", "2", true, styleSuper);
+      CMathItem* pLopArg = CIndexedBuilder::BuildIndexed(styleD, 1.0f, pBase, pSupers, nullptr);
+      SLaTexCmdArgValue arg1{ elcatLimits, {0} }; arg1.uVal.nVal= 0;
+      CMathItem* pLop = builder.BuildItem("\\int", styleD, 1.0f, { arg1 });
+      CMathItem* pLimBtm = CWordItemBuilder::BuildMathWord("", "a", false, styleSuper);
+      CMathItem* pLimTop = CWordItemBuilder::BuildMathWord("", "b", false, styleSuper);
+
+      CMathItem* pLopLims = CIndexedBuilder::BuildIndexed(styleD, 1.0f, pLop, pLimTop, pLimBtm);
+      pHBox->AddItem(pLopLims);
+      pHBox->AddItem(pLopArg);
+ 
+      CMathItem* pGlue = CWordItemBuilder::BuildTeXSymbol("", "\\,", styleD);
+      pHBox->AddItem(pGlue);
+      CMathItem* pDX = CWordItemBuilder::BuildMathWord("", "dx", false, styleD);
+      pHBox->AddItem(pDX);
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", styleD);
+      pHBox->AddItem(pComma);
+      //\int\limits_{a}^{b} x^2 \,dx
+      pBase = CWordItemBuilder::BuildMathWord("", "x", false, styleD);
+      pSupers = CWordItemBuilder::BuildMathWord("", "2", true, styleSuper);
+      pLopArg = CIndexedBuilder::BuildIndexed(styleD, 1.0f, pBase, pSupers, nullptr);
+      arg1.uVal.nVal = 1;
+      pLop = builder.BuildItem("\\int", styleD, 1.0f, { arg1 });
+      pLimBtm = CWordItemBuilder::BuildMathWord("", "a", false, styleSuper);
+      pLimTop = CWordItemBuilder::BuildMathWord("", "b", false, styleSuper);
+
+      pLopLims = CIndexedBuilder::BuildIndexed(styleD, 1.0f, pLop, pLimTop, pLimBtm);
+      pHBox->AddItem(pLopLims);
+      pHBox->AddItem(pLopArg);
+
+      pGlue = CWordItemBuilder::BuildTeXSymbol("", "\\,", styleD);
+      pHBox->AddItem(pGlue);
+      pDX = CWordItemBuilder::BuildMathWord("", "dx", false, styleD);
+      pHBox->AddItem(pDX);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", styleD);
+      pHBox->AddItem(pComma);
+      pHBox->Update();
+      m_MainBox.AddBox(pHBox, 0, 330);
+      //Text Mode
+      pHBox = new CHBoxItem(styleT);
+      //\int_{a}^{b} x^2 \,dx
+      pBase = CWordItemBuilder::BuildMathWord("", "x", false, styleT);
+      pSupers = CWordItemBuilder::BuildMathWord("", "2", true, styleSuper);
+      pLopArg = CIndexedBuilder::BuildIndexed(styleT, 1.0f, pBase, pSupers, nullptr);
+      arg1.uVal.nVal = 0;
+      pLop = builder.BuildItem("\\int", styleT, 1.0f, { arg1 });
+      pLimBtm = CWordItemBuilder::BuildMathWord("", "a", false, styleSuper);
+      pLimTop = CWordItemBuilder::BuildMathWord("", "b", false, styleSuper);
+
+      pLopLims = CIndexedBuilder::BuildIndexed(styleT, 1.0f, pLop, pLimTop, pLimBtm);
+      pHBox->AddItem(pLopLims);
+      pHBox->AddItem(pLopArg);
+
+      pGlue = CWordItemBuilder::BuildTeXSymbol("", "\\,", styleT);
+      pHBox->AddItem(pGlue);
+      pDX = CWordItemBuilder::BuildMathWord("", "dx", false, styleT);
+      pHBox->AddItem(pDX);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", styleT);
+      pHBox->AddItem(pComma);
+
+      //\int\limits_{a}^{b} x^2 \,dx
+      pBase = CWordItemBuilder::BuildMathWord("", "x", false, styleT);
+      pSupers = CWordItemBuilder::BuildMathWord("", "2", true, styleSuper);
+      pLopArg = CIndexedBuilder::BuildIndexed(styleT, 1.0f, pBase, pSupers, nullptr);
+      arg1.uVal.nVal = 1;
+      pLop = builder.BuildItem("\\int", styleT, 1.0f, { arg1 });
+      pLimBtm = CWordItemBuilder::BuildMathWord("", "a", false, styleSuper);
+      pLimTop = CWordItemBuilder::BuildMathWord("", "b", false, styleSuper);
+
+      pLopLims = CIndexedBuilder::BuildIndexed(styleT, 1.0f, pLop, pLimTop, pLimBtm);
+      pHBox->AddItem(pLopLims);
+      pHBox->AddItem(pLopArg);
+
+      pGlue = CWordItemBuilder::BuildTeXSymbol("", "\\,", styleT);
+      pHBox->AddItem(pGlue);
+      pDX = CWordItemBuilder::BuildMathWord("", "dx", false, styleT);
+      pHBox->AddItem(pDX);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", styleT);
+      pHBox->AddItem(pComma);
+
+      pHBox->Update();
+      m_MainBox.AddBox(pHBox, 0, 4530);
+   }
+
    // \sqrt{\sqrt[\textit{ABC}]{\frac{\textit{\fontsize{##pt}{??pt}\selectfont x}_1^2}{2}}}
    void BuildRadicals_() {
       CMathStyle style(m_MainBox.GetStyle());
@@ -328,11 +458,11 @@ private:
          "\\grave","\\breve","\\vec","\\threeunderdot","\\underleftarrow","\\underrightarrow"};
       const PCSTR aBase[]{ "a","b","c","d","e","f","g","h","x","y","z","x","x","x"};
       CHBoxItem* pHBox = new CHBoxItem(style);
-      for(size_t i=0; i<_countof(aAccents); ++i) {
+      for(int nIdx=0; nIdx < (int)_countof(aAccents); ++nIdx) {
          //build base
-         CMathItem* pBase = CWordItemBuilder::BuildMathWord("", aBase[i], false, style);
+         CMathItem* pBase = CWordItemBuilder::BuildMathWord("", aBase[nIdx], false, style);
          _ASSERT(pBase);
-         CMathItem* pAccentItem = CAccentBuilder::BuildAccented(style, 1.0f, pBase, aAccents[i]);
+         CMathItem* pAccentItem = CAccentBuilder::BuildAccented(style, 1.0f, pBase, aAccents[nIdx]);
          _ASSERT(pAccentItem);
          pHBox->AddItem(pAccentItem);
          CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
@@ -377,13 +507,171 @@ private:
       pHBox->Update();
       return pHBox;
    }
+   CHBoxItem* BuildOverItems_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      CUnderOverBuilder builder;
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      //\widehat{ABC}
+      CMathItem* pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      _ASSERT(pBase);
+      SLaTexCmdArgValue arg1{ elcatItem, {0} }; arg1.uVal.pMathItem = pBase;
+      CMathItem* pVBox = builder.BuildItem("\\widehat", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\widecheck{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\widecheck", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\widetilde{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\widetilde", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overline{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overline", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overbracket{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overbracket", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overparen{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overparen", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overbrace{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overbrace", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\obrbrak{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\obrbrak", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+      pHBox->Update();
+      return pHBox;
+   }
+   CHBoxItem* BuildOverItems2_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      CUnderOverBuilder builder;
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      //\overleftarrow{ABCDE}
+      CMathItem* pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      _ASSERT(pBase);
+      SLaTexCmdArgValue arg1{ elcatItem, {0} }; arg1.uVal.pMathItem = pBase;
+      CMathItem* pVBox = builder.BuildItem("\\overleftarrow", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overrightarrow{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overrightarrow", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\overleftrightarrow{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\overleftrightarrow", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\Overrightarrow{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\Overrightarrow", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+      pHBox->Update();
+      return pHBox;
+   }
+   CHBoxItem* BuildUnderItems_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      CUnderOverBuilder builder;
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      //\utilde{ABC}
+      CMathItem* pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      _ASSERT(pBase);
+      SLaTexCmdArgValue arg1{ elcatItem, {0} }; arg1.uVal.pMathItem = pBase;
+      CMathItem* pVBox = builder.BuildItem("\\utilde", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\underline{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\underline", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\underbracket{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\underbracket", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\underparen{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\underparen", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\underbrace{ABCDE}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABCDE", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\underbrace", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //\ubrbrak{ABC}
+      pBase = CWordItemBuilder::BuildMathWord("", "ABC", false, style);
+      arg1.uVal.pMathItem = pBase;
+      pVBox = builder.BuildItem("\\ubrbrak", style, 1.0f, { arg1 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+      pHBox->Update();
+      return pHBox;
+   }
    void BuildAccentItems_() {
       CMathStyle style(m_MainBox.GetStyle());
       int32_t nY = 100, nInterLine = 1600;
       m_MainBox.AddBox(BuildAccentItems1_(), 100, nY);
       nY += nInterLine;
       m_MainBox.AddBox(BuildAccentItems2_(), 100, nY);
-      //}
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildOverItems_(), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildOverItems2_(), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildUnderItems_(), 100, nY);
    }
    void BuildVBoxes_() {
       CMathStyle style(m_MainBox.GetStyle());
@@ -391,6 +679,23 @@ private:
       m_MainBox.AddBox(BuildVBoxes1_(), 100, nY);
       //nY += nInterLine;
       //m_MainBox.AddBox(BuildAccentItems2_(), 100, nY);
+   }
+   void BuildOpenClose_() {
+      CMathStyle style(m_MainBox.GetStyle());
+      int32_t nY = 100, nInterLine = 3200;
+
+      m_MainBox.AddBox(BuildDelimiters_("(", ")", "[", "]"), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildDelimiters_("\\{", "\\}","\\backslash", "/"), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildDelimiters_("\\langle", "\\rangle", "\\lAngle", "\\rAngle"), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildDelimiters_("\\uparrow", "\\downarrow", "\\Uparrow", "\\Downarrow"), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildDelimiters_("\\updownarrow", "\\Updownarrow", "\\|", "|"), 100, nY);
+      nY += nInterLine;
+      m_MainBox.AddBox(BuildDelimiters_("\\lceil", "\\rceil", "\\lfloor", "\\rfloor"), 100, nY);
+      nY += nInterLine;
    }
    //_a^b,^a_b,\underset{a}{b},\overset{a}{b},
    // \substack{b\\a},\substack{a\\b},\substack{\displaystyle b\\\displaystyle a},
@@ -530,14 +835,63 @@ private:
       pHBox->AddItem(pComma);
       //stackunder[0.3em]{a}{b}
       arg0.uVal.nVal = 300;
-      pFirst = CWordItemBuilder::BuildMathWord("", "a", false, style);
+      pFirst = CWordItemBuilder::BuildMathWord("", "a", false, style,1.0f);
       arg1.uVal.pMathItem = pFirst;
-      pSecond = CWordItemBuilder::BuildMathWord("", "b", false, style);
+      pSecond = CWordItemBuilder::BuildMathWord("", "b", false, style,1.0f);
       arg2.uVal.pMathItem = pSecond;
       pVBox = builder.BuildItem("\\stackunder", style, 1.0f, { arg0, arg1, arg2 });
       pHBox->AddItem(pVBox);
       pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
       pHBox->AddItem(pComma);
+      //binom{a}{b}
+      pFirst = CWordItemBuilder::BuildMathWord("", "a", false, styleSuper, 1.0f);
+      arg1.uVal.pMathItem = pFirst;
+      pSecond = CWordItemBuilder::BuildMathWord("", "b", false, styleSuper, 1.0f);
+      arg2.uVal.pMathItem = pSecond;
+      pVBox = builder.BuildItem("\\binom", style, 1.0f, { arg1, arg2 });
+      pHBox->AddItem(pVBox);
+      pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+
+
+      pHBox->Update();
+      return pHBox;
+   }
+   // \big(\Big(\bigg(\Bigg(
+   CHBoxItem* BuildDelimiters_(PCSTR szDelim1, PCSTR szDelim2, PCSTR szDelim3, PCSTR szDelim4) {
+      CMathStyle style(m_MainBox.GetStyle());
+      CHBoxItem* pHBox = new CHBoxItem(style);
+      string sText = string(szDelim1) + "\\big" + szDelim1 + "\\Big" + szDelim1 + "\\bigg" + szDelim1 + "\\Bigg" + szDelim1;
+      sText += string("\\Bigg") + szDelim2 + "\\bigg" + szDelim2 + "\\Big" + szDelim2 + "\\big" + szDelim2 + szDelim2;
+      PCSTR szNext;
+      SLMMDelimiter lmmDelimiter;
+      bool bOk = COpenCloseBuilder::ConsumeDelimiter(sText.c_str(), style, szNext, lmmDelimiter);
+      _ASSERT_RET(bOk, nullptr);
+      while (bOk) {
+         CMathItem* pDelim = COpenCloseBuilder::BuildDelimiter(lmmDelimiter, style);
+         _ASSERT_RET(pDelim, nullptr);
+         pHBox->AddItem(pDelim);
+         if (!*szNext)
+            break;//done!
+         bOk = COpenCloseBuilder::ConsumeDelimiter(szNext, style, szNext, lmmDelimiter);
+         _ASSERT_RET(bOk, nullptr);
+      }
+      CMathItem* pComma = CWordItemBuilder::BuildTeXSymbol("", "\\mathcomma", style);
+      pHBox->AddItem(pComma);
+      //same for 3/4
+      sText = string(szDelim3) + "\\big" + szDelim3 + "\\Big" + szDelim3 + "\\bigg" + szDelim3 + "\\Bigg" + szDelim3;
+      sText += string("\\Bigg") + szDelim4 + "\\bigg" + szDelim4 + "\\Big" + szDelim4 + "\\big" + szDelim4 + szDelim4;
+      bOk = COpenCloseBuilder::ConsumeDelimiter(sText.c_str(), style, szNext, lmmDelimiter);
+      _ASSERT_RET(bOk, nullptr);
+      while (bOk) {
+         CMathItem* pDelim = COpenCloseBuilder::BuildDelimiter(lmmDelimiter, style);
+         _ASSERT_RET(pDelim, nullptr);
+         pHBox->AddItem(pDelim);
+         if (!*szNext)
+            break;//done!
+         bOk = COpenCloseBuilder::ConsumeDelimiter(szNext, style, szNext, lmmDelimiter);
+         _ASSERT_RET(bOk, nullptr);
+      }
 
       pHBox->Update();
       return pHBox;

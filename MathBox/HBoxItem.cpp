@@ -74,6 +74,8 @@ void CHBoxItem::UpdateLayout_() {
          fX += pGlue->GetGlue()->fActual;//may be < 0!
       pItem->MoveTo(F2NEAREST(m_Box.Left() + fX), pItem->Box().Top());
    }
+   m_Box.nAdvWidth = m_vItems.back()->Box().Right() - m_Box.Left();
+   m_Box.nRBearing = m_vItems.back()->Box().RBearing();
 }
 //adjust resizable glues to fit box with min Badness and UpdateLayout
 void CHBoxItem::ResizeByRatio(uint16_t nOrder, float fRatio) {

@@ -1,10 +1,9 @@
-#pragma once
 #include "stdafx.h"
 #include "VBoxBuilder.h"
 #include "ContainerItem.h"
+#include "OpenCloseBuilder.h"
 
 namespace {
-   //static const vector<SLaTexCmdArgInfo> _v1{ {false, false, true,0,elcatItem,elcapAny}, {false, false, true,1,elcatItem,elcapAny}};
    static const map<string, vector<SLaTexCmdArgInfo>> _mapMathModeCmdInfo {
       {"_^",{        {false, false, true,0,elcatItem,elcapAny},
                      {false, false, true,1,elcatItem,elcapAny}
@@ -36,7 +35,7 @@ namespace {
 
             }
       },
-      {"binom", { //need ParenthesisBuider!
+      {"binom", { 
                      {false, false, false,1,elcatItem,elcapFig},
                      {false, false, false,2,elcatItem,elcapFig},
             }
@@ -102,13 +101,12 @@ bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd) const {
       ++szCmd;
    return (_mapMathModeCmdInfo.find(szCmd) != _mapMathModeCmdInfo.end());
 }
-bool CVBoxBuilder::GetCommandInfo(PCSTR szCmd, OUT bool& bTextMode, OUT const vector<SLaTexCmdArgInfo>*& vArgInfo) const {
+bool CVBoxBuilder::GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    auto itPair = _mapMathModeCmdInfo.find(szCmd);
    if (itPair == _mapMathModeCmdInfo.end())
       return false;
-   bTextMode = false;   //only math mode!
-   vArgInfo = &itPair->second;//copy vector
+   cmdInfo.vArgInfo = itPair->second;//copy vector
    return true;
 }
 CMathItem* CVBoxBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
@@ -183,6 +181,18 @@ CMathItem* CVBoxBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float f
       pBottom = vArgValues[2].uVal.pMathItem;
       nAnchor = 0;      //top is a base
       nVKern = F2NEAREST(vArgValues[0].uVal.nVal * fUserScale);
+   }
+   else if (itPair->first == "binom") {
+      _ASSERT_RET(vArgValues.size() == 2, nullptr);
+      _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
+      _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
+      pTop = vArgValues[0].uVal.pMathItem;
+      pBottom = vArgValues[1].uVal.pMathItem;
+      nAnchor = 2;      //axis!
+      nVKern = F2NEAREST(6 * otfFractionRuleThickness * style.StyleScale() * fUserScale);//q&d
+      CMathItem* pGenFrac = BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
+      _ASSERT_RET(pGenFrac, nullptr);
+      return COpenCloseBuilder::BuildOpenClose(L'(', L')', pGenFrac, style, fUserScale);
    }
    else
       return nullptr;//snbh!

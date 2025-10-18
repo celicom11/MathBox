@@ -28,7 +28,6 @@ public:
    bool SetGlyphIndexes(const vector<UINT16>& vGIndexes);
 //ATTS
    const CGlyphRun& GlyphRun() const { return m_GlyphRun; }
-   void SetAtom(EnumTexAtom eAtom) { m_eAtom = eAtom; } //sometimes has to be set by the creator
 //CMathItem Implementation
    void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override;
 private:

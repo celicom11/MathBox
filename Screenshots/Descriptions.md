@@ -71,3 +71,30 @@ Testing stacked items (VBox) with 24pt font (bottom) vs LuaLaTeX with amsmath+st
 \stackunder[0em]{a}{b},\stackunder[0.1em]{a}{b},\stackunder[0.2em]{a}{b},\stackunder[0.3em]{a}{b},
 ```
 Noticable but not a crucial difference is in line spacing for \substack lines.
+
+## Test4.
+Testing extensible accents (Over/Under bracies) vs LuaLaTeX (bottom) with 24pt font.
+```
+\widehat{ABC},\widecheck{ABC},\widetilde{ABC},\overline{ABC},
+\overbracket{ABC},\overparen{ABC},\overbrace{ABC},\\
+\overleftarrow{ABCDE},\overrightarrow{ABCDE},\overleftrightarrow{ABCDE},\Overrightarrow{ABCDE},\\
+\utilde{ABC},\underline{ABC},\underbracket{ABCDE},\underparen{ABCDE},\underbrace{ABCDE},
+```
+**Note:** MathBox has additional \obrbrak,\ubrbrak extendable top/bottdelimiterom "tortoise shell brackets" in 1st and the 3rd lines unsupported by known packages.
+
+## Test5.
+Testing delimiter's variants vs LuaLaTeX (right) with 24pt font.
+```
+(\big(\Big(\bigg(\Bigg(\Bigg)\bigg)\Big)\big)),
+[\big[\Big[\bigg[\Bigg[\Bigg]\bigg]\Big]\big]]\\
+\{\big\{\Big\{\bigg\{\Bigg\{\Bigg\}\bigg\}\Big\}\big\}\},
+\backslash\big\backslash\Big\backslash\bigg\backslash\Bigg\backslash\Bigg/\bigg/\Big/\big//\\
+\langle\big\langle\Big\langle\bigg\langle\Bigg\langle\Bigg\rangle\bigg\rangle\Big\rangle\big\rangle\rangle,
+\lAngle\big\lAngle\Big\lAngle\bigg\lAngle\Bigg\lAngle\Bigg\rAngle\bigg\rAngle\Big\rAngle\big\rAngle\rAngle\\
+\uparrow\big\uparrow\Big\uparrow\bigg\uparrow\Bigg\uparrow\Bigg\downarrow\bigg\downarrow\Big\downarrow\big\downarrow\downarrow,
+\Uparrow\big\Uparrow\Big\Uparrow\bigg\Uparrow\Bigg\Uparrow\Bigg\Downarrow\bigg\Downarrow\Big\Downarrow\big\Downarrow\Downarrow\\
+\updownarrow\big\updownarrow\Big\updownarrow\bigg\updownarrow\Bigg\updownarrow\Bigg\Updownarrow\bigg\Updownarrow\Big\Updownarrow\big\Updownarrow\Updownarrow,\|\big\|\Big\|\bigg\|\Bigg\|\Bigg|\bigg|\Big|\big||\\
+\lceil\big\lceil\Big\lceil\bigg\lceil\Bigg\lceil\Bigg\rceil\bigg\rceil\Big\rceil\big\rceil\rceil,
+\lfloor\big\lfloor\Big\lfloor\bigg\lfloor\Bigg\lfloor\Bigg\rfloor\bigg\rfloor\Big\rfloor\big\rfloor\rfloor
+```
+**Note:** MathBox has minor discrepancies on up/down arrows sizes - will be left as is for now.

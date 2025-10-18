@@ -2364,8 +2364,8 @@ x23DC,,overparen,8,0,28
 x23DD,,underparen,9,0,28
 x23B4,,overbracket,8,0,28
 x23B5,,underbracket,9,0,28
-x23E0,,obrbrak,0,0,28
-x23E1,,ubrbrak,0,0,28
+x23E0,,obrbrak,8,0,28
+x23E1,,ubrbrak,9,0,28
 0,parenleft.v1,,0,0,0
 0,parenright.v1,,0,0,0
 0,uni27EE.v1,,0,0,0
@@ -2578,10 +2578,10 @@ x23A4,,rbrackuend,0,0,0
 0,uni23E1.lft,,0,0,0
 0,uni23E1.ex,,0,0,0
 0,uni23E1.rt,,0,0,0
-x27E8,,langle,3,0,0
-x27E9,,rangle,3,0,0
-x27EA,,lAngle,3,0,0
-x27EB,,rAngle,3,0,0
+x27E8,,langle,4,0,0
+x27E9,,rangle,5,0,0
+x27EA,,lAngle,4,0,0
+x27EB,,rAngle,5,0,0
 0,uni27E8.v1,,0,0,0
 0,uni27E9.v1,,0,0,0
 0,uni27EA.v1,,0,0,0

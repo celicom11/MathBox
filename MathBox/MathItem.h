@@ -14,9 +14,10 @@ struct ID2D1Brush;
 
 //abstract TexBox. all coordinates are in EM/font design units!!! 
 struct STexBox {
-   int32_t nX{ 0 }, nY{ 0 };                 // left,top RELATIVE to the container box!
-   int32_t nAdvWidth{ 0 }, nHeight{ 0 };     // Ink-Box width = nAdvWidth - side bearings!
-   int32_t nAscent{ 0 };                     // distance from TOP to baseline
+   int32_t nX{ 0 }, nY{ 0 };                 // left,INK-top!
+   int32_t nAdvWidth{ 0 };                   // Ink-Box width = nAdvWidth - side bearings!
+   int32_t nHeight{ 0 };                     // nAscent+Descent = BoundsMaxY-BoundsMinY
+   int32_t nAscent{ 0 };                     // distance from INKTOP to baseline, may be negative!
    int32_t nLBearing{ 0 }, nRBearing{ 0 };   // for glyph boxes!
    //ATTS
    bool IsEmpty() const { return nAdvWidth == 0 && nHeight == 0; }
@@ -29,7 +30,7 @@ struct STexBox {
    //abs positions
    int32_t Left() const { return nX; }
    int32_t Right() const { return nX + nAdvWidth; }
-   int32_t Top() const { return nY; }
+   int32_t Top() const { return nY; }  //==Ink-Top
    int32_t Bottom() const { return nY + nHeight; }
    int32_t BaselineY() const { return nY + nAscent; }
    int32_t AxisY() const { return BaselineY() - otfAxisHeight; } //absolute Y of math axis
@@ -93,8 +94,7 @@ enum EnumMathItemType {
    eacUNK = -1,         // exention glyphs/fillers and other non selectable items
    eacWORD,             // variable's name, number, operator, punctuation,etc or text
    eacHBOX,             // HBox or Inner \left..\right subformula
-   eacOVER,             // Over: item with an overbrace child
-   eacUNDER,            // Under: item with an underbrace child
+   eacOVERUNDER,        // Ord: item with an over/under-brace child
    eacACCENT,           // Acc: item with an accent child (\bar, \hat, \vec, \tilde, etc.)
    eacINDEXED,          // [all]: item with subscript/superscript indexes; its default in TeX, but not here!
    eacRADICAL,          // Ord: radical/root item with base and argument
@@ -104,6 +104,12 @@ enum EnumMathItemType {
    //eacCANCEL,         // item with a cancel line (diagonal cross-out)
    //eacNOT,            // item with a slash (negation)
    eacGLUE,             // -: invisible spacing item of variable width
+};
+enum EnumIndexPlacement {
+   eipStd = 0,           //default
+   eipOverscript,        //overbrace^{cmnt}
+   eipUnderscript,       //underbrace^{cmnt}
+   eipOverUnderscript    //LargOp in D mode
 };
 //Tex style helper class
 class CMathStyle {
@@ -150,13 +156,13 @@ struct STexGlue {
 //base class for math items, abstract!
 class CMathItem {
 protected:
-   bool             m_bSelected{ false };    //selection support
-   bool             m_bOneGlyph{ false };    //needed for superscript/subscript positioning
-   float            m_fUserScale{ 1.0f };    //user scaling factor
-   EnumTexAtom      m_eAtom{ etaORD };       //TeX atom class, for inter-item spacing rules
-   EnumMathItemType m_eType{ eacUNK };       //~TeX atom type
-   CMathStyle       m_Style;                 //Tex style info   
-   STexBox          m_Box;
+   bool                 m_bSelected{ false };    //selection support
+   float                m_fUserScale{ 1.0f };    //user scaling factor
+   EnumIndexPlacement   m_eIndexPlacement{ eipStd };
+   EnumTexAtom          m_eAtom{ etaORD };       //TeX atom class, for inter-item spacing rules
+   EnumMathItemType     m_eType{ eacUNK };       //~TeX atom type
+   CMathStyle           m_Style;                 //Tex style info   
+   STexBox              m_Box;
 public:
    //CTOR/DTOR
    CMathItem(EnumMathItemType eType, const CMathStyle& style, float fUserScale = 1.0f) :
@@ -165,7 +171,10 @@ public:
    virtual ~CMathItem() {}
    //ATTS
    bool IsSelected() const { return m_bSelected; }
+   EnumIndexPlacement IndexPlacement() const { return m_eIndexPlacement; }
+   void SetIdxPlacement(EnumIndexPlacement eIndexPlacement) { m_eIndexPlacement = eIndexPlacement; }
    EnumTexAtom AtomType() const { return m_eAtom; }
+   void SetAtom(EnumTexAtom eAtom) { m_eAtom = eAtom; } //sometimes has to be re set !
    const CMathStyle& GetStyle() { return m_Style; }
    const STexBox& Box() const { return m_Box; }
    EnumMathItemType Type() const { return m_eType; }
@@ -211,13 +220,26 @@ struct SLMMGlyph {
    string   sName;                     //cmap glyph name
    string   sLaTexCmd;                 //latex-unicode.json
 };
+enum EnumDelimType {
+   edtNotDelim = 0,
+   edtAny,     //valid, but undefined
+   edtOpen,    //left
+   edtClose,   //right
+   edtFence,   //middle
+};
+struct SLMMDelimiter {
+   EnumDelimType  edt{ edtNotDelim };
+   int16_t        nVariantIdx{ 0 };    // index of the variant-size : -1(dynamic),0,1,2,3,4
+   uint32_t       nUni{ 0 };           // base Unicode, may be 0 for invisible open/close delimiters!
+};
 //PARSER DEFS - TODO: move to parser's decls
 enum EnumLatexCmdArgType {
    elcatNull = -1,// empty, no argument
    elcatItem = 0, // ~any, CMathItem*
    elcatGlyph,   // single glyph/symbol is expected
    elcatDim,      // size: #{pt|em}
-   elcatTexStyle, // 0,1,2,3 only!
+   elcatTexStyle, // nVal = 0,1,2,3
+   elcatLimits,   // nVal = 0(nolimits),1(limits)
    elcatMultiLine // multi-liner arguments, split by "\\\\" (e.g. \substack)
 };
 enum EnumLCATParenthesis {
@@ -233,6 +255,10 @@ struct SLaTexCmdArgInfo {
    EnumLatexCmdArgType  eLCAT{ elcatItem };
    EnumLCATParenthesis  eParenthesis{ elcapAny };
 };
+struct SLaTexCmdInfo {
+   bool                       bHasLimits{ false }; //command supports \limits
+   vector<SLaTexCmdArgInfo>   vArgInfo;
+};
 struct SLaTexCmdArgValue {
    EnumLatexCmdArgType  eLCAT;
    union {
@@ -244,7 +270,7 @@ struct SLaTexCmdArgValue {
 DECLARE_INTERFACE(IMathItemBuilder) {
    virtual ~IMathItemBuilder() {}
    virtual bool CanTakeCommand(PCSTR szCmd) const = 0;
-   virtual bool GetCommandInfo(PCSTR szCmd, OUT bool& bTextMode, OUT const vector<SLaTexCmdArgInfo>*& vArgInfo) const = 0;
+   virtual bool GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const = 0;
    virtual CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale, 
                                  const vector<SLaTexCmdArgValue>& vArgValues) const = 0;
 };

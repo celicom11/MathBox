@@ -64,10 +64,6 @@ namespace {
 CMathItem* CAccentBuilder::BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
                                           const string& sLatexAccentCmd) {
    _ASSERT_RET(pBase, nullptr);
-   if (sLatexAccentCmd.rfind("\\overset{", 0) == 0) {
-      //TODO: !
-      _ASSERT_RET(0, nullptr);
-   }
    bool bBelow;
    UINT32 nAccentUni = _GetAccentUnicode(sLatexAccentCmd.c_str(), bBelow);
    _ASSERT_RET(nAccentUni, nullptr);
@@ -91,13 +87,11 @@ CMathItem* CAccentBuilder::BuildAccented(const CMathStyle& style, float fUserSca
    CWordItem* pAccent = new CWordItem(0, style, eacUNK, fUserScale);
    pAccent->SetText({ nAccentUni });
    //position accent
-   int32_t nAccentY=0;
-   if (bBelow) {
-      nAccentY = pBase->Box().Bottom();
-   }
-   else {
+   int32_t nAccentY = 0;
+   if (bBelow)
+      nAccentY = pBase->Box().Bottom() - pAccent->Box().Ascent();
+   else
       nAccentY = min(otfAccentBaseHeight, pBase->Box().Height()) - pAccent->Box().Ascent();
-   }
    pRet->AddBox(pAccent, nBaseAccentX - nAccentX, //align attachment points of the base and the accent!
                          nAccentY);
    pRet->NormalizeOrigin(0, 0);

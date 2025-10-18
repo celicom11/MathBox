@@ -8,6 +8,27 @@
 extern CLMFontManager g_LMFManager;
 //static helpers
 namespace {
+   // LMM radical variant indexes
+   const UINT16 lmmRadical    = 3077;     // base glyph, 0x221A
+   const UINT16 lmmRadical_btm =3078;     // radical assembly btm, 0x23b7
+   const UINT16 lmmRadical_ex = 3079;     // vert extender, not used!
+   const UINT16 lmmRadical_tp = 3080;     // extender's top
+   const UINT16 lmmRadical_v1 = 3081;
+   const UINT16 lmmRadical_v2 = 3082;
+   const UINT16 lmmRadical_v3 = 3083;
+   const UINT16 lmmRadical_v4 = 3084;
+   // LMM radical dimensions 
+   const int32_t lmmRadicalH_Em = 1000;
+   const int32_t lmmRadicalH_v1Em = 1200;
+   const int32_t lmmRadicalH_v2Em = 1800;
+   const int32_t lmmRadicalH_v3Em = 2400;
+   const int32_t lmmRadicalH_v4Em = 3000;
+   const int32_t lmmRadicalBtmH_Em = 1820;
+   const int32_t lmmRadicalTopH_Em = 620;   // Note: lmmRadicalBtmH_Em+lmmRadicalTopH_Em << lmmRadicalH_v4Em!
+   const int32_t lmmRadicalBtmL_Em = 702;
+   const int32_t lmmRadicalBtmR_Em = 742;
+   //
+
    //returns radical's variant glyph index
    UINT16 _getRadicalVariant(int32_t nTargetHeightEM) {
       if (nTargetHeightEM <= lmmRadicalH_Em)
