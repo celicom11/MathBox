@@ -47,13 +47,6 @@ bool CLOpBuilder::CanTakeCommand(PCSTR szCmd) const {
       ++szCmd;
    return (_mapCmd2GInfo.find(szCmd) != _mapCmd2GInfo.end());
 }
-bool CLOpBuilder::GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const {
-   if(!CanTakeCommand(szCmd))
-      return false;
-   cmdInfo.bHasLimits = true;
-   cmdInfo.vArgInfo = _vCmdArgs;//same for all LOps
-   return true;
-}
 CMathItem* CLOpBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
                                     const vector<SLaTexCmdArgValue>& vArgValues) const {
    _ASSERT_RET(szCmd && *szCmd, nullptr);

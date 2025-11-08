@@ -57,6 +57,15 @@
     <ClCompile Include="MathBox\XArrowBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\Tokenizer.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\TexParser.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\ParserAdapter.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -118,6 +127,15 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\XArrowBuilder.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\Tokenizer.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TexParser.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\ParserAdapter.h">
       <Filter>MathBox</Filter>
     </ClInclude>
   </ItemGroup>

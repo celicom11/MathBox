@@ -7,9 +7,15 @@ class CVBoxBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
    bool CanTakeCommand(PCSTR szCmd) const override;
-   bool GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const override;
+   CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override {
+      return NULL;//TODO!
+   }
+   //Legacy API!
    CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-                        const vector<SLaTexCmdArgValue>& vArgValues) const override;
+                        const vector<SLaTexCmdArgValue>& vArgValues) const;
+   // static helper for Parser!
+   static CMathItem* _BuildGenFraction(const CMathStyle& style, float fUserScale,
+                                    CMathItem* pNumerator, CMathItem* pDenominator);
 private:
    //NOTE:nVKern must be scaled by style/UserScale before this call!
    static CMathItem* BuildBox_(CMathItem* pTop, CMathItem* pBottom,

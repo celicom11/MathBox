@@ -44,9 +44,22 @@ namespace {
       //assembly is needed
       return 0;
    }
-
 }
-CMathItem* CRadicalBuilder::BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree) {
+bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd) const {
+   return (0 == strcmp(szCmd, "\\sqrt"));
+}
+CMathItem* CRadicalBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale, 
+                                       const vector<SLaTexCmdArgValue>& vArgValues) const {
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
+   _ASSERT_RET(vArgValues.size() == 2, nullptr);
+   _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
+   _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
+   _ASSERT_RET(vArgValues[1].uVal.pMathItem, nullptr);
+   return _BuildRadical(style, fUserScale, vArgValues[1].uVal.pMathItem,
+      vArgValues[0].uVal.pMathItem);
+}
+
+CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree) {
    float fScale = fUserScale * style.StyleScale();
    const int32_t nRadicandHEm = pRadicand->Box().Height();
    const int32_t nTargetEM = F2NEAREST(nRadicandHEm / fScale) + 2 * otfRadicalRuleThickness +

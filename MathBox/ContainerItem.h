@@ -17,9 +17,11 @@ public:
    bool IsEmpty() const { return m_vItems.empty(); }
    STexBox& Box() { return m_Box; } //needed for builder's adjustments
  //METHODS
-   void Clear() {
-      for (CMathItem* pTBox : m_vItems)
-         delete pTBox;
+   void Clear(bool bDoNotDeleteTtems = false) {
+      if (!bDoNotDeleteTtems) {
+         for (CMathItem* pTBox : m_vItems)
+            delete pTBox;
+      }
       m_vItems.clear();
       m_Box = STexBox();
    }

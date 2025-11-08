@@ -106,10 +106,10 @@ public:
             //BuildIndexed_("af");
             //BuildTexts_();
             //BuildMathFonts_();
-            //BuildAccentItems_();
+            BuildAccentItems_();
             //BuildVBoxes_();
             //BuildOpenClose_();
-            BuildLargeOps_();
+            //BuildLargeOps_();
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -410,7 +410,6 @@ private:
       CMathStyle styleSubs(styleSuper);
       styleSubs.SetCramped(true);
 
-      CMathStyle styleDegree(etsScriptScript);
       const PCSTR szBase = "x";
       for (float fSizePt : aFontSize) {
          //{base}_1^2
@@ -426,17 +425,17 @@ private:
          _ASSERT_RET(pDenom, );
          CMathItem* pRadicand = CFractionBuilder::BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
          //Degree/Index
-         CMathItem* pRadDegree = CWordItemBuilder::BuildText("textit", "ABC", styleDegree, 1.0f);
+         CMathItem* pRadDegree = CWordItemBuilder::BuildText("textit", "ABC", etsScriptScript, 1.0f);
          _ASSERT_RET(pRadDegree, );
 
-         CMathItem* pRadical0 = CRadicalBuilder::BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadicand, pRadDegree);
+         CMathItem* pRadical0 = CRadicalBuilder::_BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadicand, pRadDegree);
          if (!pRadical0) {
             _ASSERT(0);
             delete pRadicand;
             delete pRadDegree;
             return;
          }
-         CMathItem* pRadical = CRadicalBuilder::BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadical0);
+         CMathItem* pRadical = CRadicalBuilder::_BuildRadical(m_MainBox.GetStyle(), 1.0f, pRadical0);
          if (!pRadical) {
             _ASSERT(0);
             delete pRadicand;

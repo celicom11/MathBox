@@ -16,47 +16,11 @@ namespace {
       static const string _sSpecial{ "$%&~_^\\{}" };
       return _sSpecial.find(cChar) != string::npos;
    }
-   inline bool _IsNumber(PCSTR szNum) {
-      _ASSERT_RET(szNum && *szNum, false);
-      bool bHasFP = false;
-      while (*szNum) {
-         if ('.' == *szNum) {
-            if (bHasFP)
-               return false;
-            bHasFP = true;
-         }
-         else if (!_IsDigit(*szNum))
-            return false;
-         ++szNum;
-      }
-      return true;
-   }
    inline PCSTR _SkipSpaces(PCSTR szText) {
       while (_IsSpace(*szText)) {
          ++szText;
       }
       return szText;
-   }
-   //preservs "\ " as a space!
-   string _EatSpaces(const string& sText) {
-      string sRet;
-      bool bEscape = false;
-      for (char cChar : sText) {
-         if ('\\' == cChar) {
-            if (bEscape)
-               bEscape = false;
-            else
-               continue;//skip escape
-         }
-         else if ((' ' == cChar || '\t' == cChar)) {
-            if (bEscape)
-               bEscape = false;
-            else
-               continue; //skip space
-         }
-         sRet.push_back(cChar);
-      }
-      return sRet;
    }
    bool _IsMathOp(PCSTR szText) {
       for (PCSTR szOp : _aMathOps) {
@@ -109,16 +73,39 @@ namespace {
       return true;
    }
 }
+bool CWordItemBuilder::_IsNumber(PCSTR szNum) {
+   _ASSERT_RET(szNum && *szNum, false);
+   bool bHasFP = false;
+   while (*szNum) {
+      if ('.' == *szNum) {
+         if (bHasFP)
+            return false;
+         bHasFP = true;
+      }
+      else if (!_IsDigit(*szNum))
+         return false;
+      ++szNum;
+   }
+   return true;
+}
 
 //used for a letter OR numbers (integer or float)
 //@sWord: already processed, no spaces, no special chars
 CMathItem* CWordItemBuilder::BuildMathWord(const string& sFontCmd, const string& sWord, bool bIsNumber,
                                            const CMathStyle& style, float fUserScale) {
    _ASSERT_RET(!sWord.empty(), nullptr); //ntd?
+
    SMathFontStyle mfStyle;
    _ASSERT_RET(g_LMFManager._GetMathFontStyle((sFontCmd.empty() ? "mathnormal" : sFontCmd), mfStyle), nullptr);
    if(bIsNumber && (sFontCmd == "mathbfit" || sFontCmd == "mathsfit" || sFontCmd == "mathssit"))
       mfStyle.nLetterDigitsFont = FONT_LMM; //use upright digits with these math fonts!
+   if (sWord.size() == 1 && !isalnum(sWord[0])) {
+      _ASSERT(!_IsSpace(sWord[0]));
+      // Check atom type!
+      const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyph(mfStyle.nLetterDigitsFont, UINT32(sWord[0]));
+      _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//unkown unicode?
+      return _BuildLMMSymbol(pLmmGlyph, style, fUserScale);
+   }
    CWordItem* pRet = new CWordItem(mfStyle.nLetterDigitsFont, style, eacWORD, fUserScale);
    if (mfStyle.nLetterDigitsFont != FONT_LMM)
       pRet->SetTextA(sWord.c_str());
@@ -130,11 +117,9 @@ CMathItem* CWordItemBuilder::BuildMathWord(const string& sFontCmd, const string&
    }
    return pRet;
 }
-
-//text mode!
+// text mode item builder
 CMathItem* CWordItemBuilder::BuildText(const string& sFontCmd, const string& sText, const CMathStyle& style,
                                        float fUserScale) {
-   _ASSERT_RET(!sFontCmd.empty(), nullptr); //ntd?
    STextFontStyle tfStyle;
    _ASSERT_RET(g_LMFManager._GetTextFontStyle(sFontCmd, tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont; //TODO!
@@ -182,7 +167,7 @@ CMathItem* CWordItemBuilder::BuildText(const string& sFontCmd, const string& sTe
    pHBox->Update();
    return pHBox;
 }
-//@sSym: escape+special, LMM symbol, MathOperator or Space\Kern
+// @sSym: escape+special, LMM symbol, MathOperator or Space\Kern
 CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string& sSym, const CMathStyle& style,
                                           float fUserScale) {
    _ASSERT_RET(sSym.size() > 1 && sSym[0] == '\\', nullptr); //ntd?
@@ -229,7 +214,7 @@ CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string
    _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//unkown symbol/cmd!
    return _BuildLMMSymbol(pLmmGlyph, style, fUserScale);
 }
-
+// Create text material in MATH mode!
 bool CWordItemBuilder::BuildMathText(const string& sFontCmd, const string& sText, const CMathStyle& style, 
                              OUT CHBoxItem& hbox, float fUserScale) {
    CMathItem* pItem = nullptr;
@@ -238,7 +223,7 @@ bool CWordItemBuilder::BuildMathText(const string& sFontCmd, const string& sText
    string sTerm;
    if (*szPos == '\\') {
       sTerm = "\\";
-      ++szPos; //skip escaper!
+      ++szPos; // skip escaper!
    }
    while (1) {
       if (isalnum(*szPos) || *szPos=='.') { //floating point
@@ -266,8 +251,8 @@ bool CWordItemBuilder::BuildMathText(const string& sFontCmd, const string& sText
             _ASSERT_RET(pItem, false);
             hbox.AddItem(pItem);
          }
-         else { //sTerm is a word (letters+digits)
-            //TEST: process each char to a WordItem to have wider spacing
+         else { // sTerm is a word (letters+digits)
+                // process each char to a WordItem to have wider spacing
             for (char cChar : sTerm) {
                CMathItem* pWord = BuildMathWord(sFontCmd, string(1, cChar), false, style, fUserScale);
                hbox.AddItem(pWord);

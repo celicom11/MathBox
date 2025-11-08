@@ -232,11 +232,40 @@ struct SLMMDelimiter {
    int16_t        nVariantIdx{ 0 };    // index of the variant-size : -1(dynamic),0,1,2,3,4
    uint32_t       nUni{ 0 };           // base Unicode, may be 0 for invisible open/close delimiters!
 };
-//PARSER DEFS - TODO: move to parser's decls
+//PARSER DECLS
+enum EnumTokenType {
+   ettUndef = 0,
+   ettALNUM,                           // sequence of letters/digits
+   ettNonALPHA,                        // non-AlphaNum: .,+-/*?:=@#"'<> etc.
+   ettCOMMAND,                         // \command or \symbol
+   ettFB_OPEN,                         // {
+   ettFB_CLOSE,                        // }
+   ettSB_OPEN,                         // [
+   ettSB_CLOSE,                        // ]
+   ettCOMMENT,                         // % to end of line
+   ett$,                               // $..$
+   ett$$,                              // $$..$$
+   ettAMP,                             // &, tabular alignment
+   ettSUBS,                            // _, subscript
+   ettSUPERS,                          // ^, superscript
+};
+struct STexToken {
+   int16_t        nType{ ettUndef };   // EnumTokenType
+   uint16_t       nLen{ 0 };           // length in chars
+   uint32_t       nPos{ 0 };           // position in source
+   uint32_t       nTkIdxEnd{ 0 };      // 0 OR index of the end of group that starts at this token!
+};
+enum EnumParsingStage { epsUnk = 0, epsTOKENIZING, epsGROUPING, epsBUILDING };
+//parser error info
+struct ParserError {
+   EnumParsingStage  eStage{ epsUnk };
+   uint32_t          nPosition{ 0 };
+   string            sError;
+};
 enum EnumLatexCmdArgType {
    elcatNull = -1,// empty, no argument
    elcatItem = 0, // ~any, CMathItem*
-   elcatGlyph,   // single glyph/symbol is expected
+   elcatGlyph,    // single glyph/symbol is expected
    elcatDim,      // size: #{pt|em}
    elcatTexStyle, // nVal = 0,1,2,3
    elcatLimits,   // nVal = 0(nolimits),1(limits)
@@ -247,6 +276,8 @@ enum EnumLCATParenthesis {
    elcapFig,      // non-optional {} brackets
    elcapSquare,   // non-optional [] brackets
 };
+
+
 struct SLaTexCmdArgInfo {
    bool                 bOpt{ false };
    bool                 bBase{ false };
@@ -267,10 +298,22 @@ struct SLaTexCmdArgValue {
       CMathItem* pMathItem{ nullptr };
    }       uVal;
 };
+DECLARE_INTERFACE(IParserAdapter) {
+   virtual CMathItem* ConsumeItem(EnumLCATParenthesis eParens, CMathStyle* pStyle = nullptr) = 0;
+   virtual bool ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) = 0;
+   virtual bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) = 0;
+   virtual bool ConsumeKeyword(PCSTR szKeyword) = 0; //e.g. \limits|\nolimits
+   //virtual uint32_t ConsumeGlyph(EnumLCATParenthesis eParens) = 0;
+   // context info
+   virtual CMathStyle GetCurrentStyle() const = 0;
+   virtual float GetUserScale() const = 0;
+   // error info/setting
+   virtual bool HasError() const = 0;
+   virtual void SetError(const string& sMessage) = 0;
+};
+
 DECLARE_INTERFACE(IMathItemBuilder) {
    virtual ~IMathItemBuilder() {}
    virtual bool CanTakeCommand(PCSTR szCmd) const = 0;
-   virtual bool GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const = 0;
-   virtual CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale, 
-                                 const vector<SLaTexCmdArgValue>& vArgValues) const = 0;
+   virtual CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) = 0;
 };

@@ -101,13 +101,17 @@ bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd) const {
       ++szCmd;
    return (_mapMathModeCmdInfo.find(szCmd) != _mapMathModeCmdInfo.end());
 }
-bool CVBoxBuilder::GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const {
-   _ASSERT_RET(szCmd && *szCmd, false);
-   auto itPair = _mapMathModeCmdInfo.find(szCmd);
-   if (itPair == _mapMathModeCmdInfo.end())
-      return false;
-   cmdInfo.vArgInfo = itPair->second;//copy vector
-   return true;
+CMathItem* CVBoxBuilder::_BuildGenFraction(const CMathStyle& style, float fUserScale, 
+                                             CMathItem* pNumerator, CMathItem* pDenominator) {
+
+   _ASSERT_RET(pNumerator && pDenominator, nullptr);
+   vector<SLaTexCmdArgValue> vArgValues(2);
+   vArgValues[0].eLCAT = elcatItem; 
+   vArgValues[0].uVal.pMathItem = pNumerator;
+   vArgValues[1].eLCAT = elcatItem;
+   vArgValues[1].uVal.pMathItem = pDenominator;
+   CVBoxBuilder builder;
+   return builder.BuildItem("^_", style, fUserScale, vArgValues);
 }
 CMathItem* CVBoxBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
                                  const vector<SLaTexCmdArgValue>& vArgValues) const {

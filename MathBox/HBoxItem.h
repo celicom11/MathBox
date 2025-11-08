@@ -31,8 +31,8 @@ public:
    }
    float CalcBadness() const; //>0 -undefill, 0-perfect, <0-overfill
    //METHODS
-   void Clear() {
-      CContainerItem::Clear();
+   void Clear(bool bDoNotDeleteTtems = false) {
+      CContainerItem::Clear(bDoNotDeleteTtems);
       for (CGlueItem* pGlue : m_vGlues)
          delete pGlue;
       m_vGlues.clear();

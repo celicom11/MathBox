@@ -160,8 +160,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\MathBox\GlueItem.cpp" />
-    <ClCompile Include="..\MathBox\HBoxItem.cpp" />
+    <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp" />
+    <ClCompile Include="..\MathBox\GlueItem.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\GlyphRun.cpp" />
+    <ClCompile Include="..\MathBox\HBoxItem.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\IndexedBuilder.cpp" />
+    <ClCompile Include="..\MathBox\LMFontManager.cpp" />
+    <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp" />
+    <ClCompile Include="..\MathBox\ParserAdapter.cpp" />
+    <ClCompile Include="..\MathBox\TexParser.cpp" />
+    <ClCompile Include="..\MathBox\Tokenizer.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\VBoxBuilder.cpp" />
+    <ClCompile Include="..\MathBox\WordItem.cpp" />
+    <ClCompile Include="..\MathBox\WordItemBuilder.cpp" />
     <ClCompile Include="GlueFactoryTests.cpp" />
     <ClCompile Include="GlueItemTests.cpp" />
     <ClCompile Include="HBoxItemTests.cpp" />
@@ -171,6 +197,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TexParserTests.cpp" />
+    <ClCompile Include="TokenizerTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h" />

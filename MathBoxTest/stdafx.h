@@ -11,11 +11,19 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <fstream>
+#include <map>
+#include <set>
 #include <unordered_map>
 using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}
-
+#define CHECK_HR(hr) {if(FAILED(hr)){_ASSERT(0);return hr;}}
 
 #include <CppUnitTest.h>
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+
+//linker
+#pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "dwrite.lib")
+#pragma once

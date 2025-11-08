@@ -49,7 +49,11 @@ const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
 
 }
 bool CLMFontManager::_GetTextFontStyle(const string& sFontCmd, OUT STextFontStyle& tfStyle) {
-   _ASSERT_RET(sFontCmd.size() > 1, false);
+   if (sFontCmd.empty()) {
+      tfStyle = _aTexFontCmds[0]; //default
+      return true;
+   }
+   // else 
    for (const STextFontStyle& tfCmd : _aTexFontCmds) {
       if (sFontCmd == tfCmd.szTextFontStyle) {
          tfStyle = tfCmd;

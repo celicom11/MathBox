@@ -56,15 +56,6 @@ bool CUnderOverBuilder::CanTakeCommand(PCSTR szCmd) const {
    uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
    return nUni != 0;
 }
-bool CUnderOverBuilder::GetCommandInfo(PCSTR szCmd, OUT SLaTexCmdInfo& cmdInfo) const {
-   _ASSERT_RET(szCmd && *szCmd, false);
-   bool bBelow;
-   uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
-   if (!nUni)
-      return false;
-   cmdInfo.vArgInfo = _vCmdArgs;  //all supported commands have cmd{item} format
-   return true;
-}
 CMathItem* CUnderOverBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
                                           const vector<SLaTexCmdArgValue>& vArgValues) const {
    if (szCmd[0] == '\\')

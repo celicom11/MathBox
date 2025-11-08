@@ -1,37 +1,62 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
+    <Filter Include="MathBox">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GlueItemTests.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\MathBox\GlueItem.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\HBoxItem.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="GlueFactoryTests.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\MathBox\Tokenizer.cpp">
+      <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="HBoxItemTests.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\MathBox\ParserAdapter.cpp">
+      <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\TexParser.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\IndexedBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\LMFontManager.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\VBoxBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\WordItem.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\WordItemBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\GlyphRun.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="GlueFactoryTests.cpp" />
+    <ClCompile Include="HBoxItemTests.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="GlueItemTests.cpp" />
+    <ClCompile Include="TokenizerTests.cpp" />
+    <ClCompile Include="TexParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="MockMathItem.h">
-      <Filter>Source Files</Filter>
+      <Filter>MathBox</Filter>
     </ClInclude>
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
 </Project>

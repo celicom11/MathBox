@@ -10,5 +10,5 @@ public:
    static CMathItem* BuildTeXSymbol(const string& sFontCmd, const string& sSym, const CMathStyle& style, float fUserScale = 1.0f);
    static bool BuildMathText(const string& sFontCmd, const string& sText, const CMathStyle& style,
       OUT CHBoxItem& hbox, float fUserScale = 1.0f);
-
+   static bool _IsNumber(PCSTR szText);
 };

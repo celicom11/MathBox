@@ -2,11 +2,16 @@
 #include "MathItem.h"
 
 //Radical's Factory
-class CRadicalBuilder {
+class CRadicalBuilder : public IMathItemBuilder {
 public:
-   //CTOR
-   CRadicalBuilder() = default;
-   static CMathItem* BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree = nullptr);
+   //IMathItemBuilder implementation
+   bool CanTakeCommand(PCSTR szCmd) const override;
+   CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
+   //Legacy API!
+   CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
+                        const vector<SLaTexCmdArgValue>& vArgValues) const;
+   // static helper/tmp!
+   static CMathItem* _BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree = nullptr);
 private:
    static CMathItem* BuildSimpleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand,
                                   UINT16 nRadicalVariant, CMathItem* pRadDegree);
