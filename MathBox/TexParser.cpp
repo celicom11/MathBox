@@ -95,10 +95,182 @@ CMathItem* CTexParser::Parse(const string& sText) {
    SParserContext ctx;     // todo: initial context
    ctx.bTextMode = true;   // start in text mode
    int nStart = -1;
-   return ProcessGroup_(nStart, ctx);
+   return ProcessGroup(nStart, ctx);
 }
 // TOKEN PROCESSING
-CMathItem* CTexParser::ProcessGroup_(IN OUT int& nIdx, const SParserContext& ctx) {
+// Used by CParserAdapter as well!
+CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
+   if((uint32_t)nIdx >= m_vTokens.size())
+      return nullptr; //no more tokens
+   const STexToken& tkItem = m_vTokens[nIdx];
+   CMathItem* pItem = nullptr;
+   m_Error.eStage = epsBUILDING;
+   m_Error.nPosition = tkItem.nPos;
+   if (tkItem.nTkIdxEnd > 0)
+      pItem = ProcessGroup(nIdx, ctx);
+   else {
+      switch (tkItem.nType) {
+      case ettALNUM:     pItem = ProcessAlnum_(nIdx, ctx); break;
+      case ettNonALPHA:  pItem = ProcessNonAlnum_(nIdx, ctx); break;
+      case ettCOMMAND: { // command or symbol!
+         string sCmd = m_pTokenizer->TokenText(tkItem);
+         if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd))
+            return nullptr; // not an Item Token!
+         if (_isTextCommand(sCmd))
+            pItem = ProcessTextCmd_(nIdx, ctx);
+         else if (_isMathFontCommand(sCmd))
+            pItem = ProcessMathFontCmd_(nIdx, ctx);
+         else if (_isScalingCommand(sCmd))
+            pItem = ProcessScaleCmd_(nIdx, ctx);
+         else
+            pItem = ProcessItemBuilderCmd_(nIdx, ctx);
+         }
+         break;
+      case ettSUBS:
+      case ettSUPERS:
+         // we can be here only if there were no base item!
+         pItem = BuildGenerilizedFraction_(nIdx, ctx); //error if failed!
+         break;
+      default:;
+         // do not process non-item tokens at this level
+      }
+   }
+   if (!ctx.bInCmdArg && !ctx.bInSubscript && !ctx.bInSuperscript) {
+      //lookahead subscript/superscript building
+      while (pItem && m_Error.sError.empty()) {
+         CMathItem* pNewAtom = TryAddSubSuperscript_(pItem, nIdx, ctx);
+         if (pNewAtom == pItem)
+            break; //no sub/superscript added
+         pItem = pNewAtom; //update
+      }
+   }
+   return pItem;
+}
+CMathItem* CTexParser::BuildGenerilizedFraction_(IN OUT int& nIdx, const SParserContext& ctx) {
+   _ASSERT_RET(m_vTokens[nIdx].nType == ettSUBS || m_vTokens[nIdx].nType == ettSUPERS, nullptr); //snbh!
+   if (ctx.bInSubscript || ctx.bInSuperscript) {
+      // we are already in sub/superscript context - do not process here!
+      m_Error.sError = "Double subscript/superscript is not allowed!";
+      return nullptr;
+   }
+
+   bool bSubscriptFirst = (m_vTokens[nIdx].nType == ettSUBS);
+   ++nIdx; //move past _ or ^
+   CMathItem* pNum = nullptr, *pDenom = nullptr;
+   SParserContext ctxSS(ctx);
+   if(bSubscriptFirst) {
+      ctxSS.SetInSubscript();
+      pDenom = ProcessItemToken(nIdx, ctxSS);
+      if (!pDenom) {
+         if(m_Error.sError.empty())
+            m_Error.sError = "Orphan subscript '_'";
+         return nullptr;
+      }
+      if(nIdx >= m_vTokens.size() || m_vTokens[nIdx].nType != ettSUPERS) {
+         m_Error.sError = "Single subscript '_' is not supported";
+         return nullptr;
+      }
+      ++nIdx; //move past ^
+      ctxSS = ctx; //reset
+      ctxSS.SetInSuperscript();
+      pNum = ProcessItemToken(nIdx, ctxSS);
+      if (!pNum) {
+         if (m_Error.sError.empty())
+            m_Error.sError = "Missed item after superscript '^'";
+         return nullptr;
+      }
+   }
+   else {
+      ctxSS.SetInSuperscript();
+      pNum = ProcessItemToken(nIdx, ctxSS);
+      if (!pNum) {
+         if (m_Error.sError.empty())
+            m_Error.sError = "Orphan superscript '^'";
+         return nullptr;
+      }
+      if (nIdx >= m_vTokens.size() || m_vTokens[nIdx].nType != ettSUBS) {
+         m_Error.sError = "Single superscript '^' is not supported";
+         return nullptr;
+      }
+      ++nIdx; //move past _
+      ctxSS = ctx; //reset
+      ctxSS.SetInSubscript();
+      pDenom = ProcessItemToken(nIdx, ctxSS);
+      if (!pDenom) {
+         if (m_Error.sError.empty())
+            m_Error.sError = "Missed item after subscript '_'";
+         return nullptr;
+      }
+   }
+   _ASSERT(pNum && pDenom); //snbh!
+   //build CIndexedItem
+   return CVBoxBuilder::_BuildGenFraction(ctx.currentStyle, ctx.fUserScale, pNum, pDenom); //never fails?
+}
+//Lookahead for sub/superscript after creating an atom
+CMathItem* CTexParser::TryAddSubSuperscript_(CMathItem* pAtom, IN OUT int& nIdx, const SParserContext& ctx) {
+   _ASSERT_RET(pAtom, pAtom); //snbh!
+   if (ctx.bInSubscript || ctx.bInSuperscript)
+      // we are already in sub/superscript context - do not process here!
+      return pAtom; //no error
+   if(nIdx >= m_vTokens.size() || 
+      (m_vTokens[nIdx].nType != ettSUBS && m_vTokens[nIdx].nType != ettSUPERS))
+      return pAtom; //no sub/superscript
+   CMathItem* pSub = nullptr;
+   CMathItem* pSuper = nullptr;
+   if(m_vTokens[nIdx].nType == ettSUBS) {
+      ++nIdx; //move past _
+      SParserContext ctxSub(ctx);
+      ctxSub.SetInSubscript();
+      pSub = ProcessItemToken(nIdx, ctxSub);
+      if (!pSub) {
+         if (m_Error.sError.empty())
+            m_Error.sError = "Orphan subscript '_'";
+         return nullptr;
+      }
+      //check for superscript after subscript
+      if (m_vTokens[nIdx].nType == ettSUPERS) {
+         ++nIdx; //move past ^
+         SParserContext ctxSuper(ctx);
+         ctxSuper.SetInSuperscript();
+         pSuper = ProcessItemToken(nIdx, ctxSuper);
+         if (!pSuper) {
+            if (m_Error.sError.empty())
+               m_Error.sError = "Orphan superscript '^'";
+            delete pSub;
+            return nullptr;
+         }
+      }
+   }
+   else { //superscript first
+      ++nIdx; //move past ^
+      SParserContext ctxSuper(ctx);
+      ctxSuper.SetInSuperscript();
+      pSuper = ProcessItemToken(nIdx, ctxSuper);
+      if (!pSuper) {
+         if (m_Error.sError.empty())
+            m_Error.sError = "Orphan superscript '^'";
+         return nullptr;
+      }
+      //check for subscript after superscript
+      if (m_vTokens[nIdx].nType == ettSUBS) {
+         ++nIdx; //move past _
+         SParserContext ctxSub(ctx);
+         ctxSub.SetInSubscript();
+         pSub = ProcessItemToken(nIdx, ctxSub);
+         if (!pSub) {
+            if (m_Error.sError.empty())
+               m_Error.sError = "Orphan subscript '_'";
+            delete pSuper;
+            return nullptr;
+         }
+      }
+   }
+   _ASSERT(pSub || pSuper); //snbh!
+   //build CIndexedItem
+   return CIndexedBuilder::BuildIndexed(ctx.currentStyle, ctx.fUserScale, pAtom, pSuper, pSub);
+}
+
+CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
    int nIdxStart, nIdxEnd;
    bool bCanBeEmpty = true;
    SParserContext ctxG(ctx);
@@ -126,10 +298,6 @@ CMathItem* CTexParser::ProcessGroup_(IN OUT int& nIdx, const SParserContext& ctx
       return nullptr;
    }
    _ASSERT_RET(nIdxStart >=0 && nIdxEnd > nIdxStart && nIdxEnd <= m_vTokens.size() , nullptr);
-   CMathItem* pSuper = nullptr;
-   CMathItem* pSub = nullptr;
-   SParserContext ctxGCur; //backup of the current context
-   bool bInSubs = false, bInSupers = false; // additional context
    vector<vector<CMathItem*>> vvLines(1); //one empty line
    for (int nIdxG = nIdxStart; nIdxG < nIdxEnd;) {
       CMathItem* pItem = nullptr;
@@ -137,165 +305,43 @@ CMathItem* CTexParser::ProcessGroup_(IN OUT int& nIdx, const SParserContext& ctx
       const STexToken& tkCurrent = m_vTokens[nIdxG];
       m_Error.eStage = epsBUILDING;
       m_Error.nPosition = tkCurrent.nPos;
-      if (tkCurrent.nTkIdxEnd > 0)
-         pItem = ProcessGroup_(nIdxG, ctxG);
-      else {
+      pItem = ProcessItemToken(nIdxG, ctxG);
+      if(!m_Error.sError.empty())
+         return nullptr; //error in sub-group
+      if(!pItem) {
          switch (tkCurrent.nType) {
-         case ettALNUM:     pItem = ProcessAlnum_(nIdxG, ctxG); break;
-         case ettNonALPHA:  pItem = ProcessNonAlnum_(nIdxG, ctxG); break;
          case ettCOMMAND: { // command or symbol!
             string sCmd = m_pTokenizer->TokenText(tkCurrent);
             if (_isMathStyleCommand(sCmd))
                ProcessMathStyleCmd_(nIdxG, ctxG);
             else if (_isFontSizeCommand(sCmd))
                ProcessFontSizeCmd_(nIdxG, ctxG);
-            else if (_isTextCommand(sCmd))
-               pItem = ProcessTextCmd_(nIdxG, ctxG);
-            else if (_isMathFontCommand(sCmd))
-               pItem = ProcessMathFontCmd_(nIdxG, ctxG);
-            else if (_isScalingCommand(sCmd))
-               pItem = ProcessScaleCmd_(nIdxG, ctxG);
             else if (_isNewlineCommand(sCmd)) {
                // like in \begin{align*} env.? : TODO: review
                bNewLine = true;
                ++nIdxG; //next token
             }
             else
-               pItem = ProcessItemBuilderCmd_(nIdxG, ctxG);
+               m_Error.sError = "Unexpected command in ProcessGroup!";
          }
+            break;
          case ettCOMMENT:   ++nIdxG;  break;    // ignore comments at this level
          case ettAMP:       _ASSERT(0);         // TODO: handle tabular alignment
             break;
-         case ettSUBS:// subscript
-            if(bInSubs) {
-               m_Error.sError = "Double subscript is not allowed!";
-               break;
-            }
-            if(bInSupers) {
-               m_Error.sError = "Subscript after superscript is not allowed!";
-               break;
-            }
-            ctxGCur = ctxG; //backup current context
-            ctxG.currentStyle.Decrease();
-            if (ctxG.currentStyle.Style() == etsText)
-               ctxG.currentStyle.Decrease();
-            ctxG.currentStyle.SetCramped(); //subscripts are cramped
-            bInSubs = true;
-            ++nIdxG;    // move past _ token
-            continue;   // next token
-            break;
-         case ettSUPERS:// superscript
-            if (bInSupers) {
-               m_Error.sError = "Double supescript is not allowed!";
-               break;
-            }
-            if (bInSubs) {
-               m_Error.sError = "Superscript after subscript is not allowed!";
-               break;
-            }
-            ctxGCur = ctxG; //backup current context
-            ctxG.currentStyle.Decrease();
-            if (ctxG.currentStyle.Style() == etsText)
-               ctxG.currentStyle.Decrease();
-            bInSupers = true;
-            ++nIdxG; //move past ^ token
-            continue; //next token
-            break;
          default:
-            m_Error.sError = "Unexpected token in ProcessGroup_!";
+            m_Error.sError = "Unexpected token in ProcessGroup!";
          }
       }
       if (!m_Error.sError.empty()) {
          // TODO: cleanup lines!
          return nullptr;//error in sub-group
       }
-      if (bNewLine) {
-         if (bInSubs || bInSupers) {
-            m_Error.sError = "Newline is not allowed after subscript/superscript!";
-            return nullptr;
-         }
+      if (bNewLine)
          vvLines.emplace_back();
-      }
-      // check for pending sub/superscript
-      if(pSub || pSuper) {
-         //we must build IndexedItem if 
-         if ((pSub && pSuper) ||          //both
-            (!bInSubs && !bInSupers) ||   //next token is not _ or ^
-            (bInSubs && pSub) ||          //X_Y_Z== {X_Y}_Z
-            (bInSupers && pSuper)) {      //X^Y^Z== {X^Y}^Z
-            CMathItem* pAtomBase = vvLines.back().empty() ? nullptr : vvLines.back().back();
-            if (pAtomBase) {
-               vvLines.back().pop_back(); //remove last item
-               pAtomBase = CIndexedBuilder::BuildIndexed(ctxG.currentStyle, ctxG.fUserScale, pAtomBase, pSuper, pSub);
-            }
-            else {
-               //no base atom!
-               if(!pSuper || !pSub) {
-                  m_Error.sError = "Alone subscript/superscript without base is not allowed!";
-                  return nullptr;
-               }
-               pAtomBase = CVBoxBuilder::_BuildGenFraction(ctxG.currentStyle, ctxG.fUserScale, pSuper, pSub);
-            }
-            if(!pAtomBase) {
-               m_Error.sError = "Error during building Indexed"; //snbh!
-               return nullptr;
-            }
-            pSuper = pSub = nullptr; //reset
-            vvLines.back().push_back(pAtomBase);
-         }
-      }
-      if(bInSubs) {
-         if (!pItem) {
-            m_Error.sError = "Missing subscript argument!";
-            return nullptr;
-         }
-         pSub = pItem;
-         bInSubs = false;
-         ctxG = ctxGCur;   // restore context
-         continue;         // next token
-      }
-      if(bInSupers) {
-         if (!pItem) {
-            m_Error.sError = "Missing superscript argument!";
-            return nullptr;
-         }
-         pSuper = pItem;
-         bInSupers = false;
-         ctxG = ctxGCur; //restore context
-         continue; //next token
-      }
-      //else
       if (pItem)
          vvLines.back().push_back(pItem);
    } //main for
 
-   // EPILOGUE: build Indexed,Pack lines, process \left...\right
-   //check for pending sub/superscript
-   if(bInSubs || bInSupers) {
-      m_Error.sError = "Missing subscript/superscript argument at the end of group!";
-      return nullptr;
-   }
-   if (pSub || pSuper) {
-      CMathItem* pAtomBase = vvLines.back().empty() ? nullptr : vvLines.back().back();
-      if (pAtomBase) {
-         vvLines.back().pop_back(); //remove last item
-         pAtomBase = CIndexedBuilder::BuildIndexed(ctxG.currentStyle, ctxG.fUserScale, pAtomBase, pSuper, pSub);
-      }
-      else {
-         //no base atom!
-         if (!pSuper || !pSub) {
-            m_Error.sError = "Alone subscript/superscript without base is not allowed!";
-            return nullptr;
-         }
-         pAtomBase = CVBoxBuilder::_BuildGenFraction(ctxG.currentStyle, ctxG.fUserScale, pSuper, pSub);
-      }
-      if (!pAtomBase) {
-         m_Error.sError = "Error during building Indexed"; //snbh!
-         return nullptr;
-      }
-      //return pAtomBase back!
-      vvLines.back().push_back(pAtomBase);
-   }
    CMathItem* pRet = nullptr;
    // check group items
    if (vvLines.size() == 1) {
@@ -340,6 +386,8 @@ bool CTexParser::OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ct
       m_Error.sError = "Inner $..$/$$...$$ are not allowed in math mode!";
       return false;
    }
+   // reset external context flags
+   ctxG.bInLeftRight = ctxG.bInSubscript = ctxG.bInSuperscript = ctxG.bInCmdArg = false;
    switch (tkOpen.nType) {
    case ettSB_OPEN: bCanBeEmpty = false; break;
    case ettFB_OPEN:bCanBeEmpty = true; break;
@@ -407,6 +455,7 @@ CMathItem* CTexParser::PackLines_(const vector<vector<CMathItem*>>& vvLines, con
 
 }
 bool CTexParser::BuildGroups_() {
+   m_Error.eStage = epsGROUPING;
    vector<int> vGroupStarts; // indexes of group opening tokens
    for (int nIdx = 0; nIdx < (int)m_vTokens.size(); ++nIdx) {
       STexToken& tkn = m_vTokens[nIdx];
@@ -420,8 +469,20 @@ bool CTexParser::BuildGroups_() {
             m_vTokens[vGroupStarts.back()].nTkIdxEnd = nIdx + 1;
             vGroupStarts.pop_back();
          }
-         else
+         else {
+            //check if we already have opening $/$$ token:
+            // "${$"    means '{'  is not closed!
+            for(int nGSIdx: vGroupStarts) {
+               STexToken& tknGS = m_vTokens[nGSIdx];
+               if (tknGS.nType == tkn.nType) {
+                  m_Error.nPosition = m_vTokens[vGroupStarts.back()].nPos;
+                  m_Error.sError = "Unclosed group '" + TokenText_(vGroupStarts.back()) +"'";
+                  return false;
+               }
+            }
+            //else , we are OK
             vGroupStarts.push_back(nIdx);
+         }
          break;
       case ettCOMMAND: {
          string sCmd = m_pTokenizer->TokenText(tkn);
@@ -429,7 +490,6 @@ bool CTexParser::BuildGroups_() {
             vGroupStarts.push_back(nIdx);
          else if (sCmd == "\\right" || sCmd == "\\]") {
             if (vGroupStarts.empty() || _IsOpenClose(TokenText_(vGroupStarts.back()), sCmd)) {
-               m_Error.eStage = epsGROUPING;
                m_Error.nPosition = tkn.nPos;
                m_Error.sError = "Unmatched '" + sCmd + "' !";
                return false;
@@ -446,7 +506,6 @@ bool CTexParser::BuildGroups_() {
       case ettSB_CLOSE: {
          string sClosing = (tkn.nType == ettFB_CLOSE) ? "}" : "]";
          if (vGroupStarts.empty() || !_IsOpenClose(TokenText_(vGroupStarts.back()), sClosing)) {
-            m_Error.eStage = epsGROUPING;
             m_Error.nPosition = tkn.nPos;
             m_Error.sError = "Unmatched '" + sClosing + "' !";
             return false;
@@ -459,9 +518,8 @@ bool CTexParser::BuildGroups_() {
    }
    if(!vGroupStarts.empty()) {
       const STexToken& tkUnmatched = m_vTokens[vGroupStarts.back()];
-      m_Error.eStage = epsGROUPING;
       m_Error.nPosition = tkUnmatched.nPos;
-      m_Error.sError = "Unmatched opening token '" + TokenText_(vGroupStarts.back()) + "' !";
+      m_Error.sError = "Unclosed opening token '" + TokenText_(vGroupStarts.back()) + "' !";
       return false;
    }
    return true;
@@ -570,7 +628,7 @@ CMathItem* CTexParser::ProcessTextCmd_(IN OUT int& nIdx, const SParserContext& c
    SParserContext ctxText(ctx);
    ctxText.bTextMode = true; //text mode
    ctxText.sFontCmd = m_pTokenizer->TokenText(m_vTokens[nIdx]);
-   CMathItem* pArg = ProcessGroup_(++nIdx, ctxText); //move to argument group
+   CMathItem* pArg = ProcessGroup(++nIdx, ctxText); //move to argument group
    if(!pArg) {
       //error in argument processing
       if (m_Error.sError.empty()) {
@@ -594,7 +652,7 @@ CMathItem* CTexParser::ProcessMathFontCmd_(IN OUT int& nIdx, const SParserContex
    SParserContext ctxMath(ctx);
    ctxMath.bTextMode = false; //math mode
    ctxMath.sFontCmd = m_pTokenizer->TokenText(m_vTokens[nIdx]);
-   CMathItem* pArg = ProcessGroup_(++nIdx, ctxMath); //move to argument group
+   CMathItem* pArg = ProcessGroup(++nIdx, ctxMath); //move to argument group
    if (!pArg) {
       //error in argument processing
       if (m_Error.sError.empty()) {
@@ -656,7 +714,7 @@ CMathItem* CTexParser::ProcessScaleCmd_(IN OUT int& nIdx, const SParserContext& 
    }
    SParserContext ctxScaled(ctx);   // mode can be any
    ctxScaled.fUserScale *= fScale;  // apply scaling
-   CMathItem* pArg = ProcessGroup_(nIdxTextArg, ctxScaled); //process argument with the new scale
+   CMathItem* pArg = ProcessGroup(nIdxTextArg, ctxScaled); //process argument with the new scale
    if (!pArg) {
       //error in argument processing
       if (m_Error.sError.empty()) {

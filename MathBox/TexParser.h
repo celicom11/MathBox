@@ -5,13 +5,32 @@ class CTokenizer;
 struct SParserContext {
    bool bTextMode{ false };            // TEXT/MATH mode
    bool bInLeftRight{ false };         // inside \left...\right construct
+   bool bInSubscript{ false };         // building atom's subscript
+   bool bInSuperscript{ false };       // building atom's superscript
+   bool bInCmdArg{ false };            // building command's argument
    CMathStyle currentStyle;            // MATH mode style
    float fUserScale{ 1.0f };           // User scaling factor
    string sFontCmd;                    // Current font (for both Math/Text modes!)
+   //helpers
+   void SetInSubscript() {
+      _ASSERT(!this->bInSubscript);
+      this->currentStyle.Decrease();
+      if (this->currentStyle.Style() == etsText)
+         this->currentStyle.Decrease();
+      this->currentStyle.SetCramped(); //subscripts are cramped
+      this->bInSubscript = true;
+   }
+   void SetInSuperscript() {
+      _ASSERT(!this->bInSuperscript);
+      this->currentStyle.Decrease();
+      if (this->currentStyle.Style() == etsText)
+         this->currentStyle.Decrease();
+      this->bInSuperscript = true;
+   }
 };
 
 class CTexParser {
-   friend class CParserAdapter; //allow adapter to inner processing
+   //friend class CParserAdapter; //allow adapter to inner processing
 //DATA
    float                      m_fDocFontSizePts{ 12.0f };
    CTokenizer*                m_pTokenizer{ nullptr };   
@@ -41,11 +60,11 @@ public:
       m_vBuilders.push_back(pBuilder);
    }
    CMathItem* Parse(const string& sText);
-
+   //processing methods
+   CMathItem* ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx);
+   CMathItem* ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx);
 private:
    bool BuildGroups_();
-   //processing methods
-   CMathItem* ProcessGroup_(IN OUT int& nIdx, const SParserContext& ctx);
 
    CMathItem* ProcessAlnum_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessNonAlnum_(IN OUT int& nIdx, const SParserContext& ctx);
@@ -53,6 +72,8 @@ private:
    CMathItem* ProcessMathFontCmd_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessScaleCmd_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessItemBuilderCmd_(IN OUT int& nIdx, const SParserContext& ctx);
+   CMathItem* BuildGenerilizedFraction_(IN OUT int& nIdx, const SParserContext& ctx);
+   CMathItem* TryAddSubSuperscript_(CMathItem* pAtom, IN OUT int& nIdx, const SParserContext& ctx);
    //context-modifying commands
    bool ProcessMathStyleCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx);
    bool ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx);

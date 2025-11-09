@@ -329,5 +329,319 @@ namespace TexParserTests
          Assert::AreEqual((int)etsScript, (int)pBottom->GetStyle().Style(), L"Bottom item (sub) should have Script style");
          Assert::IsTrue(pBottom->GetStyle().IsCramped(), L"Subscript should be cramped");
       }
+      // ## Test 6a: ComplexChaining
+      // Input: "$$X_Y^Z_A$$"
+      // Parse: X_Y^Z (single indexed, 3 items), then chain _A
+      // Result: {X_Y^Z}_A (nested indexed)
+      TEST_METHOD(Indexed_ComplexChaining_Display) {
+
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$X_Y^Z_A$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         // Outer indexed item: base=(X_Y^Z) + subscript=A
+         Assert::AreEqual((int)eacINDEXED, (int)pRet->Type(), L"Outer should be indexed");
+
+         CContainerItem* pOuter = dynamic_cast<CContainerItem*>(pRet);
+         Assert::AreEqual((size_t)2, pOuter->Items().size(), L"Outer: base + subscript A");
+
+         // Outer subscript is 'A'
+         CMathItem* pOuterSub = pOuter->Items()[1];
+         Assert::AreEqual((int)eacWORD, (int)pOuterSub->Type());
+         Assert::IsTrue(pOuterSub->GetStyle().IsCramped());
+
+         // Outer base is inner indexed item (X_Y^Z with 3 items)
+         CMathItem* pInner = pOuter->Items()[0];
+         Assert::AreEqual((int)eacINDEXED, (int)pInner->Type(), L"Base should be indexed (X_Y^Z)");
+
+         CContainerItem* pInnerCont = dynamic_cast<CContainerItem*>(pInner);
+         Assert::AreEqual((size_t)3, pInnerCont->Items().size(), L"Inner: base X + subscript Y + superscript Z");
+
+         // Inner item 0: base 'X'
+         CMathItem* pX = pInnerCont->Items()[0];
+         Assert::AreEqual((int)eacWORD, (int)pX->Type());
+         Assert::IsFalse(pX->GetStyle().IsCramped());
+
+         // Inner item 1: subscript 'Y' (cramped)
+         CMathItem* pY = pInnerCont->Items()[1];
+         Assert::AreEqual((int)eacWORD, (int)pY->Type());
+         Assert::IsTrue(pY->GetStyle().IsCramped(), L"Subscript Y should be cramped");
+
+         // Inner item 2: superscript 'Z' (not cramped)
+         CMathItem* pZ = pInnerCont->Items()[2];
+         Assert::AreEqual((int)eacWORD, (int)pZ->Type());
+         Assert::IsFalse(pZ->GetStyle().IsCramped(), L"Superscript Z should NOT be cramped");
+      }
+      // ## Test 7: TextAndMath
+      // # Input: "Text $$E=mc^2$$ more"
+      // 
+      // # Expected Result:
+      // - CHBoxItem containing multiple items (NOT optimized because >1 item)
+      // - Contains: text items, math part, more text items
+      // 
+      // # Verify:
+      // - Result type == eacHBOX
+      // - CHBoxItem has >= 3 items (text + math + text)
+      // - Math part (E=mc^2) contains CIndexedItem for c^2
+      // - Math part has display style (etsDisplay)
+      // - Text parts have text mode
+      // - No parse errors
+      TEST_METHOD(MathInText_Display) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("Text $$E=mc^2$$ more");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         // Parse should succeed
+         Assert::IsNotNull(pRet, L"Parser failed!");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"Unexpected parse error");
+         // Result should be HBox
+         Assert::AreEqual((int)eacHBOX, (int)pRet->Type(), L"Result should be HBox");
+         CContainerItem* pHBox = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pHBox, L"HBox should be CContainerItem");
+         Assert::IsTrue(pHBox->Items().size() >= 3, L"HBox should have at least 3 items (text + math + text)");
+         // Find math part (should be second item)
+         CMathItem* pMathPart = pHBox->Items()[1];
+         Assert::AreEqual((int)eacHBOX, (int)pMathPart->Type(), L"Math part should be HBox");
+         CContainerItem* pMathHBox = dynamic_cast<CContainerItem*>(pMathPart);
+         bool foundIndexed = false;
+         for (CMathItem* pItem : pMathHBox->Items()) {
+            if (pItem->Type() == eacINDEXED) {
+               foundIndexed = true;
+               break;
+            }
+         }
+         Assert::IsTrue(foundIndexed, L"Math part should contain indexed item for c^2");
+      }
+      // ## Test 8: MultipleTerms
+      // # Input: "$$a+b-c$$"
+      // 
+      // # Expected Result:
+      // - CHBoxItem with 5 CWordItems (NOT optimized because >1 item)
+      // 
+      // # Verify:
+      // - Result type == eacHBOX
+      // - HBox contains exactly 5 items: 'a', '+', 'b', '-', 'c'
+      // - All items are eacWORD type
+      // - All have display style
+      // - No parse errors
+      TEST_METHOD(MultipleTerms_Display) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$a+b-c$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         // Parse should succeed
+         Assert::IsNotNull(pRet, L"Parser failed!");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"Unexpected parse error");
+         // Result should be HBox
+         Assert::AreEqual((int)eacHBOX, (int)pRet->Type(), L"Result should be HBox");
+         CContainerItem* pHBox = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pHBox, L"HBox should be CContainerItem");
+         Assert::AreEqual((size_t)5, pHBox->Items().size(), L"HBox should have exactly 5 items");
+         // Verify each item
+         for (size_t i = 0; i < 5; ++i) {
+            CMathItem* pItem = pHBox->Items()[i];
+            Assert::AreEqual((int)eacWORD, (int)pItem->Type(), L"Each item should be CWordItem");
+            CWordItem* pWord = dynamic_cast<CWordItem*>(pItem);
+            Assert::IsNotNull(pWord, L"Item should be CWordItem");
+            Assert::AreEqual((size_t)1, pWord->GlyphRun().Glyphs().size(), L"Each WordItem should have single glyph");
+            Assert::AreEqual((int)etsDisplay, (int)pWord->GetStyle().Style(), L"Item should have Display style");
+         }
+      }
+      // Input: "$${[a]}$$"
+      // Expected: Single CWordItem 'a' (all wrapper groups optimized away)
+      // 
+      // Parsing steps:
+      // 1. $$ opens display math group
+      // 2. {} creates fig-brace group containing [a]
+      // 3. [] creates square-bracket group containing 'a'
+      // 4. ProcessGroup optimizes: single item [a] -> unwraps to 'a'
+      // 5. ProcessGroup optimizes: single item {a} -> unwraps to 'a'
+      // 6. ProcessGroup optimizes: single item $$a$$ -> unwraps to 'a'
+      // Result: CWordItem('a')
+      TEST_METHOD(NestedGroups_OptimizedToSingleItem) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$${[a]}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         // Parse should succeed
+         Assert::IsNotNull(pRet, L"Parse should succeed for nested groups");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"No error expected");
+
+         // Result should be single CWordItem (all groups optimized away)
+         Assert::AreEqual((int)eacWORD, (int)pRet->Type(), L"Result should be CWordItem (nested groups unwrapped)");
+
+         // Verify it's 'a' (optional - if you have GetText or similar)
+         // CWordItem* pWord = dynamic_cast<CWordItem*>(pRet);
+         // Assert::IsNotNull(pWord);
+
+         // Verify Display style (from $$)
+         Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style(), L"Should have Display style from $$ delimiters");
+         Assert::IsFalse(pRet->GetStyle().IsCramped(), L"Display style should not be cramped");
+      }
+
+#pragma region ErrorTests
+      // ## Test 9: MissingSubscriptArgument_EndOfInput
+      // # Input: "$$x_$$"
+      // 
+      // # Expected Result:
+      // - nullptr
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Orphan subscript '_'"
+      // - LastError().eStage == epsBUILDING
+      // - LastError().nPosition == 4
+      TEST_METHOD(Error_MissingSubscriptArgument_EndOfInput) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$x_$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         // Parse should fail
+         Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Orphan subscript '_'");
+         Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
+         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+      }
+      // ## Test 10: DoubleSubSuperscript
+      // # Input: "$$x_^y$$"
+      // 
+      // # Expected Result:
+      // - nullptr
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Double subscript/superscript is not allowed!"
+      // - LastError().eStage == epsBUILDING
+      // - LastError().nPosition == 4
+      TEST_METHOD(Error_DoubleSubSuperscript) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$x_^y$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         // Parse should fail
+         Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Double subscript/superscript is not allowed!");
+         Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
+         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+      }
+      // ## Test 11: DoubleSuperSubscript
+      // # Input: "$$x^_y$$"
+      // 
+      // # Expected Result:
+      // - nullptr
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Double subscript/superscript is not allowed!"
+      // - LastError().eStage == epsBUILDING
+      // - LastError().nPosition == 4
+      TEST_METHOD(Error_DoubleSuperSubscript) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$x^_y$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         // Parse should fail
+         Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Double subscript/superscript is not allowed!");
+         Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
+         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+      }
+      // ## Test 12: EmptyMathGroup
+      // # Input: "$$$$","$ $","${}$","{}"
+      // 
+      // # Expected Result:
+      // - nullptr, error about empty group
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Empty group is not allowed here!"
+      TEST_METHOD(Error_EmptyGroups_NotAllowed) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$ $$");
+         // Parse should succeed with empty result
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         pRet = parser.Parse("$ $");
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         pRet = parser.Parse("${}$");
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         pRet = parser.Parse("{}");
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+      }
+      // ## Test 14: BuildGroups has unclosed opening
+      // # Input: "$${ abc$$", "${a^bc$"
+      // 
+      // # Expected Result:
+      // - nullptr 
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Unclosed group '{'"
+      // - LastError().nPosition == 2
+      TEST_METHOD(Error_BuildGroups_Unclosed) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$${ abc$$");
+         // Parse should succeed with empty result
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Unclosed group '{'");
+         Assert::AreEqual((int)err.nPosition, 2, L"Error position should be 2");
+
+         pRet = parser.Parse("$a{{a^bc$");
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Unclosed group '{'");
+         Assert::AreEqual((int)err.nPosition, 3, L"Error position should be 3");
+      }
+      // ## Test 15: NestedMathModes are not allowed
+      // # Input: "$$a $b$ c$$","$a $$b$$ c$"
+      // # Expected Result:
+      // - nullptr 
+      // 
+      // # Verify:
+      // - Result is nullptr
+      // - LastError().sError == "Inner $..$/$$...$$ are not allowed in math mode!"
+      TEST_METHOD(Error_NestedMathModes) {
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$a $b$ c$$");
+         // Parse should succeed with empty result
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         auto err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode!");
+         pRet = parser.Parse("$a $$b$$ c$");
+         Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
+         err = parser.LastError();
+         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode!");
+      }
+#pragma endregion
    };
 };

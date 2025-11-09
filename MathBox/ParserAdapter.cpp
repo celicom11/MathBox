@@ -58,17 +58,19 @@ bool CParserAdapter::_GetText(int nTkStart, int nTkEnd, OUT string& sText) const
 CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, CMathStyle* pStyle) {
    if(!_CanConsumeToken(eParens))
       return nullptr; //caller must set error!
-   _ASSERT_RET(eParens != elcapAny, nullptr); //TMP: presume group!
    // Create context with custom style if provided
-   SParserContext ctxToUse = m_ctx;
-   if (pStyle) {
-      ctxToUse.currentStyle = *pStyle;
-   }
-   
+   SParserContext ctxCmd(m_ctx);
+   if (pStyle)
+      ctxCmd.currentStyle = *pStyle;
+   CMathItem* pRet = nullptr;
    int nTkIdx = m_nTkIdx;
-   CMathItem* pRet = m_TexParser.ProcessGroup_(nTkIdx, ctxToUse);
-
-   if(pRet) 
+   if (eParens != elcapAny) //process group
+      pRet = m_TexParser.ProcessGroup(nTkIdx, ctxCmd); //move to opening
+   else { //process single token, without sub/superscripts if any
+      ctxCmd.bInCmdArg = true; //we are in command argument
+      pRet = m_TexParser.ProcessItemToken(nTkIdx, ctxCmd);
+   }
+   if(pRet && m_TexParser.LastError().sError.empty())
       m_nTkIdx = nTkIdx; //move to next token on success
    return pRet;
 }
