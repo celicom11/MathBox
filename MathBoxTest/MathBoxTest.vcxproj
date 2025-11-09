@@ -179,6 +179,7 @@
     <ClCompile Include="..\MathBox\LMFontManager.cpp" />
     <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp" />
     <ClCompile Include="..\MathBox\ParserAdapter.cpp" />
+    <ClCompile Include="..\MathBox\RadicalBuilder.cpp" />
     <ClCompile Include="..\MathBox\TexParser.cpp" />
     <ClCompile Include="..\MathBox\Tokenizer.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

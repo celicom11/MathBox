@@ -48,15 +48,32 @@ namespace {
 bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd) const {
    return (0 == strcmp(szCmd, "\\sqrt"));
 }
-CMathItem* CRadicalBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale, 
-                                       const vector<SLaTexCmdArgValue>& vArgValues) const {
+CMathItem* CRadicalBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
    _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
-   _ASSERT_RET(vArgValues.size() == 2, nullptr);
-   _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
-   _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
-   _ASSERT_RET(vArgValues[1].uVal.pMathItem, nullptr);
-   return _BuildRadical(style, fUserScale, vArgValues[1].uVal.pMathItem,
-      vArgValues[0].uVal.pMathItem);
+
+   // Get current context
+   CMathStyle styleRadicand = pParser->GetCurrentStyle();
+   styleRadicand.SetCramped(true); //radicand is always in cramped style
+   float fUserScale = pParser->GetUserScale();
+   CMathStyle styleDegree;
+   styleDegree.SetStyle(etsScriptScript); //non-cramped!
+   // 1. Consume optional degree [expr]
+   CMathItem* pRadDegree = pParser->ConsumeItem(elcapSquare, &styleDegree);
+   if (pParser->HasError())
+      return nullptr;
+   // 2. Consume redicand {expr}
+   CMathItem* pRadicand = pParser->ConsumeItem(elcapFig, &styleRadicand);
+   if (!pRadicand) {
+      delete pRadDegree;
+      if (!pParser->HasError())
+         pParser->SetError("Missing Radicand for \\sqrt command");
+      return nullptr;
+   }
+
+   // 3. Build radical item
+   return _BuildRadical(pParser->GetCurrentStyle(), fUserScale, pRadicand, pRadDegree);
+
 }
 
 CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree) {

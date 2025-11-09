@@ -5,6 +5,7 @@
 #include "WordItem.h"
 //MathBuiders
 #include "FractionBuilder.h"
+#include "RadicalBuilder.h"
 
 CLMFontManager g_LMFManager;
 IDWriteFactory* g_pDWriteFactory = nullptr;
@@ -744,6 +745,139 @@ namespace TexParserTests
          Assert::AreEqual((int)eacWORD, (int)pSuper->Type());
          Assert::IsFalse(pSuper->GetStyle().IsCramped(), L"Superscript not cramped");
       }
+      TEST_METHOD(RadicalBuilder_Basic_Display) {
+         // Input: "$$\sqrt{x}$$"
+         // Tests: Optional degree argument not provided
+         // Expected: Radical without degree (square root)
 
+         CTexParser parser;
+         parser.RegisterBuilder(new CRadicalBuilder());
+         CMathItem* pRet = parser.Parse("$$\\sqrt{x}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         // Parse succeeded
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"No parse errors expected");
+
+         // Result is Radical
+         Assert::AreEqual((int)eacRADICAL, (int)pRet->Type(), L"Result should be RADICAL");
+
+         // Display style (from $$)
+         Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style());
+
+         // Check radical structure
+         CContainerItem* pRadCont = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pRadCont);
+
+         // Should have 3 items (RadGlyph, Overbar, Radicand)
+         Assert::IsTrue(pRadCont->Items().size() == 3, L"Radical should have 3 items");
+         // RadGlyph, Overbar, Radicand
+         CMathItem* pRadicand = pRadCont->Items()[2];
+         Assert::AreEqual((int)eacWORD, (int)pRadicand->Type(), L"Radicand should be WORD");
+         Assert::IsTrue(pRadicand->GetStyle().IsCramped(), L"Radicand should be cramped");
+      }
+      TEST_METHOD(RadicalBuilder_Degree_Display) {
+         CTexParser parser;
+         parser.RegisterBuilder(new CRadicalBuilder());
+         CMathItem* pRet = parser.Parse("$$\\sqrt[3]{A}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         Assert::IsNotNull(pRet, L"Parser failed!");
+         Assert::IsTrue(eacRADICAL == pRet->Type(), L"Resulting item is not RADICAL");
+         // Ret overall style: Display (from $$)
+         Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style(), L"Container should have Display style");
+
+         // VBox should have 4 items
+         CContainerItem* pRadCont = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pRadCont, L"Radical should be CContainerItem");
+         Assert::AreEqual((size_t)4, pRadCont->Items().size(), L"Radical should have 4 items: RadGlyph,Degree,Overbar,Radicand");
+         // Item 0: Radical glyph 
+         CMathItem* pRadGlyph = pRadCont->Items()[0];
+         Assert::IsTrue(pRadGlyph->Type() == eacWORD, L"RadGlyph should be WORD (symbol)");
+
+         // Item 1: Degree '3'
+         CMathItem* pDegree = pRadCont->Items()[1];
+         Assert::AreEqual((int)eacWORD, (int)pDegree->Type(), L"Degree should be CWordItem");
+
+         // Degree style: ScriptScript (very small)
+         Assert::AreEqual((int)etsScriptScript, (int)pDegree->GetStyle().Style(),
+            L"Degree should be ScriptScript style");
+         Assert::IsFalse(pDegree->GetStyle().IsCramped(), L"Degree should NOT be cramped");
+
+         // Item 2: Overbar (horizontal line over radicand)
+         CMathItem* pOverbar = pRadCont->Items()[2];
+         Assert::IsTrue(pOverbar->Type() == eacUNK, L"Overbar should be UNK (filler)");
+
+         // Item 3: Radicand 'A'
+         CMathItem* pRadicand = pRadCont->Items()[3];
+         Assert::AreEqual((int)eacWORD, (int)pRadicand->Type(), L"Radicand should be CWordItem");
+
+         // Radicand style: Display (same as outer), CRAMPED
+         Assert::AreEqual((int)etsDisplay, (int)pRadicand->GetStyle().Style(), L"Radicand: same style as outer context");
+         Assert::IsTrue(pRadicand->GetStyle().IsCramped(), L"Radicand SHOULD be cramped");
+
+      }
+      TEST_METHOD(RadicalBuilder_RecursiveDegree_Inline) {
+         // Input: "$\sqrt[\sqrt{2}]{x}$"
+         // Tests: Nested radical as degree (advanced recursion)
+         // Also tests: Inline math mode ($ not $$)
+
+         CTexParser parser;
+         parser.RegisterBuilder(new CRadicalBuilder());
+         CMathItem* pRet = parser.Parse("$\\sqrt[\\sqrt{2}]{x}$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         // Parse succeeded
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"No parse errors expected");
+
+         // Result is Radical (outer)
+         Assert::AreEqual((int)eacRADICAL, (int)pRet->Type(), L"Result should be outer RADICAL");
+
+         // Inline style (from single $)
+         Assert::AreEqual((int)etsText, (int)pRet->GetStyle().Style(), L"Inline math should have Text style");
+
+         // Outer radical structure
+         CContainerItem* pOuterRad = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pOuterRad);
+         Assert::AreEqual((size_t)4, pOuterRad->Items().size(), L"Outer radical: RadGlyph, Degree, Overbar, Radicand");
+
+         // Item[1]: Degree is nested radical
+         CMathItem* pDegree = pOuterRad->Items()[1];
+         Assert::AreEqual((int)eacRADICAL, (int)pDegree->Type(), L"Degree should be nested RADICAL");
+
+         // Degree style: ScriptScript
+         Assert::AreEqual((int)etsScriptScript, (int)pDegree->GetStyle().Style(), L"Degree should be ScriptScript");
+         Assert::IsFalse(pDegree->GetStyle().IsCramped(), L"Degree should NOT be cramped");
+
+         // Inner radical (degree's radical)
+         CContainerItem* pInnerRad = dynamic_cast<CContainerItem*>(pDegree);
+         Assert::IsNotNull(pInnerRad);
+
+         // Inner radical should have radicand '2'
+         // (Check last item, which is radicand in your structure)
+         size_t nInnerItems = pInnerRad->Items().size();
+         CMathItem* pInnerRadicand = pInnerRad->Items()[nInnerItems - 1];
+         Assert::AreEqual((int)eacWORD, (int)pInnerRadicand->Type(), L"Inner radicand should be '2'");
+         Assert::IsTrue(pInnerRadicand->GetStyle().IsCramped(), L"Inner radicand should be cramped");
+
+         // Outer radicand: 'x'
+         CMathItem* pOuterRadicand = pOuterRad->Items()[3];
+         Assert::AreEqual((int)eacWORD, (int)pOuterRadicand->Type(), L"Outer radicand should be 'x'");
+         Assert::IsTrue(pOuterRadicand->GetStyle().IsCramped(), L"Outer radicand should be cramped");
+
+         // Verify style cascade: Text (outer) -> ScriptScript (degree)
+         // Inner radical inherits ScriptScript, its radicand decreases further
+         Assert::IsTrue(pInnerRadicand->GetStyle().Style() == etsScriptScript,
+            L"Inner radicand should have ScriptScript style");
+      }
    };
 };

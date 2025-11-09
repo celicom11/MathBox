@@ -55,6 +55,9 @@
     <ClCompile Include="..\MathBox\FractionBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\RadicalBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">
