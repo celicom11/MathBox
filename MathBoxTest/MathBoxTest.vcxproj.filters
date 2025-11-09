@@ -52,6 +52,9 @@
     <ClCompile Include="GlueItemTests.cpp" />
     <ClCompile Include="TokenizerTests.cpp" />
     <ClCompile Include="TexParserTests.cpp" />
+    <ClCompile Include="..\MathBox\FractionBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

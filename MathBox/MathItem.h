@@ -137,6 +137,17 @@ public:
       if (m_eTexStyle < etsScriptScript)
          m_eTexStyle = EnumTexStyle(m_eTexStyle + 1);
    }
+   void ToSubscriptStyle() {
+      ToSuperscriptStyle();
+      m_bCramped = true; // subscripts are always cramped
+   }
+   void ToSuperscriptStyle() {
+      if (m_eTexStyle == etsScript)
+         m_eTexStyle = etsScriptScript;
+      else
+         m_eTexStyle = etsScript;
+   }
+
 };
 //Tex Glue info
 struct STexGlue {

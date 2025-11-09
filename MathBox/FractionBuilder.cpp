@@ -3,7 +3,46 @@
 #include "ContainerItem.h"
 #include "FillerItem.h"
 
-CMathItem* CFractionBuilder::BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {
+bool CFractionBuilder::CanTakeCommand(PCSTR szCmd) const {
+   _ASSERT_RET(szCmd && *szCmd == '\\', false);
+   ++szCmd; // Skip backslash
+   return (strcmp(szCmd, "frac") == 0);
+}
+CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
+
+   // Get current context
+   CMathStyle styleBase = pParser->GetCurrentStyle();
+   float fUserScale = pParser->GetUserScale();
+   CMathStyle styleNumerator(styleBase);
+   styleNumerator.Decrease();
+   CMathStyle styleDenom(styleNumerator);
+   styleDenom.SetCramped(true);
+   // 1. Consume numerator {expr}
+
+   CMathItem* pNumerator = pParser->ConsumeItem(elcapFig, &styleNumerator);
+   if (!pNumerator) {
+      if (!pParser->HasError())
+         pParser->SetError("Missing numerator for \\frac");
+      return nullptr;
+   }
+
+   // 2. Consume denominator {expr}
+   //    Denominator style: same as numerator but CRAMPED
+   CMathItem* pDenominator = pParser->ConsumeItem(elcapFig, &styleDenom);
+   if (!pDenominator) {
+      delete pNumerator;
+      if (!pParser->HasError())
+         pParser->SetError("Missing denominator for \\frac");
+      return nullptr;
+   }
+
+   // 3. Build fraction item
+   return _BuildFraction(styleBase, fUserScale, pNumerator, pDenominator);
+}
+
+CMathItem* CFractionBuilder::_BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
    CContainerItem* pRetBox = new CContainerItem(eacVBOX, style, etaORD);

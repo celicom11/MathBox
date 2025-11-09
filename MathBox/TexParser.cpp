@@ -83,6 +83,9 @@ namespace { //static helpers
 // CTexParser
 CTexParser::~CTexParser() {
    delete m_pTokenizer;
+   for (IMathItemBuilder* pBuilder : m_vBuilders) {
+      delete pBuilder;
+   }
 }
 CMathItem* CTexParser::Parse(const string& sText) {
    if (m_pTokenizer)

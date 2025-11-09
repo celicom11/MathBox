@@ -3,7 +3,9 @@
 #include "LMFontManager.h"
 #include "ContainerItem.h"
 #include "WordItem.h"
-//globals
+//MathBuiders
+#include "FractionBuilder.h"
+
 CLMFontManager g_LMFManager;
 IDWriteFactory* g_pDWriteFactory = nullptr;
 
@@ -643,5 +645,105 @@ namespace TexParserTests
          Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode!");
       }
 #pragma endregion
+   };
+   TEST_CLASS(MathBuilderTests)
+   {
+   public:
+      TEST_METHOD(FractionBuilder_Basic_Display) {
+         CTexParser parser;
+         parser.RegisterBuilder(new CFractionBuilder());
+         CMathItem* pRet = parser.Parse("$$\\frac{a}{b}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+         Assert::IsNotNull(pRet, L"Parser failed!");
+         Assert::IsTrue(eacVBOX == pRet->Type(), L"Resulting item is not VBOX");
+         // VBox overall style: Display (from $$)
+         Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style(), L"VBox should have Display style");
+
+         // VBox should have 3 items
+         CContainerItem* pVBox = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pVBox, L"VBox should be CContainerItem");
+         Assert::AreEqual((size_t)3, pVBox->Items().size(), L"VBox should have 3 items: Numerator,Bar,Denom");
+
+         // Item 1: Numerator 'a'
+         CMathItem* pNumerator = pVBox->Items()[1];
+         Assert::AreEqual((int)eacWORD, (int)pNumerator->Type(), L"Numerator should be CWordItem");
+         Assert::AreEqual((int)etsText, (int)pNumerator->GetStyle().Style(), L"Numerator style: Display -> Text");
+         Assert::IsFalse(pNumerator->GetStyle().IsCramped(), L"Numerator should NOT be cramped");
+
+         // Item 0: Fraction bar (rule/line)
+         CMathItem* pBar = pVBox->Items()[0];
+         Assert::IsTrue(pBar->Type() == eacUNK, L"Rule item should be UNK");
+
+         // Item 2: Denominator 'b'
+         CMathItem* pDenominator = pVBox->Items()[2];
+         Assert::AreEqual((int)eacWORD, (int)pDenominator->Type(), L"Denominator should be CWordItem");
+
+         // Denominator style: Text + cramped
+         Assert::AreEqual((int)etsText, (int)pDenominator->GetStyle().Style(), 
+            L"Denominator style: same as Numerator, Display -> Text");
+         Assert::IsTrue(pDenominator->GetStyle().IsCramped(), L"Denominator SHOULD be cramped");
+
+      }
+      TEST_METHOD(FractionBuilder_Nested_Display) {
+         // Input: "$$\frac{\frac{a}{b}}{c}$$"
+         // Tests: Recursive builder calls work
+
+         CTexParser parser;
+         parser.RegisterBuilder(new CFractionBuilder());
+         CMathItem* pRet = parser.Parse("$$\\frac{\\frac{a}{b}}{c}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         // Outer fraction
+         Assert::AreEqual((int)eacVBOX, (int)pRet->Type());
+         CContainerItem* pOuter = dynamic_cast<CContainerItem*>(pRet);
+         Assert::AreEqual((size_t)3, pOuter->Items().size(), L"Outer: num, bar, denom");
+
+         // Numerator is inner fraction
+         CMathItem* pNumerator = pOuter->Items()[1];
+         Assert::AreEqual((int)eacVBOX, (int)pNumerator->Type(), L"Numerator should be nested fraction");
+
+         // Denominator is 'c'
+         CMathItem* pDenominator = pOuter->Items()[2];
+         Assert::AreEqual((int)eacWORD, (int)pDenominator->Type());
+      }
+      TEST_METHOD(FractionBuilder_WithSuperscript_Display) {
+         // Input: "$$\frac{a}{b}^2$$"
+         // Tests: TryAddSubSuperscript_ works on builder result
+
+         CTexParser parser;
+         parser.RegisterBuilder(new CFractionBuilder());
+         CMathItem* pRet = parser.Parse("$$\\frac{a}{b}^2$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet);
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         // Result is indexed (fraction with superscript)
+         Assert::AreEqual((int)eacINDEXED, (int)pRet->Type(), L"Should be indexed: (\\frac{a}{b})^2");
+
+         CContainerItem* pIndexed = dynamic_cast<CContainerItem*>(pRet);
+         Assert::AreEqual((size_t)2, pIndexed->Items().size(), L"Indexed: base + superscript");
+
+         // Base is fraction
+         Assert::AreEqual((int)eacVBOX, (int)pIndexed->Items()[0]->Type());
+
+         // Superscript is '2'
+         CMathItem* pSuper = pIndexed->Items()[1];
+         Assert::AreEqual((int)eacWORD, (int)pSuper->Type());
+         Assert::IsFalse(pSuper->GetStyle().IsCramped(), L"Superscript not cramped");
+      }
+
    };
 };

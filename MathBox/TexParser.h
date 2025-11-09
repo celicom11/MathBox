@@ -14,17 +14,12 @@ struct SParserContext {
    //helpers
    void SetInSubscript() {
       _ASSERT(!this->bInSubscript);
-      this->currentStyle.Decrease();
-      if (this->currentStyle.Style() == etsText)
-         this->currentStyle.Decrease();
-      this->currentStyle.SetCramped(); //subscripts are cramped
+      this->currentStyle.ToSubscriptStyle();
       this->bInSubscript = true;
    }
    void SetInSuperscript() {
       _ASSERT(!this->bInSuperscript);
-      this->currentStyle.Decrease();
-      if (this->currentStyle.Style() == etsText)
-         this->currentStyle.Decrease();
+      this->currentStyle.ToSuperscriptStyle();
       this->bInSuperscript = true;
    }
 };
@@ -38,7 +33,7 @@ class CTexParser {
    vector<STexToken>          m_vTokens;                 // tokens of the current parsing
    vector<IMathItemBuilder*>  m_vBuilders;               // registered builders
 public:
-//CTOR/DTOR
+//CTOR/DTOR/INIT
    CTexParser() = default;
    ~CTexParser();
 //ATTS

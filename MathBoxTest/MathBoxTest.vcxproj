@@ -161,6 +161,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp" />
+    <ClCompile Include="..\MathBox\FractionBuilder.cpp" />
     <ClCompile Include="..\MathBox\GlueItem.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

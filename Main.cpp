@@ -423,7 +423,7 @@ private:
          //
          CMathItem* pDenom = CWordItemBuilder::BuildMathWord("", "2", true, styleDenom, 1.0f);
          _ASSERT_RET(pDenom, );
-         CMathItem* pRadicand = CFractionBuilder::BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
+         CMathItem* pRadicand = CFractionBuilder::_BuildFraction(m_MainBox.GetStyle(), 1.0f, pNum, pDenom);
          //Degree/Index
          CMathItem* pRadDegree = CWordItemBuilder::BuildText("textit", "ABC", etsScriptScript, 1.0f);
          _ASSERT_RET(pRadDegree, );
