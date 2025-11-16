@@ -2,27 +2,6 @@
 #include "MathItem.h"
 //forward decls
 class CTokenizer; 
-struct SParserContext {
-   bool bTextMode{ false };            // TEXT/MATH mode
-   bool bInLeftRight{ false };         // inside \left...\right construct
-   bool bInSubscript{ false };         // building atom's subscript
-   bool bInSuperscript{ false };       // building atom's superscript
-   bool bInCmdArg{ false };            // building command's argument
-   CMathStyle currentStyle;            // MATH mode style
-   float fUserScale{ 1.0f };           // User scaling factor
-   string sFontCmd;                    // Current font (for both Math/Text modes!)
-   //helpers
-   void SetInSubscript() {
-      _ASSERT(!this->bInSubscript);
-      this->currentStyle.ToSubscriptStyle();
-      this->bInSubscript = true;
-   }
-   void SetInSuperscript() {
-      _ASSERT(!this->bInSuperscript);
-      this->currentStyle.ToSuperscriptStyle();
-      this->bInSuperscript = true;
-   }
-};
 
 class CTexParser {
    //friend class CParserAdapter; //allow adapter to inner processing
@@ -34,10 +13,11 @@ class CTexParser {
    vector<IMathItemBuilder*>  m_vBuilders;               // registered builders
 public:
 //CTOR/DTOR/INIT
-   CTexParser() = default;
+   CTexParser();
    ~CTexParser();
 //ATTS
    float DocumentFontSizePts() const { return m_fDocFontSizePts; }
+   void  SetDocumentFontSizePts(float fDocFontSizePts) { m_fDocFontSizePts = fDocFontSizePts; }
    const ParserError& LastError() const { return m_Error; }
    void SetError(const ParserError& error) { 
       if (m_Error.sError.empty()) //set only if no previous error
@@ -51,21 +31,21 @@ public:
    }
    string TokenText_(int nIdx) const;
    //METHODS
-   void RegisterBuilder(IMathItemBuilder* pBuilder) {
-      m_vBuilders.push_back(pBuilder);
-   }
    CMathItem* Parse(const string& sText);
    //processing methods
    CMathItem* ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx);
+protected:
+   void RegisterBuilder(IMathItemBuilder* pBuilder) {
+      m_vBuilders.push_back(pBuilder);
+   }
+
 private:
    bool BuildGroups_();
 
    CMathItem* ProcessAlnum_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessNonAlnum_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessTextCmd_(IN OUT int& nIdx, const SParserContext& ctx);
-   CMathItem* ProcessMathFontCmd_(IN OUT int& nIdx, const SParserContext& ctx);
-   CMathItem* ProcessScaleCmd_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* ProcessItemBuilderCmd_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* BuildGenerilizedFraction_(IN OUT int& nIdx, const SParserContext& ctx);
    CMathItem* TryAddSubSuperscript_(CMathItem* pAtom, IN OUT int& nIdx, const SParserContext& ctx);

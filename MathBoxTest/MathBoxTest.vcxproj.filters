@@ -58,6 +58,27 @@
     <ClCompile Include="..\MathBox\RadicalBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\AccentBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\HSpacingBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\LOpBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\UnderOverBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\MathSymBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

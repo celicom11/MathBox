@@ -3,15 +3,12 @@
 #include "WordItem.h"
 
 namespace {
-   static const vector<SLaTexCmdArgInfo> _vCmdArgs{
-   { true, false, false, 0, elcatLimits, elcapAny},
-   };
    struct SLOpGlyphInfo {
       uint16_t nIdx{ 0 }, nIdxD{ 0 };
       int16_t nItCor{ 0 }, nItCorD{ 0 };
    };
    //copy from LMMGlyphs/CLMFontManager
-   static const map<string, SLOpGlyphInfo> _mapCmd2GInfo{
+   static const vector<pair<string, SLOpGlyphInfo> > _vCmd2GInfo{
       {"int",              {3049,3063,332,591}},      //0x222B
       {"iint",             {3050,3064,332,591}},      //0x222C
       {"iiint",            {3051,3065,332,591}},      //0x222D
@@ -23,6 +20,7 @@ namespace {
       {"awint",            {3057,3069,361,591}},      //0x2A11
       {"varointclockwise", {3058,3069,350,591}},      //0x2231
       {"ointctrclockwise", {3059,3069,350,591}},      //0x2231
+      //OverUnderD = true below!
       {"sum",              {3060,3074}},              //0x2211
       {"prod",             {3061,3075}},              //0x220F
       {"coprod",           {3062,3076}},              //0x2210
@@ -39,27 +37,71 @@ namespace {
       {"bigsqcup",         {2792,2793}},              //0x2A06
       {"bigtimes",         {2639,2640}},              //0x2A09
    };
+   const SLOpGlyphInfo* _FindCmd(PCSTR szCmd,  OUT bool& bOverUnderD) {
+      _ASSERT_RET(szCmd && *szCmd, nullptr);
+      if (szCmd[0] == '\\')
+         ++szCmd;
+      if (!*szCmd)
+         return nullptr;
+      string sCmd(szCmd);
+      if (sCmd.size() < 3)
+         return nullptr; //"int"
+      bOverUnderD = false;
+      //else, check "op" suffix
+      if (sCmd.back() == 'p' && sCmd[sCmd.size() - 2] == 'o') {
+         bOverUnderD = true;
+         sCmd.pop_back();
+         sCmd.pop_back();
+      }
+      int nIdx = 0;
+      for (; nIdx < (int)_vCmd2GInfo.size(); ++nIdx) {
+         if (sCmd == _vCmd2GInfo[nIdx].first) {
+            if(!bOverUnderD)
+               bOverUnderD = nIdx > 10; //>ointctrclockwise
+            return &_vCmd2GInfo[nIdx].second; //copy
+         }
+      }
+      return nullptr;
+   }
 }
 //IMathItemBuilder 
-bool CLOpBuilder::CanTakeCommand(PCSTR szCmd) const {
-   _ASSERT_RET(szCmd && *szCmd, false);
-   if (szCmd[0] == '\\')
-      ++szCmd;
-   return (_mapCmd2GInfo.find(szCmd) != _mapCmd2GInfo.end());
+bool CLOpBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+   bool bOverUnderD;
+   return !bTextMode && _FindCmd(szCmd, bOverUnderD) != nullptr;
 }
+CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && *szCmd && pParser, nullptr);
+   bool bOverUnderD;
+   const SLOpGlyphInfo* pGInfo = _FindCmd(szCmd, bOverUnderD);
+   _ASSERT_RET(pGInfo, nullptr); //snbh!
+
+   // Get current context
+   CMathStyle style = pParser->GetContext().currentStyle;
+   float fUserScale = pParser->GetContext().fUserScale;
+   CWordItem* pRet = new CWordItem(FONT_LMM, style, eacBIGOP, fUserScale);
+   pRet->SetGlyphIndexes({ style.Style() == etsDisplay ? pGInfo->nIdxD : pGInfo->nIdx });
+   bool bLimits = pParser->ConsumeKeyword("\\limits");
+   bool bNoLimits = false;
+   if(!bLimits)
+      bNoLimits = pParser->ConsumeKeyword("\\nolimits");
+
+   if (bLimits || (bNoLimits == false && style.Style() == etsDisplay && bOverUnderD))
+      pRet->SetIdxPlacement(eipOverUnderscript);
+   return pRet;
+}
+
+/*
 CMathItem* CLOpBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
                                     const vector<SLaTexCmdArgValue>& vArgValues) const {
-   _ASSERT_RET(szCmd && *szCmd, nullptr);
-   if (*szCmd == '\\')
-      ++szCmd;
-   auto itPair = _mapCmd2GInfo.find(szCmd);
-   _ASSERT_RET(itPair != _mapCmd2GInfo.end(), nullptr);
+   bool bOverUnderD;
+   const SLOpGlyphInfo* pGInfo = _FindCmd(szCmd, bOverUnderD);
+   _ASSERT_RET(pGInfo, nullptr); //snbh!
    //return a syngle glyph of D/non-D size
    CWordItem* pRet = new CWordItem(FONT_LMM, style, eacBIGOP, fUserScale);
-   pRet->SetGlyphIndexes({ style.Style() == etsDisplay? itPair->second.nIdxD: itPair->second.nIdx });
+   pRet->SetGlyphIndexes({ style.Style() == etsDisplay? pGInfo->nIdxD : pGInfo->nIdx });
    if (vArgValues.size() == 1 && vArgValues[0].eLCAT == elcatLimits) {
       if (vArgValues[0].uVal.nVal == 1)
          pRet->SetIdxPlacement(eipOverUnderscript);
    }
    return pRet;
-}
+}*/

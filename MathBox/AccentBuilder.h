@@ -2,8 +2,11 @@
 #include "MathItem.h"
 
 //Factory for a Accented item
-class CAccentBuilder { //TODO: public IMathItemBuilder
+class CAccentBuilder : public IMathItemBuilder {
 public:
-   static CMathItem* BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
+   //IMathItemBuilder
+   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
+   static CMathItem* _BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
       const string& sLatexAccentCmd);
 };

@@ -34,9 +34,9 @@ namespace {
 }
 //symbol glyps \Pi and or operators \mathplus, etc.
 const SLMMGlyph* CLMFontManager::GetLMMGlyphByCmd(PCSTR szCmd) const {
-   if (!szCmd || szCmd[0] != '\\')
-      return nullptr;
-   ++szCmd; //skip \\
+   _ASSERT_RET(szCmd && *szCmd, nullptr);
+   if(*szCmd == '\\')
+      ++szCmd; //skip \\
    //special aliases/legacy
    szCmd = _ReplaceAlias(szCmd);
    // LMM font - search by LaTex cmd!
@@ -54,8 +54,9 @@ bool CLMFontManager::_GetTextFontStyle(const string& sFontCmd, OUT STextFontStyl
       return true;
    }
    // else 
+   string sFCmd= sFontCmd[0] == '\\'? &sFontCmd[1]: &sFontCmd[0];
    for (const STextFontStyle& tfCmd : _aTexFontCmds) {
-      if (sFontCmd == tfCmd.szTextFontStyle) {
+      if (sFCmd == tfCmd.szTextFontStyle) {
          tfStyle = tfCmd;
          return true;
       }
@@ -64,7 +65,8 @@ bool CLMFontManager::_GetTextFontStyle(const string& sFontCmd, OUT STextFontStyl
 
 }
 bool CLMFontManager::_GetMathFontStyle(const string& sFontCmd, OUT SMathFontStyle& mfStyle) {
-   _ASSERT_RET(sFontCmd.size() > 1, false);
+   if(sFontCmd.size() < 2)
+      return false;
    for (const SMathFontStyle& mfCmd : _aMathFontCmds) {
       if (sFontCmd == mfCmd.szMathFontStyle) {
          mfStyle = mfCmd;

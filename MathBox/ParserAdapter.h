@@ -15,14 +15,15 @@ public:
    int CurrentTokenIdx() const { return m_nTkIdx; }
 
 // IParserAdapter
-   CMathItem* ConsumeItem(EnumLCATParenthesis eParens, CMathStyle* pStyle = nullptr) override;
+   CMathItem* ConsumeItem(EnumLCATParenthesis eParens, const SParserContext& ctx) override;
    bool ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) override;
    bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) override;
    bool ConsumeKeyword(PCSTR szKeyword) override;
+   bool ConsumeHSkipGlue(OUT STexGlue& glue) override;
 
    //context info
-   CMathStyle GetCurrentStyle() const override { return m_ctx.currentStyle; }
-   float GetUserScale() const override { return m_ctx.fUserScale; }
+   const SParserContext& GetContext() const override { return m_ctx; }
+   float DocFontSizePts() const override { return m_TexParser.DocumentFontSizePts(); }
    //error info/setting
    bool HasError() const override { return !m_TexParser.LastError().sError.empty(); }
    void SetError(const string& sMessage) override {
@@ -35,4 +36,5 @@ public:
 private:
    bool _CanConsumeToken(EnumLCATParenthesis eParens) const;
    bool _GetText(int nTkStart, int nTkEnd, OUT string& sText) const;
+   bool _ConsumeGlueComponent(OUT float& fValue, OUT uint16_t& nOrder);
 };

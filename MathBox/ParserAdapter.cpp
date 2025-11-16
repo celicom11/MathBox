@@ -3,16 +3,10 @@
 
 // static helpers
 namespace {
-   bool _IsNaturalNum(const string& sText) {
-      for (char c : sText) {
-         if (c < '0' || c > '9')
-            return false;
-      }
-      return true;
-   }
+   bool _IsDigit(char cC) { return (cC >= '0' && cC <= '9'); }
    bool _IsKnownUnit(const string& sUnit) {
       static const vector<string> _vKnownUnits{
-         "pt","cm","mm","in"
+         "pt","cm","mm","in","em", "ex"
       };
       for (const string& sKU : _vKnownUnits) {
          if (sUnit == sKU)
@@ -20,7 +14,7 @@ namespace {
       }
       return false;
    }
-   bool _ConvertToPts(IN OUT float& fPts, const string& sUnit) {
+   bool _ConvertToPts(IN OUT float& fPts, const string& sUnit, float fDocFontSizePts) {
       if (sUnit == "pt")
          ; //ntd
       else if (sUnit == "cm")
@@ -29,8 +23,38 @@ namespace {
          fPts *= 72.0f / 25.4f;
       else if (sUnit == "in")
          fPts *= 72.0f;
+      else if (sUnit == "em") 
+         fPts *= fDocFontSizePts; 
+      else if (sUnit == "ex")
+         fPts *= fDocFontSizePts/2;
       else
          return false; //unknown unit
+      return true;
+   }
+   bool _GetDimen(const string& sNum, OUT float& fNum, OUT string& sUnit) {
+      _ASSERT_RET(!sNum.empty(), false);
+      bool bHasDot = false;
+      PCSTR szPos = sNum.c_str();
+      while (*szPos) {
+         if (!_IsDigit(*szPos)) {
+            if (!bHasDot && '.' == *szPos) {
+               bHasDot = true;
+               ++szPos;
+               continue;
+            }
+            break;
+         }
+         ++szPos;
+      }
+      if (*szPos)
+         sUnit = sNum.substr(szPos - sNum.c_str(), -1);
+      string sFNum = sNum.substr(0, szPos - sNum.c_str());
+      try{
+         fNum = stof(sFNum);
+      }
+      catch (...) {
+         return false;
+      }
       return true;
    }
 }
@@ -55,18 +79,16 @@ bool CParserAdapter::_GetText(int nTkStart, int nTkEnd, OUT string& sText) const
    }
    return true;
 }
-CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, CMathStyle* pStyle) {
+CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, const SParserContext& ctx) {
    if(!_CanConsumeToken(eParens))
       return nullptr; //caller must set error!
    // Create context with custom style if provided
-   SParserContext ctxCmd(m_ctx);
-   if (pStyle)
-      ctxCmd.currentStyle = *pStyle;
    CMathItem* pRet = nullptr;
    int nTkIdx = m_nTkIdx;
    if (eParens != elcapAny) //process group
-      pRet = m_TexParser.ProcessGroup(nTkIdx, ctxCmd); //move to opening
+      pRet = m_TexParser.ProcessGroup(nTkIdx, ctx); //move to opening
    else { //process single token, without sub/superscripts if any
+      SParserContext ctxCmd(ctx);
       ctxCmd.bInCmdArg = true; //we are in command argument
       pRet = m_TexParser.ProcessItemToken(nTkIdx, ctxCmd);
    }
@@ -80,63 +102,57 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
       return false; //caller must set error!
    const STexToken* pTkNext = m_TexParser.GetToken(m_nTkIdx);
    int nTkStart = m_nTkIdx;
-   if (eParens != elcapAny) {//group
+   if (pTkNext->nTkIdxEnd) {//group
       ++nTkStart; //skip opening
       pTkNext = m_TexParser.GetToken(nTkStart);
    }
-   int nTkEnd = nTkStart + 1;
+   int nTkPos = nTkStart;
    //check for leading '-'
    bool bNegative = false;
    if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkStart) == "-") {
-      ++nTkEnd;
+      ++nTkPos;
       bNegative = true;
+      pTkNext = m_TexParser.GetToken(nTkPos);
    }
-   pTkNext = m_TexParser.GetToken(nTkEnd - 1);
-   string sNum, sN2;
-   //next must be integer part
+   string sNum, sUnit;
+   //next must be number
    if(pTkNext->nType != ettALNUM)
       return false; // not a number, caller must set error!
-   sNum = m_TexParser.TokenText_(nTkEnd - 1);
-   if(!_IsNaturalNum(sNum))
+   sNum = m_TexParser.TokenText_(nTkPos);
+   if(! _GetDimen(sNum, fPts, sUnit))
       return false; // not an integer number, caller must set error!
-   ++nTkEnd; pTkNext = m_TexParser.GetToken(nTkEnd - 1);
-   if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkEnd - 1) == ".") {
-      string sN2;   //decimal part
-      ++nTkEnd; pTkNext = m_TexParser.GetToken(nTkEnd - 1);
-      if (pTkNext->nType != ettALNUM)
-         return false; // not a number, caller must set error!
-      sN2 = m_TexParser.TokenText_(nTkEnd - 1);
-      if(!_IsNaturalNum(sN2))
-         return false; // not an integer number, caller must set error!
-      sNum += "." + sN2;// combine
-      ++nTkEnd; pTkNext = m_TexParser.GetToken(nTkEnd - 1);
+   if (sUnit.empty()) {
+      ++nTkPos; 
+      pTkNext = m_TexParser.GetToken(nTkPos);
+      if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkPos) == ".") {
+         ++nTkPos; 
+         pTkNext = m_TexParser.GetToken(nTkPos);
+         if (pTkNext->nType != ettALNUM)
+            return false; // not a number, caller must set error!
+         sNum = sNum + "." + m_TexParser.TokenText_(nTkPos);
+         if (!_GetDimen(sNum, fPts, sUnit))
+            return false; // not an integer number, caller must set error!
+         // move to next token
+         ++nTkPos; 
+         pTkNext = m_TexParser.GetToken(nTkPos);
+      }
    }
-   if(bNegative)
-      sNum = "-" + sNum;
-   //parse float
-   try {
-      fPts = stof(sNum);
-   }
-   catch (...) {
-      //SetError("Failed to parse FP value from '" + sN1 + "' !");
-      return false;
-   }
-   //check/convert units
-   if (pTkNext->nType == ettALNUM && _IsKnownUnit(m_TexParser.TokenText_(nTkEnd - 1))) {
-      if(!_ConvertToPts(fPts , m_TexParser.TokenText_(nTkEnd - 1)))
+   if (sUnit.empty() && pTkNext->nType == ettALNUM)
+      sUnit = m_TexParser.TokenText_(nTkPos);
+   if (!sUnit.empty()){
+      if (!_IsKnownUnit(sUnit))
+         return false; //bad units
+      if (!_ConvertToPts(fPts, sUnit, m_TexParser.DocumentFontSizePts()))
          _ASSERT_RET(0, false); //snbh!
-      ++nTkEnd; pTkNext = m_TexParser.GetToken(nTkEnd - 1);
-   }
-   if (eParens != elcapAny) {
       //check we are at closing!
-      pTkNext = m_TexParser.GetToken(m_nTkIdx);
-      if (nTkEnd != pTkNext->nTkIdxEnd - 1)
-         return false; //not at closing, some extra tokens in the group?
-      m_nTkIdx = pTkNext->nTkIdxEnd; //move to next token on success
+      //++nTkPos; //good units!
    }
-   else
-      m_nTkIdx = nTkEnd; //move to next token on success
-
+   pTkNext = m_TexParser.GetToken(m_nTkIdx);//start
+   if (pTkNext->nTkIdxEnd && nTkPos + 1 != pTkNext->nTkIdxEnd)
+      return false; //not at closing, some extra tokens in the group?
+   m_nTkIdx = nTkPos + 1; //move to next token on success
+   if (bNegative)
+      fPts = -fPts;
    return true;
 }
 bool CParserAdapter::ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) {
@@ -178,12 +194,98 @@ bool CParserAdapter::ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) 
 }
 bool CParserAdapter::ConsumeKeyword(PCSTR szKeyword) {
    const STexToken* pTkNext = m_TexParser.GetToken(m_nTkIdx);
-   if (!pTkNext || ettCOMMAND != pTkNext->nType)
+   if (!pTkNext || (ettCOMMAND != pTkNext->nType && ettALNUM != pTkNext->nType))
       return false; //caller must set error!
-   string sCmd = m_TexParser.TokenText_(m_nTkIdx);
-   if(sCmd != szKeyword)
+   string sToken = m_TexParser.TokenText_(m_nTkIdx);
+   if(sToken != szKeyword)
       return false;
    // consume it
    ++m_nTkIdx;
    return true;
+}
+bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
+   // Initialize glue to defaults
+   glue = STexGlue();
+
+   // 1. Parse base dimension (required)
+   float fSize = 0.0f;
+   if (!ConsumeDimension(elcapAny, fSize)) {
+      m_TexParser.SetError(ParserError{ epsBUILDING,
+          m_TexParser.GetToken(m_nTkIdx)->nPos,
+          "Expected dimension for \\hskip" });
+      return false;
+   }
+
+   // Convert to EM units (your glue uses EM)
+   float fFontSizePts = m_TexParser.DocumentFontSizePts();
+   float fSizeEM = otfUnitsPerEm * fSize/fFontSizePts;
+   glue.fNorm = fSizeEM;
+   glue.fActual = fSizeEM;
+
+   // 2. Check for "plus" stretch component
+   if (ConsumeKeyword("plus")) {
+      if (!_ConsumeGlueComponent(glue.fStretchCapacity, glue.nStretchOrder)) {
+         m_TexParser.SetError(ParserError{ epsBUILDING,
+             m_TexParser.GetToken(m_nTkIdx)->nPos,
+             "Invalid stretch component after 'plus'" });
+         return false;
+      }
+   }
+
+   // 3. Check for "minus" shrink component
+   if (ConsumeKeyword("minus")) {
+      if (!_ConsumeGlueComponent(glue.fShrinkCapacity, glue.nShrinkOrder)) {
+         m_TexParser.SetError(ParserError{ epsBUILDING,
+             m_TexParser.GetToken(m_nTkIdx)->nPos,
+             "Invalid shrink component after 'minus'" });
+         return false;
+      }
+   }
+
+   return true;
+}
+
+// Helper: Parse stretch/shrink component (can be dimension or fil/fill/filll)
+bool CParserAdapter::_ConsumeGlueComponent(OUT float& fValue, OUT uint16_t& nOrder) {
+   fValue = 0.0f;
+   nOrder = 0;
+
+   const STexToken* pTok = m_TexParser.GetToken(m_nTkIdx);
+   if (!pTok) return false;
+
+   // Try to consume dimension
+   float fDim = 0.0f;
+   if (ConsumeDimension(elcapAny, fDim)) {
+      // Check if followed by fil/fill/filll
+      pTok = m_TexParser.GetToken(m_nTkIdx);
+      if (pTok && pTok->nType == ettALNUM) {
+         string sUnit = m_TexParser.TokenText_(m_nTkIdx);
+
+         if (sUnit == "fil") {
+            nOrder = 1;
+            fValue = fDim;
+            ++m_nTkIdx;
+            return true;
+         }
+         else if (sUnit == "fill") {
+            nOrder = 2;
+            fValue = fDim;
+            ++m_nTkIdx;
+            return true;
+         }
+         else if (sUnit == "filll") {
+            nOrder = 3;
+            fValue = fDim;
+            ++m_nTkIdx;
+            return true;
+         }
+      }
+
+      // Regular dimension (convert to EM)
+      float fFontSizePts = m_TexParser.DocumentFontSizePts();
+      fValue = otfUnitsPerEm*PTS2DIPS(fDim)/fFontSizePts;
+      return true;
+   }
+
+   return false;
 }

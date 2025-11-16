@@ -61,7 +61,27 @@ namespace {
       return pItem;
    }
 }
-CMathItem* CAccentBuilder::BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
+bool CAccentBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+   if (bTextMode)
+      return false;
+   bool bBelow;
+   UINT32 nAccentUni = _GetAccentUnicode(szCmd, bBelow);
+   return nAccentUni != 0;
+}
+CMathItem* CAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
+   const SParserContext& ctx = pParser->GetContext();
+   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   CMathItem* pBase = pParser->ConsumeItem(elcapFig, pParser->GetContext());
+   if (!pBase) {
+      if (!pParser->HasError())
+         pParser->SetError("Missing {arg} for accent command");
+      return nullptr;
+   }
+   return _BuildAccented(ctx.currentStyle, ctx.fUserScale, pBase, szCmd);
+}
+
+CMathItem* CAccentBuilder::_BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
                                           const string& sLatexAccentCmd) {
    _ASSERT_RET(pBase, nullptr);
    bool bBelow;

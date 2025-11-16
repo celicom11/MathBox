@@ -1,12 +1,11 @@
 #pragma once
 #include "MathItem.h"
 
-//Factory for a Fraction (with a bar) Item
-class CFractionBuilder : public IMathItemBuilder {
+
+//Factory for font/scale commands
+class CScaleCmdBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
    bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
-   //Legacy API!
-   static CMathItem* _BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom);
 };

@@ -45,7 +45,8 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
             continue;
          }
          //newline, display mode start/end commands
-         if (*szPos == '\\' || *szPos == '[' || *szPos == ']')
+         if (*szPos == ' ' || *szPos == ',' || *szPos == ':' || *szPos == ';' || *szPos == '!' ||
+            *szPos == '\\' || *szPos == '[' || *szPos == ']')
             ++szPos; //skip special char
          else {
             //command\sym - sequence of letters

@@ -1,16 +1,12 @@
 #pragma once
 #include "MathItem.h"
 
-
-//Factory for a VBOX container
-class CUnderOverBuilder : public IMathItemBuilder {
+//math mode operators and symbols (\mathord) builder
+class CMathSymBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
    bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
-   //Legacy API!
-   static CMathItem* _BuildItem(PCSTR szCmd, CMathItem* pBase, const CMathStyle& style, float fUserScale);
-                        
 private:
-
+   static CMathItem* BuildTeXSymbol_(const string& sFontCmd, const string& sSym, const CMathStyle& style, float fUserScale);
 };

@@ -1,12 +1,25 @@
 #include "stdafx.h"
 #include "TexParser.h"
 #include "Tokenizer.h"
-#include "HBoxItem.h"
+#include "ParserAdapter.h"
 #include "LMFontManager.h"
+#include "HBoxItem.h"
+// iTEM builders
 #include "WordItemBuilder.h"
 #include "IndexedBuilder.h"
 #include "VBoxBuilder.h"
-#include "ParserAdapter.h"
+#include "ScaleCmdBuilder.h"
+#include "AccentBuilder.h"
+#include "UnderOverBuilder.h"
+#include "OpenCloseBuilder.h"
+#include "LOpBuilder.h"
+#include "HSpacingBuilder.h"
+#include "RadicalBuilder.h"
+#include "FractionBuilder.h"
+#include "MathFontCmdBuilder.h"
+#include "MathSymBuilder.h"
+
+
 //extern CLMFontManager g_LMFManager;
 namespace { //static helpers
    bool _isTextCommand(const string& sCmd) {
@@ -15,17 +28,10 @@ namespace { //static helpers
       if (szCmd[0] != '\\')
          return false;
       szCmd++; //skip '\'
+      if (!*szCmd)
+         return false;
       STextFontStyle tfStyle; //dummy
       return CLMFontManager::_GetTextFontStyle(szCmd, tfStyle);
-   }
-   bool _isMathFontCommand(const string& sCmd) {
-      // math mode font commands: \mathnormal,\mathit,etc.
-      PCSTR szCmd = sCmd.c_str();
-      if (szCmd[0] != '\\')
-         return false;
-      szCmd++; //skip '\'
-      SMathFontStyle mfStyle; //dummy
-      return CLMFontManager::_GetMathFontStyle(szCmd, mfStyle);
    }
    bool _isMathStyleCommand(const string& sCmd) {
       // \displaystyle, \textstyle, etc
@@ -81,6 +87,18 @@ namespace { //static helpers
    }
 }
 // CTexParser
+CTexParser::CTexParser() {
+   RegisterBuilder(new CScaleCmdBuilder);
+   RegisterBuilder(new CRadicalBuilder);
+   RegisterBuilder(new CFractionBuilder);
+   RegisterBuilder(new CLOpBuilder);
+   RegisterBuilder(new CHSpacingBuilder);
+   RegisterBuilder(new CVBoxBuilder);
+   RegisterBuilder(new CAccentBuilder);
+   RegisterBuilder(new CUnderOverBuilder);
+   RegisterBuilder(new CMathFontCmdBuilder);
+   RegisterBuilder(new CMathSymBuilder);
+}
 CTexParser::~CTexParser() {
    delete m_pTokenizer;
    for (IMathItemBuilder* pBuilder : m_vBuilders) {
@@ -117,14 +135,10 @@ CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& 
       case ettNonALPHA:  pItem = ProcessNonAlnum_(nIdx, ctx); break;
       case ettCOMMAND: { // command or symbol!
          string sCmd = m_pTokenizer->TokenText(tkItem);
-         if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd))
+         if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd) || _isNewlineCommand(sCmd))
             return nullptr; // not an Item Token!
-         if (_isTextCommand(sCmd))
+         if (_isTextCommand(sCmd)) //both text/math mode
             pItem = ProcessTextCmd_(nIdx, ctx);
-         else if (_isMathFontCommand(sCmd))
-            pItem = ProcessMathFontCmd_(nIdx, ctx);
-         else if (_isScalingCommand(sCmd))
-            pItem = ProcessScaleCmd_(nIdx, ctx);
          else
             pItem = ProcessItemBuilderCmd_(nIdx, ctx);
          }
@@ -215,46 +229,15 @@ CMathItem* CTexParser::TryAddSubSuperscript_(CMathItem* pAtom, IN OUT int& nIdx,
    if (ctx.bInSubscript || ctx.bInSuperscript)
       // we are already in sub/superscript context - do not process here!
       return pAtom; //no error
-   if(nIdx >= m_vTokens.size() || 
-      (m_vTokens[nIdx].nType != ettSUBS && m_vTokens[nIdx].nType != ettSUPERS))
-      return pAtom; //no sub/superscript
+   if (nIdx >= m_vTokens.size())
+      return pAtom; //ntd
    CMathItem* pSub = nullptr;
    CMathItem* pSuper = nullptr;
-   if(m_vTokens[nIdx].nType == ettSUBS) {
-      ++nIdx; //move past _
-      SParserContext ctxSub(ctx);
-      ctxSub.SetInSubscript();
-      pSub = ProcessItemToken(nIdx, ctxSub);
-      if (!pSub) {
-         if (m_Error.sError.empty())
-            m_Error.sError = "Orphan subscript '_'";
-         return nullptr;
-      }
-      //check for superscript after subscript
-      if (m_vTokens[nIdx].nType == ettSUPERS) {
-         ++nIdx; //move past ^
-         SParserContext ctxSuper(ctx);
-         ctxSuper.SetInSuperscript();
-         pSuper = ProcessItemToken(nIdx, ctxSuper);
-         if (!pSuper) {
-            if (m_Error.sError.empty())
-               m_Error.sError = "Orphan superscript '^'";
-            delete pSub;
-            return nullptr;
-         }
-      }
-   }
-   else { //superscript first
-      ++nIdx; //move past ^
-      SParserContext ctxSuper(ctx);
-      ctxSuper.SetInSuperscript();
-      pSuper = ProcessItemToken(nIdx, ctxSuper);
-      if (!pSuper) {
-         if (m_Error.sError.empty())
-            m_Error.sError = "Orphan superscript '^'";
-         return nullptr;
-      }
-      //check for subscript after superscript
+   if (m_vTokens[nIdx].nType == ettNonALPHA && TokenText_(nIdx) == "'")
+      pSuper = CWordItemBuilder::BuildTeXSymbol(ctx.sFontCmd, "\\prime",ctx.currentStyle, ctx.fUserScale);
+   else {
+      if (m_vTokens[nIdx].nType != ettSUBS && m_vTokens[nIdx].nType != ettSUPERS)
+         return pAtom; //no sub/superscript
       if (m_vTokens[nIdx].nType == ettSUBS) {
          ++nIdx; //move past _
          SParserContext ctxSub(ctx);
@@ -263,8 +246,44 @@ CMathItem* CTexParser::TryAddSubSuperscript_(CMathItem* pAtom, IN OUT int& nIdx,
          if (!pSub) {
             if (m_Error.sError.empty())
                m_Error.sError = "Orphan subscript '_'";
-            delete pSuper;
             return nullptr;
+         }
+         //check for superscript after subscript
+         if (m_vTokens[nIdx].nType == ettSUPERS) {
+            ++nIdx; //move past ^
+            SParserContext ctxSuper(ctx);
+            ctxSuper.SetInSuperscript();
+            pSuper = ProcessItemToken(nIdx, ctxSuper);
+            if (!pSuper) {
+               if (m_Error.sError.empty())
+                  m_Error.sError = "Orphan superscript '^'";
+               delete pSub;
+               return nullptr;
+            }
+         }
+      }
+      else { //superscript first
+         ++nIdx; //move past ^
+         SParserContext ctxSuper(ctx);
+         ctxSuper.SetInSuperscript();
+         pSuper = ProcessItemToken(nIdx, ctxSuper);
+         if (!pSuper) {
+            if (m_Error.sError.empty())
+               m_Error.sError = "Orphan superscript '^'";
+            return nullptr;
+         }
+         //check for subscript after superscript
+         if (m_vTokens[nIdx].nType == ettSUBS) {
+            ++nIdx; //move past _
+            SParserContext ctxSub(ctx);
+            ctxSub.SetInSubscript();
+            pSub = ProcessItemToken(nIdx, ctxSub);
+            if (!pSub) {
+               if (m_Error.sError.empty())
+                  m_Error.sError = "Orphan subscript '_'";
+               delete pSuper;
+               return nullptr;
+            }
          }
       }
    }
@@ -341,8 +360,13 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
       }
       if (bNewLine)
          vvLines.emplace_back();
-      if (pItem)
+      if (pItem) {
          vvLines.back().push_back(pItem);
+         if (!ctx.bInCmdArg && !ctx.bInSubscript && !ctx.bInSuperscript &&
+            tkCurrent.nTkIdxEnd > 0 && tkCurrent.nTkIdxEnd < m_vTokens.size() &&
+            tkCurrent.nType == ett$$)
+            vvLines.emplace_back(); //post $$..$$ processing new-line
+      }
    } //main for
 
    CMathItem* pRet = nullptr;
@@ -442,16 +466,20 @@ CMathItem* CTexParser::PackLines_(const vector<vector<CMathItem*>>& vvLines, con
          if (pI)
             pHBox->AddItem(pI);
       }
+      pHBox->Update();
       return pHBox;
    }
    //else 
    CContainerItem* pRet = new CContainerItem(eacVBOX, ctx.currentStyle);
    for(const vector<CMathItem*>& vLine : vvLines) {
+      if (vLine.empty())
+         continue; //todo!
       CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
       for (CMathItem* pI : vLine) {
          if (pI)
             pHBox->AddItem(pI);
       }
+      pHBox->Update();
       pRet->AddBox(pHBox, 0, pRet->Box().Bottom());// TODO: inter-line spacing
    }
    return pRet;
@@ -548,7 +576,7 @@ bool CTexParser::ProcessMathStyleCmd_(IN OUT int& nIdx, IN OUT SParserContext& c
       ctx.currentStyle = etsText;
    else if (sCmd == "\\scriptstyle")
       ctx.currentStyle = etsScript;
-   else if (sCmd == "\\scriptstyle")
+   else if (sCmd == "\\scriptscriptstyle")
       ctx.currentStyle = etsScriptScript;
    else {
       _ASSERT(0); //snbh!
@@ -591,6 +619,7 @@ CMathItem* CTexParser::ProcessAlnum_(IN OUT int& nIdx, const SParserContext& ctx
                string(1, cChar), false, ctx.currentStyle, ctx.fUserScale);
             pHBox->AddItem(pWord);
          }
+         pHBox->Update();
          pRet = pHBox;
       }
       else //single-char word
@@ -643,103 +672,11 @@ CMathItem* CTexParser::ProcessTextCmd_(IN OUT int& nIdx, const SParserContext& c
    }
    return pArg;
 }
-CMathItem* CTexParser::ProcessMathFontCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
-   //we require an argument in {}
-   _ASSERT_RET(nIdx + 1 < m_vTokens.size(), nullptr);//snbh!
-   if (m_vTokens[nIdx + 1].nTkIdxEnd == 0 || m_vTokens[nIdx + 1].nType != ettFB_OPEN) {
-      m_Error.eStage = epsBUILDING;
-      m_Error.nPosition = m_vTokens[nIdx].nPos;
-      m_Error.sError = "Text command requires argument in curly braces {}!";
-      return nullptr;
-   }
-   SParserContext ctxMath(ctx);
-   ctxMath.bTextMode = false; //math mode
-   ctxMath.sFontCmd = m_pTokenizer->TokenText(m_vTokens[nIdx]);
-   CMathItem* pArg = ProcessGroup(++nIdx, ctxMath); //move to argument group
-   if (!pArg) {
-      //error in argument processing
-      if (m_Error.sError.empty()) {
-         m_Error.eStage = epsBUILDING;
-         m_Error.nPosition = m_vTokens[nIdx].nPos;
-         m_Error.sError = "Failed to process argument of text command!";
-      }
-      return nullptr;
-   }
-   return pArg;
-}
-CMathItem* CTexParser::ProcessScaleCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
-   // \fontsize{size pt}{h_skip}{arg}\selectfont 
-   // \scalefnt{factor}{arg}
-   // \relscale{factor}{arg}
-   string sCmd = m_pTokenizer->TokenText(m_vTokens[nIdx]);
-   //we require 2+ arguments in {}: size and argument/text
-   _ASSERT_RET(nIdx + 1 < m_vTokens.size(), nullptr);//snbh!
-   if (m_vTokens[nIdx + 1].nTkIdxEnd == 0 || m_vTokens[nIdx + 1].nType != ettFB_OPEN) {
-      m_Error.eStage = epsBUILDING;
-      m_Error.nPosition = m_vTokens[nIdx].nPos;
-      m_Error.sError = "Scaling command '" + sCmd + "' requires size argument in curly braces{}!";
-      return nullptr;
-   }
-   int nIdxSizeArg = nIdx + 2, nIdxTextArg = (sCmd == "\\fontsize" ? nIdx + 4 : nIdx + 3);
-   float fScale = 1.0f;
-   //process size argument
-   if (sCmd == "\\fontsize") {
-      // expect two AlphaNum tokens: {number}{"pt"}
-      float fSizePts = _GetSizePts(TokenText_(nIdxSizeArg), TokenText_(nIdxSizeArg + 1));
-      if (fSizePts <= 0.0f) {
-         m_Error.eStage = epsBUILDING;
-         m_Error.nPosition = m_vTokens[nIdxSizeArg].nPos;
-         m_Error.sError = "Failed to process font size!";
-         return nullptr;
-      }
-      fScale = fSizePts / m_fDocFontSizePts;
-   }
-   else {
-      // \scalefnt or \relscale: expect one AlphaNum token: {number}
-      string sFactor = TokenText_(nIdxSizeArg);
-      try {
-         fScale = stof(sFactor);
-      }
-      catch (...) {
-         m_Error.eStage = epsBUILDING;
-         m_Error.nPosition = m_vTokens[nIdxSizeArg].nPos;
-         m_Error.sError = "Failed to process scaling factor!";
-         return nullptr;
-      }
-   }
-   //process argument
-   _ASSERT_RET(nIdxTextArg < m_vTokens.size(), nullptr);//snbh!
-   if (m_vTokens[nIdxTextArg].nTkIdxEnd == 0 || m_vTokens[nIdxTextArg].nType != ettFB_OPEN) {
-      m_Error.eStage = epsBUILDING;
-      m_Error.nPosition = m_vTokens[nIdxTextArg].nPos;
-      m_Error.sError = "Scaling command'" + sCmd + "' requires argument in curly braces {}!";
-      return nullptr;
-   }
-   SParserContext ctxScaled(ctx);   // mode can be any
-   ctxScaled.fUserScale *= fScale;  // apply scaling
-   CMathItem* pArg = ProcessGroup(nIdxTextArg, ctxScaled); //process argument with the new scale
-   if (!pArg) {
-      //error in argument processing
-      if (m_Error.sError.empty()) {
-         m_Error.eStage = epsBUILDING;
-         m_Error.nPosition = m_vTokens[nIdx].nPos;
-         m_Error.sError = "Failed to process argument of scaling command!";
-      }
-      return nullptr;
-   }
-   nIdx = nIdxTextArg;
-   if (sCmd == "\\fontsize") {
-      // skip \selectfont post command!
-      if (nIdx < m_vTokens.size() && m_vTokens[nIdx].nType == ettCOMMAND && TokenText_(nIdx) == "\\selectfont")
-         ++nIdx;
-   }
-   return pArg;
-}
 CMathItem* CTexParser::ProcessItemBuilderCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
    string sCmd = TokenText_(nIdx);
    IMathItemBuilder* pBuilder = nullptr;
    for (IMathItemBuilder* pBldr : m_vBuilders) {
-      if (!pBldr->CanTakeCommand(sCmd.c_str()))
+      if (!pBldr->CanTakeCommand(sCmd.c_str(), ctx.bTextMode))
          continue;
       pBuilder = pBldr;
       break;
@@ -755,4 +692,3 @@ CMathItem* CTexParser::ProcessItemBuilderCmd_(IN OUT int& nIdx, const SParserCon
    nIdx = parserAdapter.CurrentTokenIdx();  // Sync position
    return pItem;
 }
-

@@ -5,9 +5,6 @@
 
 
 namespace {
-   static const vector<SLaTexCmdArgInfo> _vCmdArgs{
-      { false, true, false, 1, elcatItem, elcapFig},
-   };
    uint32_t _GetGlyphUnicode(PCSTR szCmd, OUT bool& bBelow) {
       _ASSERT_RET(szCmd && *szCmd, 0);
       if (szCmd[0] == '\\')
@@ -51,21 +48,32 @@ namespace {
    }
 }
 //CUnderOverBuilder
-bool CUnderOverBuilder::CanTakeCommand(PCSTR szCmd) const {
+bool CUnderOverBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
    bool bBelow;
-   uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
+   uint32_t nUni = bTextMode? 0: _GetGlyphUnicode(szCmd, bBelow);
    return nUni != 0;
 }
-CMathItem* CUnderOverBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-                                          const vector<SLaTexCmdArgValue>& vArgValues) const {
+CMathItem* CUnderOverBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
+   const SParserContext& ctx = pParser->GetContext();
+   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   // Get current context
+   CMathItem* pBase = pParser->ConsumeItem(elcapFig, ctx);
+   if (!pBase) {
+      if (!pParser->HasError())
+         pParser->SetError("Missing {arg} for accent command");
+      return nullptr;
+   }
+   return _BuildItem(szCmd, pBase, ctx.currentStyle, ctx.fUserScale);
+
+}
+CMathItem* CUnderOverBuilder::_BuildItem(PCSTR szCmd, CMathItem* pBase, const CMathStyle& style, float fUserScale) {
    if (szCmd[0] == '\\')
       ++szCmd;
    bool bBelow;
    uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
    _ASSERT_RET(nUni, nullptr);//snbh!
-   _ASSERT_RET(!vArgValues.empty(), nullptr);//snbh!
-   _ASSERT_RET(vArgValues.front().eLCAT == elcatItem && vArgValues.front().uVal.pMathItem, nullptr);//snbh!
-   CMathItem* pBase = vArgValues.front().uVal.pMathItem;
+   _ASSERT_RET(pBase, nullptr);//snbh!
    CMathItem* pDecor = CExtGlyphBuilder::BuildHorizontalGlyph(nUni, style, pBase->Box().Width(), fUserScale);
    _ASSERT_RET(pDecor, nullptr);//snbh!
    //build VBox

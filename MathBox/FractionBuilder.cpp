@@ -3,25 +3,20 @@
 #include "ContainerItem.h"
 #include "FillerItem.h"
 
-bool CFractionBuilder::CanTakeCommand(PCSTR szCmd) const {
+bool CFractionBuilder::CanTakeCommand(PCSTR szCmd, bool bInTextMode) const {
    _ASSERT_RET(szCmd && *szCmd == '\\', false);
    ++szCmd; // Skip backslash
-   return (strcmp(szCmd, "frac") == 0);
+   return (!bInTextMode && strcmp(szCmd, "frac") == 0);
 }
 CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
-   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
+   SParserContext ctx(pParser->GetContext());
+   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
 
-   // Get current context
-   CMathStyle styleBase = pParser->GetCurrentStyle();
-   float fUserScale = pParser->GetUserScale();
-   CMathStyle styleNumerator(styleBase);
-   styleNumerator.Decrease();
-   CMathStyle styleDenom(styleNumerator);
-   styleDenom.SetCramped(true);
+   // Numerator style
+   ctx.currentStyle.Decrease();
    // 1. Consume numerator {expr}
-
-   CMathItem* pNumerator = pParser->ConsumeItem(elcapFig, &styleNumerator);
+   CMathItem* pNumerator = pParser->ConsumeItem(elcapFig, ctx);
    if (!pNumerator) {
       if (!pParser->HasError())
          pParser->SetError("Missing numerator for \\frac");
@@ -29,8 +24,9 @@ CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    }
 
    // 2. Consume denominator {expr}
-   //    Denominator style: same as numerator but CRAMPED
-   CMathItem* pDenominator = pParser->ConsumeItem(elcapFig, &styleDenom);
+   // Denominator style: same as numerator but CRAMPED
+   ctx.currentStyle.SetCramped(true);
+   CMathItem* pDenominator = pParser->ConsumeItem(elcapFig, ctx);
    if (!pDenominator) {
       delete pNumerator;
       if (!pParser->HasError())
@@ -39,7 +35,8 @@ CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    }
 
    // 3. Build fraction item
-   return _BuildFraction(styleBase, fUserScale, pNumerator, pDenominator);
+   ctx = pParser->GetContext(); //reset
+   return _BuildFraction(ctx.currentStyle, ctx.fUserScale, pNumerator, pDenominator);
 }
 
 CMathItem* CFractionBuilder::_BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {

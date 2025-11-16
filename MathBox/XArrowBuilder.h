@@ -6,7 +6,7 @@
 class CXArrowBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
-   bool CanTakeCommand(PCSTR szCmd) const override;
+   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override; 
 private:
 };

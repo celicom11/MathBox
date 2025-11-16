@@ -6,12 +6,9 @@
 class CLOpBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
-   bool CanTakeCommand(PCSTR szCmd) const override;
-   CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override {
-      _ASSERT_RET(0, NULL); //TODO!
-   }
+   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
    // Legacy API!
-   CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-                        const vector<SLaTexCmdArgValue>& vArgValues) const;
-private:
+   //CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
+   //                     const vector<SLaTexCmdArgValue>& vArgValues) const;
 };

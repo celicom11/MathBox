@@ -4,8 +4,10 @@
 #include "ContainerItem.h"
 #include "WordItem.h"
 //MathBuiders
+#include "AccentBuilder.h"
 #include "FractionBuilder.h"
 #include "RadicalBuilder.h"
+#include "HSpacingBuilder.h"
 
 CLMFontManager g_LMFManager;
 IDWriteFactory* g_pDWriteFactory = nullptr;
@@ -397,7 +399,7 @@ namespace TexParserTests
       // - No parse errors
       TEST_METHOD(MathInText_Display) {
          CTexParser parser;
-         CMathItem* pRet = parser.Parse("Text $$E=mc^2$$ more");
+         CMathItem* pRet = parser.Parse("Text $E=mc^2$ more");
          struct SMemGuard {
             CMathItem* pItem;
             ~SMemGuard() { delete pItem; }
@@ -652,7 +654,6 @@ namespace TexParserTests
    public:
       TEST_METHOD(FractionBuilder_Basic_Display) {
          CTexParser parser;
-         parser.RegisterBuilder(new CFractionBuilder());
          CMathItem* pRet = parser.Parse("$$\\frac{a}{b}$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -693,7 +694,6 @@ namespace TexParserTests
          // Tests: Recursive builder calls work
 
          CTexParser parser;
-         parser.RegisterBuilder(new CFractionBuilder());
          CMathItem* pRet = parser.Parse("$$\\frac{\\frac{a}{b}}{c}$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -721,7 +721,6 @@ namespace TexParserTests
          // Tests: TryAddSubSuperscript_ works on builder result
 
          CTexParser parser;
-         parser.RegisterBuilder(new CFractionBuilder());
          CMathItem* pRet = parser.Parse("$$\\frac{a}{b}^2$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -751,7 +750,6 @@ namespace TexParserTests
          // Expected: Radical without degree (square root)
 
          CTexParser parser;
-         parser.RegisterBuilder(new CRadicalBuilder());
          CMathItem* pRet = parser.Parse("$$\\sqrt{x}$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -781,7 +779,6 @@ namespace TexParserTests
       }
       TEST_METHOD(RadicalBuilder_Degree_Display) {
          CTexParser parser;
-         parser.RegisterBuilder(new CRadicalBuilder());
          CMathItem* pRet = parser.Parse("$$\\sqrt[3]{A}$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -828,7 +825,6 @@ namespace TexParserTests
          // Also tests: Inline math mode ($ not $$)
 
          CTexParser parser;
-         parser.RegisterBuilder(new CRadicalBuilder());
          CMathItem* pRet = parser.Parse("$\\sqrt[\\sqrt{2}]{x}$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -879,5 +875,119 @@ namespace TexParserTests
          Assert::IsTrue(pInnerRadicand->GetStyle().Style() == etsScriptScript,
             L"Inner radicand should have ScriptScript style");
       }
+      TEST_METHOD(AccentBuilder_Basic_Display) {
+         // Input: "$$\ocirc{a}$$"
+         // Expected: accent over 'a'
+
+         CTexParser parser;
+         CMathItem* pRet = parser.Parse("$$\\ocirc{a}$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         // Parse succeeded
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"No parse errors expected");
+
+         // Result is Radical
+         Assert::AreEqual((int)eacACCENT, (int)pRet->Type(), L"Result should be ACCENT");
+
+         // Display style (from $$)
+         Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style());
+
+         // Check radical structure
+         CContainerItem* pAccentCont = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pAccentCont);
+
+         // Should have 2 items Base + Accent
+         Assert::IsTrue(pAccentCont->Items().size() == 2, L"Accent should have 2 items");
+         CMathItem* pBase = pAccentCont->Items()[0];
+         Assert::AreEqual((int)eacWORD, (int)pBase->Type(), L"Accent base should be WORD");
+         CMathItem* pAccent = pAccentCont->Items()[1];
+         Assert::AreEqual((int)eacUNK, (int)pAccent->Type(), L"Accent should be UNK"); //to avoid selection?
+      }
+      
+      //GlueBuilder tests
+      TEST_METHOD(HSpacingBuilder_HSkip_Fixed) {
+         // Input: "$$a\hskip 10pt b$$"
+         CTexParser parser;
+         parser.SetDocumentFontSizePts(10.f);
+
+         CMathItem* pRet = parser.Parse("$$a\\hskip 10pt b$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet, L"Parse should succeed");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"No parse errors");
+
+         // Should be HBox with 3 items: 'a', glue, 'b'
+         CContainerItem* pHBox = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pHBox);
+         Assert::AreEqual((size_t)3, pHBox->Items().size(), L"HBox should have 3 items: a, glue, b");
+
+         // Middle item is glue
+         CMathItem* pGlue = pHBox->Items()[1];
+         Assert::AreEqual((int)eacGLUE, (int)pGlue->Type(), L"Middle item should be glue");
+
+         // Check glue properties
+         const STexGlue* pGlueData = pGlue->GetGlue();
+         Assert::IsNotNull(pGlueData);
+
+         // 10pt in EM units (approximate check)
+         float fExpectedEM = DIPS2EM(10.0f, PTS2DIPS(10.0f));
+         Assert::AreEqual(fExpectedEM, pGlueData->fNorm, 0.01f, L"Glue size should be 10pt");
+         Assert::AreEqual(0.0f, pGlueData->fStretchCapacity, 0.01f, L"No stretch");
+         Assert::AreEqual((uint16_t)0, pGlueData->nStretchOrder, L"No infinite stretch");
+      }
+
+      TEST_METHOD(HSpacingBuilder_HSkip_EmUnit) {
+         // Input: "$$\hskip 2em$$" at 10pt font
+         CTexParser parser;
+         parser.SetDocumentFontSizePts(10.f);
+
+         // Set document font size to 10pt for test
+         // (Assuming you have a way to set this)
+
+         CMathItem* pRet = parser.Parse("$$\\hskip 2em$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet);
+
+         const STexGlue* pGlue = pRet->GetGlue();
+
+         // 2em at 10pt font = 20pts
+         // Convert to EM: DIPS2EM(10, PTS2DIPS(20))
+         float fExpected = DIPS2EM(10.0f, PTS2DIPS(20.0f));
+
+         Assert::AreEqual(fExpected, pGlue->fNorm, 0.01f, L"2em should equal 20pts at 10pt font");
+      }
+
+      TEST_METHOD(HSpacingBuilder_HSkip_ExUnit) {
+         // Input: "$$\hskip 3ex$$" at 10pt font
+         CTexParser parser;
+         parser.SetDocumentFontSizePts(10.f);
+
+         CMathItem* pRet = parser.Parse("$$\\hskip 3ex$$");
+         struct SMemGuard {
+            CMathItem* pItem;
+            ~SMemGuard() { delete pItem; }
+         } mg{ pRet };
+
+         Assert::IsNotNull(pRet);
+
+         const STexGlue* pGlue = pRet->GetGlue();
+
+         // 3ex ~ 1.5em at 10pt = 15pts
+         float fExpected = DIPS2EM(10.0f, PTS2DIPS(15.0f));
+
+         Assert::AreEqual(fExpected, pGlue->fNorm, 0.01f, L"3ex should equal ~1.5em (15pts) at 10pt font");
+      }
+
    };
 };

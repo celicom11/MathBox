@@ -4,6 +4,7 @@
 #define PTS2DIPS(x) ((x)*96.0f/72.0f)
 #define DIPS2PTS(x) ((x)*72.0f/96.0f)
 #define F2NEAREST(x) ((int32_t)((x)<0?(x)-0.5f:(x)+0.5f))
+//TODO: EM->FDU (Font Design Units!)
 #define EM2DIPS(fFontHPts, x) ((x)*PTS2DIPS(fFontHPts)/otfUnitsPerEm)
 #define DIPS2EM(fFontHPts, x) F2NEAREST((x)*otfUnitsPerEm/PTS2DIPS(fFontHPts))
 
@@ -92,18 +93,18 @@ enum EnumTexAtom {
 // Math item types
 enum EnumMathItemType {
    eacUNK = -1,         // exention glyphs/fillers and other non selectable items
-   eacWORD,             // variable's name, number, operator, punctuation,etc or text
-   eacHBOX,             // HBox or Inner \left..\right subformula
-   eacOVERUNDER,        // Ord: item with an over/under-brace child
-   eacACCENT,           // Acc: item with an accent child (\bar, \hat, \vec, \tilde, etc.)
-   eacINDEXED,          // [all]: item with subscript/superscript indexes; its default in TeX, but not here!
+   eacWORD,             // word item: variable's name, number, operator, punctuation,etc or text
+   eacHBOX,             // HBox container, e.g. \left..\right subformula, any line with items, etc.
+   eacOVERUNDER,        // Ord: container item with an over/under-brace child
+   eacACCENT,           // Acc: container item with an accent child (\bar, \hat, \vec, \tilde, etc.)
+   eacINDEXED,          // [all]:container item with subscript/superscript indexes; its default in TeX, but not here!
    eacRADICAL,          // Ord: radical/root item with base and argument
    eacVBOX,             // Ord: fraction or stacked items: \frac, \binom, \stackrel, \substack, \atop, \genfrac, \overset, etc.
-   eacBIGOP,            // OP(large): integrals,sum, prod, etc. + optional \limits
-   eacMATHOP,           // OP(small): math op + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
-   //eacCANCEL,         // item with a cancel line (diagonal cross-out)
-   //eacNOT,            // item with a slash (negation)
-   eacGLUE,             // -: invisible spacing item of variable width
+   eacBIGOP,            // OP(large),word item: integrals,sum, prod, etc. + optional \limits
+   eacMATHOP,           // OP(small),word item: math op + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
+   //eacOverlay,        // container item with a cancel,not, cross, etc. lines/curves
+   //eacFiller,         // filler item
+   eacGLUE,             // -, glue: invisible spacing item of variable width
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -288,7 +289,7 @@ enum EnumLCATParenthesis {
    elcapSquare,   // non-optional [] brackets
 };
 
-
+/*
 struct SLaTexCmdArgInfo {
    bool                 bOpt{ false };
    bool                 bBase{ false };
@@ -308,16 +309,38 @@ struct SLaTexCmdArgValue {
       float       fVal;
       CMathItem* pMathItem{ nullptr };
    }       uVal;
+};*/
+struct SParserContext {
+   bool bTextMode{ false };            // TEXT/MATH mode
+   bool bInLeftRight{ false };         // inside \left...\right construct
+   bool bInSubscript{ false };         // building atom's subscript
+   bool bInSuperscript{ false };       // building atom's superscript
+   bool bInCmdArg{ false };            // building command's argument
+   CMathStyle currentStyle;            // MATH mode style
+   float fUserScale{ 1.0f };           // User scaling factor
+   string sFontCmd;                    // Current font (for both Math/Text modes!)
+   //helpers
+   void SetInSubscript() {
+      _ASSERT(!this->bInSubscript);
+      this->currentStyle.ToSubscriptStyle();
+      this->bInSubscript = true;
+   }
+   void SetInSuperscript() {
+      _ASSERT(!this->bInSuperscript);
+      this->currentStyle.ToSuperscriptStyle();
+      this->bInSuperscript = true;
+   }
 };
+
 DECLARE_INTERFACE(IParserAdapter) {
-   virtual CMathItem* ConsumeItem(EnumLCATParenthesis eParens, CMathStyle* pStyle = nullptr) = 0;
+   virtual CMathItem* ConsumeItem(EnumLCATParenthesis eParens,  const SParserContext& ctx) = 0;
    virtual bool ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) = 0;
    virtual bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) = 0;
    virtual bool ConsumeKeyword(PCSTR szKeyword) = 0; //e.g. \limits|\nolimits
-   //virtual uint32_t ConsumeGlyph(EnumLCATParenthesis eParens) = 0;
+   virtual bool ConsumeHSkipGlue(OUT STexGlue& glue) = 0;
    // context info
-   virtual CMathStyle GetCurrentStyle() const = 0;
-   virtual float GetUserScale() const = 0;
+   virtual const SParserContext& GetContext() const = 0;
+   virtual float DocFontSizePts() const = 0;
    // error info/setting
    virtual bool HasError() const = 0;
    virtual void SetError(const string& sMessage) = 0;
@@ -325,6 +348,6 @@ DECLARE_INTERFACE(IParserAdapter) {
 
 DECLARE_INTERFACE(IMathItemBuilder) {
    virtual ~IMathItemBuilder() {}
-   virtual bool CanTakeCommand(PCSTR szCmd) const = 0;
+   virtual bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const = 0;
    virtual CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) = 0;
 };

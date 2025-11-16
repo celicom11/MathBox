@@ -45,25 +45,26 @@ namespace {
       return 0;
    }
 }
-bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd) const {
-   return (0 == strcmp(szCmd, "\\sqrt"));
+bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+   return (!bTextMode && 0 == strcmp(szCmd, "\\sqrt"));
 }
 CMathItem* CRadicalBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
-   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
+   const SParserContext& ctx(pParser->GetContext());
+   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
 
-   // Get current context
-   CMathStyle styleRadicand = pParser->GetCurrentStyle();
-   styleRadicand.SetCramped(true); //radicand is always in cramped style
-   float fUserScale = pParser->GetUserScale();
-   CMathStyle styleDegree;
-   styleDegree.SetStyle(etsScriptScript); //non-cramped!
+   // change context
+
    // 1. Consume optional degree [expr]
-   CMathItem* pRadDegree = pParser->ConsumeItem(elcapSquare, &styleDegree);
+   SParserContext ctxDegree(ctx);
+   ctxDegree.currentStyle.SetStyle(etsScriptScript); //non-cramped!
+   CMathItem* pRadDegree = pParser->ConsumeItem(elcapSquare, ctxDegree);
    if (pParser->HasError())
       return nullptr;
-   // 2. Consume redicand {expr}
-   CMathItem* pRadicand = pParser->ConsumeItem(elcapFig, &styleRadicand);
+   // 2. Consume radicand {expr}
+   SParserContext ctxRadicand(ctx);
+   ctxRadicand.currentStyle.SetCramped(true); //radicand is always in cramped style
+   CMathItem* pRadicand = pParser->ConsumeItem(elcapFig, ctxRadicand);
    if (!pRadicand) {
       delete pRadDegree;
       if (!pParser->HasError())
@@ -72,7 +73,7 @@ CMathItem* CRadicalBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    }
 
    // 3. Build radical item
-   return _BuildRadical(pParser->GetCurrentStyle(), fUserScale, pRadicand, pRadDegree);
+   return _BuildRadical(ctx.currentStyle, ctx.fUserScale, pRadicand, pRadDegree);
 
 }
 
