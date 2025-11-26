@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "VBoxBuilder.h"
-#include "ContainerItem.h"
-#include "OpenCloseBuilder.h"
+#include "ExtGlyphBuilder.h"
+#include "HBoxItem.h"
 
 namespace {
    /*static const map<string, vector<SLaTexCmdArgInfo>> _mapMathModeCmdInfo{
@@ -130,8 +130,20 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
          nVKern = F2NEAREST(6 * otfFractionRuleThickness * ctx.currentStyle.StyleScale() * ctx.fUserScale);//q&d
       }
       pRet = BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
-      if(sCmd == "binom") //add brackets
-         pRet = COpenCloseBuilder::BuildOpenClose(L'(', L')', pRet, ctx.currentStyle, ctx.fUserScale);
+      if (sCmd == "binom") {//add brackets
+         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         int32_t nAxisY = pRet->Box().AxisY();
+         int32_t nSize = 2 * max(nAxisY - pRet->Box().Top(), pRet->Box().Bottom() - nAxisY);
+         CMathItem* pOpen = CExtGlyphBuilder::BuildVerticalGlyph('(', ctx.currentStyle, nSize, ctx.fUserScale);
+         _ASSERT_RET(pOpen, nullptr);
+         CMathItem* pClose = CExtGlyphBuilder::BuildVerticalGlyph(')', ctx.currentStyle, nSize, ctx.fUserScale);
+         _ASSERT_RET(pClose, nullptr);
+         pHBox->AddItem(pOpen);
+         pHBox->AddItem(pRet);
+         pHBox->AddItem(pClose);
+         pHBox->Update();
+         pRet = pHBox;
+      }
    }
    else if (sCmd == "substack") {
       // ~= subarray{c}

@@ -4,7 +4,7 @@
 class CFillerItem : public CMathItem {
 public:
    //CTOR/DTOR
-   CFillerItem(int32_t nWidth, int32_t nHeight) : CMathItem(eacUNK, CMathStyle())
+   CFillerItem(int32_t nWidth, int32_t nHeight) : CMathItem(eacFILLER, CMathStyle())
    {
       m_Box.nAdvWidth = nWidth; m_Box.nHeight = nHeight;
       m_Box.nAscent = nHeight / 2;//default baseline at center

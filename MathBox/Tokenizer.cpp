@@ -9,8 +9,12 @@ namespace { //static helpers
    inline bool _IsAlpha(char wc) { return (wc >= 'a' && wc <= 'z') || (wc >= 'A' && wc <= 'Z'); }
    inline bool _IsAlNum(char wc) { return _IsAlpha(wc) || _IsDigit(wc); }
 
-   inline bool _IsSpecialChar(char cChar) {
-      static const string _sSpecial{ "$%&~_^{}" };
+   inline bool _IsEscapedChar(char cChar) {
+      static const string _sSpecial{ "$%&~_{}" };
+      return _sSpecial.find(cChar) != string::npos;
+   }
+   inline bool _IsCmdNonAlphaChar(char cChar) {
+      static const string _sSpecial{ " ,:;!>.^'~`=\"[]\\|" };
       return _sSpecial.find(cChar) != string::npos;
    }
    inline PCSTR _SkipSpaces(PCSTR szText) {
@@ -37,17 +41,17 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
             err.sError = "Orphan backslash '\\' at end of input.";
             return false;
          }
-         if (_IsSpecialChar(*szPos)) {//create a single-char token, that starts with '\'
+         if (_IsEscapedChar(*szPos)) {//skip '\\',leave single-non-alpha char token, 
             token.nType = ettNonALPHA;
             token.nLen = 2;
+            //++token.nPos; // skip '\\'
             vTokens.push_back(token);
-            ++szPos; //skip special char
+            ++szPos;      // next char
             continue;
          }
-         //newline, display mode start/end commands
-         if (*szPos == ' ' || *szPos == ',' || *szPos == ':' || *szPos == ';' || *szPos == '!' ||
-            *szPos == '\\' || *szPos == '[' || *szPos == ']')
-            ++szPos; //skip special char
+         //newline, glue and isplay mode start/end commands
+         if (_IsCmdNonAlphaChar(*szPos))
+            ++szPos; //skip special 1-non-alpha-cmd-char
          else {
             //command\sym - sequence of letters
             while (_IsAlpha(*szPos)) {

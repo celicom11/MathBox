@@ -3,9 +3,9 @@
 #include "GlueItem.h"
 
 bool CHSpacingBuilder::CanTakeCommand(PCSTR szCmd, bool ) const {
-   if (!szCmd || *szCmd != '\\' || !szCmd[1])
-      return false;
-   ++szCmd; // skip '\'
+   _ASSERT_RET(szCmd && *szCmd, false);
+   if (*szCmd == '\\')
+      ++szCmd;
    if (*szCmd == ' ' || *szCmd == ',' || *szCmd == ':' || *szCmd == ';' || *szCmd == '!' ||
       0 == strcmp(szCmd, "qquad") || 0 == strcmp(szCmd, "quad") || 0 == strcmp(szCmd, "hskip"))
       return true;

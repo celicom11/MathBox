@@ -92,7 +92,7 @@ x78,x,,0,258,16
 x79,y,,0,264,8
 x7A,z,,0,226,0
 x7B,braceleft,lbrace,4,0,0
-x7C,bar,vert,4,0,0
+x7C,bar,vert,0,0,0
 x7D,braceright,rbrace,5,0,0
 x7E,asciitilde,,0,0,27
 xA1,exclamdown,,0,0,0
@@ -2350,14 +2350,14 @@ x20DF,,enclosediamond,0,0,0
 x20DD,,enclosecircle,0,0,0
 x3016,whitelenticularbracketleft,,0,0,0
 x3017,whitelenticularbracketright,,0,0,0
-x27EE,,lgroup,3,0,0
-x27EF,,rgroup,3,0,0
+x27EE,,lgroup,4,0,0
+x27EF,,rgroup,5,0,0
 x2308,,lceil,4,0,0
 x2309,,rceil,5,0,0
 x230A,,lfloor,4,0,0
 x230B,,rfloor,5,0,0
-x27E6,,lBrack,3,0,6
-x27E7,,rBrack,3,0,0
+x27E6,,lBrack,4,0,6
+x27E7,,rBrack,5,0,0
 x23DE,,overbrace,8,0,28
 x23DF,,underbrace,9,0,28
 x23DC,,overparen,8,0,28
@@ -2631,7 +2631,7 @@ x2237,proportion,Colon,3,0,0
 x2234,therefore,therefore,3,0,0
 x2235,because,because,3,0,0
 x22EE,,vdots,3,0,0
-x22EF,,cdots,3,0,0
+x22EF,,cdots,0,0,0
 x22F0,,iddots,3,0,0
 x22F1,,ddots,3,0,0
 x2218,,vysmwhtcircle,2,0,0
@@ -2726,7 +2726,7 @@ x2225,parallel,parallel,3,0,0
 0,parallel.bt,,0,0,0
 0,parallel.ex,,0,0,0
 0,parallel.tp,,0,0,0
-x2016,dblverticalbar,Vert,4,0,0
+x2016,dblverticalbar,Vert,0,0,0
 x2224,,nmid,3,0,0
 x2226,,nparallel,3,0,0
 x22D5,,equalparallel,3,0,0

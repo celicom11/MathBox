@@ -255,7 +255,7 @@ namespace TexParserTests
       // - Outer subscript is 'b' (eacWORD, cramped)
       // - No parse errors
       // - Demonstrates TeX chaining: x_a_b = (x_a)_b
-      TEST_METHOD(Indexed_ChainedSubscripts_Display) {
+      TEST_METHOD(Error_DoubleSubSuperscript) {
          // Input: "$$x_a_b$$" -> parsed as (x_a)_b
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_a_b$$");
@@ -264,29 +264,12 @@ namespace TexParserTests
             ~SMemGuard() { delete pItem; }
          } mg{ pRet };
 
-         // Should succeed
-         Assert::IsNotNull(pRet, L"Parse should succeed for x_a_b");
-         Assert::IsTrue(parser.LastError().sError.empty(), L"No error expected");
-         // Structure: Outer indexed item (result)_b
-         Assert::AreEqual((int)eacINDEXED, (int)pRet->Type(), L"Result should be CIndexedItem");
-         CContainerItem* pOuter = dynamic_cast<CContainerItem*>(pRet);
-         Assert::AreEqual((size_t)2, pOuter->Items().size(), L"Outer indexed item: base + subscript");
-         // Base of outer item should be (x_a) - another indexed item
-         CMathItem* pOuterBase = pOuter->Items()[0];
-         Assert::AreEqual((int)eacINDEXED, (int)pOuterBase->Type(), L"Base should be indexed item (x_a)");
-         // Inner indexed item: x_a
-         CContainerItem* pInner = dynamic_cast<CContainerItem*>(pOuterBase);
-         Assert::AreEqual((size_t)2, pInner->Items().size(), L"Inner indexed item: base + subscript");
-         // Inner base: x
-         Assert::AreEqual((int)eacWORD, (int)pInner->Items()[0]->Type(), L"Inner base should be 'x'");
-         // Inner subscript: a (cramped)
-         CMathItem* pInnerSub = pInner->Items()[1];
-         Assert::AreEqual((int)eacWORD, (int)pInnerSub->Type(), L"Inner subscript should be 'a'");
-         Assert::IsTrue(pInnerSub->GetStyle().IsCramped(), L"Inner subscript should be cramped");
-         // Outer subscript: b (cramped)
-         CMathItem* pOuterSub = pOuter->Items()[1];
-         Assert::AreEqual((int)eacWORD, (int)pOuterSub->Type(), L"Outer subscript should be 'b'");
-         Assert::IsTrue(pOuterSub->GetStyle().IsCramped(), L"Outer subscript should be cramped");
+         // Parse should fail
+         Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
+         auto err = parser.LastError();
+         Assert::AreEqual("Double subcsript/superscript is not allowed!", err.sError.c_str());
+         Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
+         Assert::AreEqual(5, (int)err.nPosition, L"Error position should be 5");
       }
       // ## Test 6: GeneralizedFraction
       // # Input: "$$_a^b$$"
@@ -335,13 +318,13 @@ namespace TexParserTests
          Assert::IsTrue(pBottom->GetStyle().IsCramped(), L"Subscript should be cramped");
       }
       // ## Test 6a: ComplexChaining
-      // Input: "$$X_Y^Z_A$$"
+      // Input: "$${X_Y^Z}_A$$"
       // Parse: X_Y^Z (single indexed, 3 items), then chain _A
       // Result: {X_Y^Z}_A (nested indexed)
       TEST_METHOD(Indexed_ComplexChaining_Display) {
 
          CTexParser parser;
-         CMathItem* pRet = parser.Parse("$$X_Y^Z_A$$");
+         CMathItem* pRet = parser.Parse("$${X_Y^Z}_A$$");
          struct SMemGuard {
             CMathItem* pItem;
             ~SMemGuard() { delete pItem; }
@@ -519,7 +502,7 @@ namespace TexParserTests
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Orphan subscript '_'");
+         Assert::AreEqual("Missing item after _/^!", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
          Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
       }
@@ -534,7 +517,7 @@ namespace TexParserTests
       // - LastError().sError == "Double subscript/superscript is not allowed!"
       // - LastError().eStage == epsBUILDING
       // - LastError().nPosition == 4
-      TEST_METHOD(Error_DoubleSubSuperscript) {
+      TEST_METHOD(Error_MissedSubSuperscript) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_^y$$");
          struct SMemGuard {
@@ -544,7 +527,7 @@ namespace TexParserTests
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Double subscript/superscript is not allowed!");
+         Assert::AreEqual("Missing item after _/^!", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
          Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
       }
@@ -559,7 +542,7 @@ namespace TexParserTests
       // - LastError().sError == "Double subscript/superscript is not allowed!"
       // - LastError().eStage == epsBUILDING
       // - LastError().nPosition == 4
-      TEST_METHOD(Error_DoubleSuperSubscript) {
+      TEST_METHOD(Error_MissedSuperSubscript) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x^_y$$");
          struct SMemGuard {
@@ -569,7 +552,7 @@ namespace TexParserTests
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Double subscript/superscript is not allowed!");
+         Assert::AreEqual(err.sError.c_str(), "Missing item after _/^!");
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
          Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
       }
@@ -588,7 +571,7 @@ namespace TexParserTests
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          auto err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         Assert::AreEqual("Empty group is not allowed here!", err.sError.c_str());
          pRet = parser.Parse("$ $");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
@@ -677,7 +660,7 @@ namespace TexParserTests
 
          // Item 0: Fraction bar (rule/line)
          CMathItem* pBar = pVBox->Items()[0];
-         Assert::IsTrue(pBar->Type() == eacUNK, L"Rule item should be UNK");
+         Assert::IsTrue(pBar->Type() == eacFILLER, L"Rule item should be UNK");
 
          // Item 2: Denominator 'b'
          CMathItem* pDenominator = pVBox->Items()[2];
@@ -808,7 +791,7 @@ namespace TexParserTests
 
          // Item 2: Overbar (horizontal line over radicand)
          CMathItem* pOverbar = pRadCont->Items()[2];
-         Assert::IsTrue(pOverbar->Type() == eacUNK, L"Overbar should be UNK (filler)");
+         Assert::IsTrue(pOverbar->Type() == eacFILLER, L"Overbar should be FILLER");
 
          // Item 3: Radicand 'A'
          CMathItem* pRadicand = pRadCont->Items()[3];

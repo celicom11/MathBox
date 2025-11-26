@@ -28,9 +28,9 @@ namespace //static helpers
    };
    static const vector<SGlyphExtensionInfo> _vVerticalExtGlyphs {
       {0x0028, {2503,1495},{},{2505,1495},249,277,379,0, // (
-         {{9, 997},{2367, 1095},{2389,1195},{2411,1445},{2433,1793},{2455,2093},{2479, 2393},{2499, 2991}}},
+         {{9, 997},{2367, 1095},{2389,1195},{2411,1445},{2433,1793},{2455,2093},{2477, 2393},{2499, 2991}}},
       {0x0029, {2508,1495},{},{2506,1495},249,496,598,0,  // )
-         {{10, 997},{2368, 1095},{2390,1195},{2412,1445},{2434,1793},{2456,2093},{2480, 2393},{2500, 2991}}},
+         {{10, 997},{2368, 1095},{2390,1195},{2412,1445},{2434,1793},{2456,2093},{2478, 2393},{2500, 2991}}},
       {0x002F, {},{},{},0,0,0,0,  // /
          {{16, 1001},{2672, 1311},{2679,1717},{2686,2249},{2693,2945},{2700,3859},{2707, 5055},{2714, 6621}}},
       {0x005C, {},{},{},0,0,0,0,  // backslash
@@ -164,7 +164,7 @@ namespace //static helpers
 }
 // CExtGlyphBuilder
 //for vertical/delimiters only
-uint16_t CExtGlyphBuilder::GetGlyphIndexBySizeIdx(uint32_t nUnicode, uint16_t nVariantIdx) {
+uint16_t CExtGlyphBuilder::GlyphIndexByVariantIdx(uint32_t nUnicode, uint16_t nVariantIdx) {
    _ASSERT_RET(nUnicode && nVariantIdx >= 0 && nVariantIdx <= 4, 0);
    int nIdx = _FIndGEIIndex(nUnicode, _vVerticalExtGlyphs);
    if (nIdx < 0)
@@ -208,10 +208,15 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
    EnumTexAtom eAtom = _GetAtom((EnumGlyphClass)pLMMGlyph->eClass);
    //check if variant fits
    float fScale = style.StyleScale() * fUserScale;
-   CContainerItem* pRet = new CContainerItem(eacWORD, CMathStyle(), eAtom);
-   for (const SGlyphVariant& gvar : geInfo.vVariants) {
-      if (F2NEAREST(gvar.nSize * fScale) >= (int32_t)nSize) {
-         pRet->AddBox(_BuildSingleVerticalGlyph(gvar.nGlyphIdx, style, eAtom, fUserScale), 0, 0);
+   CContainerItem* pRet = new CContainerItem(eacVDELIM, CMathStyle(), eAtom);
+   for (int nIdx = 0; nIdx< (int)geInfo.vVariants.size(); ++nIdx) {
+      const SGlyphVariant* pGvar = &geInfo.vVariants[nIdx];
+      if (F2NEAREST(pGvar->nSize * fScale) >= (int32_t)nSize) {
+         //if (style.Style() != etsDisplay && nIdx) {
+            //use prev. variant in compact styles
+         //   pGvar = &geInfo.vVariants[nIdx - 1];
+         //}
+         pRet->AddBox(_BuildSingleVerticalGlyph(pGvar->nGlyphIdx, style, eAtom, fUserScale), 0, 0);
          pRet->SetMathAxis(pRet->Box().Height() / 2);
          return pRet;
       }
@@ -344,7 +349,7 @@ CMathItem* CExtGlyphBuilder::BuildHorizontalGlyph(uint32_t nUnicode, const CMath
    if (geInfo.gvBottomLeftId.nGlyphIdx == 0) //no assembly/extension? return the largest
       return _BuildSingleHorizontalGlyph(geInfo.vVariants.back().nGlyphIdx, style, fUserScale);
    //else, assembly horizontal bracket
-   CContainerItem* pRet = new CContainerItem(eacUNK, CMathStyle());
+   CContainerItem* pRet = new CContainerItem(eacHDELIM, CMathStyle());
    CMathItem* pLeft = _BuildSingleHorizontalGlyph(geInfo.gvBottomLeftId.nGlyphIdx, style, fUserScale);
    CMathItem* pRight = _BuildSingleHorizontalGlyph(geInfo.gvTopRightId.nGlyphIdx, style, fUserScale);
    _ASSERT_RET(pLeft && pRight, nullptr);

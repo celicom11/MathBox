@@ -34,7 +34,14 @@ CMathItem* CScaleCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
             pParser->SetError("Failed to parse interline spacing factor for command '\\fontsize'");
          return nullptr;
       }
-      pParser->ConsumeKeyword("\\selectfont"); //no check?
+      string sToken;
+      EnumTokenType ettNext = pParser->GetTokenData(sToken);
+      if (ettNext != ettCOMMAND || sToken != "\\selectfont") {
+         if (!pParser->HasError())
+            pParser->SetError("Missing \\selectfont after '\\fontsize'");
+         return nullptr;
+      }
+      pParser->SkipToken();
    }
    ctxCmd.fUserScale *= fScale; //apply scale
    //arg

@@ -9,8 +9,8 @@ extern CLMFontManager g_LMFManager;
 
 namespace {
    inline bool _IsAlpha(char cChar) { return (cChar >= 'a' && cChar <= 'z') || (cChar >= 'A' && cChar <= 'Z'); }
-   uint32_t _GetDelimiterUnicode(PCSTR szText, OUT PCSTR& szNext, OUT EnumDelimType& edtNative) {
-      szNext = szText + 1;
+   uint32_t _GetDelimiterUnicode(PCSTR szText, OUT EnumDelimType& edtNative) {
+      PCSTR szNext = szText+1;
       if (*szText == '\\') {
          if (*szNext == '{') { // \lbrace
             ++szNext;
@@ -54,13 +54,11 @@ namespace {
          }
       }
       else {
-         if (*szText == '[' || *szText == '(')
+         if (*szText == '[' || *szText == '(' || *szText == '{')
             edtNative = edtOpen;
-         else if (*szText == ']' || *szText == ')')
+         else if (*szText == ']' || *szText == ')' || *szText == '}')
             edtNative = edtClose;
-         else if (*szText == '|')
-            edtNative = edtAny;
-         else if (*szText == '/')
+         else if (*szText == '|' || *szText == '/' || *szText == '.')
             edtNative = edtAny;
          else
             return 0;
@@ -69,40 +67,64 @@ namespace {
       return 0; //not found
    }
 }
-bool COpenCloseBuilder::ConsumeDelimiter(PCSTR szCmd, const CMathStyle& style, OUT PCSTR& szNext, 
-                                          OUT SLMMDelimiter& lmmDelimiter) {
+bool COpenCloseBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+   _ASSERT_RET(szCmd && *szCmd, false);
+   if (*szCmd == '\\')
+      ++szCmd;
+   if (bTextMode)
+      return false;
+   vector<string> vCmds{
+      "left","right","middle",
+      "big","bigl","bigm","bigr",
+      "Big","Bigl","Bigm","Bigr",
+      "bigg","biggl","biggm","biggr",
+      "Bigg","Biggl","Biggm","Biggr",
+   };
+   return std::find(vCmds.begin(), vCmds.end(), szCmd) != vCmds.end();
+}
+CMathItem* COpenCloseBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
+   const SParserContext& ctx = pParser->GetContext();
+   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   string sCmd(szCmd),sToken;
+   //check/consume/ next token
+   EnumTokenType ettNext = pParser->GetTokenData(sToken);
+   if (ettNext != ettCOMMAND && ettNext != ettNonALPHA) {
+      if (!pParser->HasError())
+         pParser->SetError("Missing delimiter after '\\" + sCmd + "'");
+      return nullptr;
+   }
+   pParser->SkipToken();
+   _ASSERT_RET(sToken != ".", nullptr); //not sure if can be here
+   string sCmdFull = szCmd + sToken;
+   SLMMDelimiter lmmDelimiter;
+   if (!_GetDelimiter(sCmdFull.c_str(), ctx.currentStyle, lmmDelimiter) ||
+      lmmDelimiter.edt == edtNotDelim || 0 == lmmDelimiter.nUni) {
+      if (!pParser->HasError())
+         pParser->SetError("Unknown delimiter '" + sToken + "' after '\\" + sCmd + "'");
+      return nullptr;
+   }
+   CMathItem* pRet = BuildDelimiter_(lmmDelimiter, ctx.currentStyle, ctx.fUserScale);
+   if (!pRet) {
+      _ASSERT(0); //snbh
+      if (!pParser->HasError())
+         pParser->SetError("Failed to build delimiter '" + sToken + "' after '\\" + sCmd + "'");
+   }
+   return pRet;
+}
+
+bool COpenCloseBuilder::_GetDelimiter(PCSTR szCmd, const CMathStyle& style, OUT SLMMDelimiter& lmmDelimiter) {
    _ASSERT_RET(szCmd && *szCmd, false);
    lmmDelimiter.nVariantIdx = 0; //default
-   lmmDelimiter.nUni = _GetDelimiterUnicode(szCmd, szNext, lmmDelimiter.edt);
+   lmmDelimiter.nUni = _GetDelimiterUnicode(szCmd, lmmDelimiter.edt);
    if (lmmDelimiter.nUni)
       return true;
    lmmDelimiter.edt = edtNotDelim;
    //else - check delim-size OR virtual prefix 
-   szNext = szCmd;
    if (szCmd[0] != '\\')
       return false;
-   ++szNext;
-   if (szNext[0] == 'l' && szNext[1] == 'e' && szNext[2] == 'f' && szNext[3] == 't') {
-      szNext += 4;
-      lmmDelimiter.edt = edtOpen;
-      if (*szNext == '.') {
-         ++szNext;
-         lmmDelimiter.nUni = 0; //hidden
-         return true;
-      }
-      lmmDelimiter.nVariantIdx = -1;
-   }
-   else if (szNext[0] == 'r' && szNext[1] == 'i' && szNext[2] == 'g' && szNext[3] == 'h' && szNext[4] == 't') {
-      szNext += 5;
-      lmmDelimiter.edt = edtClose;
-      if (*szNext == '.') {
-         ++szNext;
-         lmmDelimiter.nUni = 0; //hidden
-         return true;
-      }
-      lmmDelimiter.nVariantIdx = -1;
-   }
-   else if ((szNext[0] == 'b' || szNext[0] == 'B') && szNext[1] == 'i' && szNext[2] == 'g') {
+   PCSTR szNext = szCmd + 1;
+   if ((szNext[0] == 'b' || szNext[0] == 'B') && szNext[1] == 'i' && szNext[2] == 'g') {
       szNext += 3;
       if (*szNext == 'g') {
          ++szNext;
@@ -127,46 +149,52 @@ bool COpenCloseBuilder::ConsumeDelimiter(PCSTR szCmd, const CMathStyle& style, O
    }
    else
       return false;//unkn
-   if (style.Style() != etsDisplay && lmmDelimiter.nVariantIdx)
+   if (style.Style() != etsDisplay && lmmDelimiter.nVariantIdx > 0)
       --lmmDelimiter.nVariantIdx;//decrease size for compact mode
-   PCSTR szText = szNext;
    EnumDelimType edtNative{ edtNotDelim };
-   lmmDelimiter.nUni = _GetDelimiterUnicode(szText, szNext, edtNative);
-   if (lmmDelimiter.nUni && lmmDelimiter.edt == edtNotDelim)
-      lmmDelimiter.edt = edtNative;//determine type of the delimiter by the glyph's class
+   lmmDelimiter.nUni = _GetDelimiterUnicode(szNext, edtNative);
+   //if (lmmDelimiter.nUni && lmmDelimiter.edt == edtNotDelim)
+   //   lmmDelimiter.edt = edtNative;//determine type of the delimiter by the glyph's class
    return lmmDelimiter.nUni != 0;
 }
-CMathItem* COpenCloseBuilder::BuildDelimiter(const SLMMDelimiter& lmmDelimiter, const CMathStyle& style, float fUserScale) {
+//build by size Idx 0-4
+CMathItem* COpenCloseBuilder::BuildDelimiter_(const SLMMDelimiter& lmmDelimiter, const CMathStyle& style, 
+                                             float fUserScale) {
    _ASSERT_RET(lmmDelimiter.edt != edtNotDelim, nullptr); 
-   if (!lmmDelimiter.nUni) {
-      //TODO: virt/empty MathItem for invisible open/close items!
-      _ASSERT_RET(0, nullptr);
-   }
-   CWordItem* pWordItem = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
-   CMathItem* pRet = pWordItem;
+   _ASSERT_RET(lmmDelimiter.nUni, nullptr);
 
-   if (lmmDelimiter.nVariantIdx <= 0) //just a basic glyph
+   uint32_t nSize = 0;//default
+
+   if (lmmDelimiter.nVariantIdx > 0) {
+      //get base size
+      CWordItem* pWordItem = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
       pWordItem->SetText({ lmmDelimiter.nUni });
-   else { //lmmDelimiter.nVariantIdx >= 1
-      uint16_t nGIdx = CExtGlyphBuilder::GetGlyphIndexBySizeIdx(lmmDelimiter.nUni, lmmDelimiter.nVariantIdx);
-      if(nGIdx)
-         pWordItem->SetGlyphIndexes({ nGIdx });
-      else {
-         pWordItem->SetText({ lmmDelimiter.nUni });//base size
-         uint32_t nSize = pWordItem->Box().Height();
-         if (lmmDelimiter.nVariantIdx == 1)
-            nSize = nSize * 11 / 10;
-         else if (lmmDelimiter.nVariantIdx == 2)
-            nSize = nSize * 33 / 20;
-         else if (lmmDelimiter.nVariantIdx == 3)
-            nSize = nSize * 22 / 10;
-         else if (lmmDelimiter.nVariantIdx == 4)
-            nSize = nSize * 55 / 20;
-         delete pWordItem;
-         pRet = CExtGlyphBuilder::BuildVerticalGlyph(lmmDelimiter.nUni, style, nSize, fUserScale);
-      }
+      nSize = pWordItem->Box().Height();
+      delete pWordItem;
+      //calc target size
+      if (lmmDelimiter.nVariantIdx == 1)
+         nSize = nSize * 11 / 10;
+      else if (lmmDelimiter.nVariantIdx == 2)
+         nSize = nSize * 33 / 20;
+      else if (lmmDelimiter.nVariantIdx == 3)
+         nSize = nSize * 22 / 10;
+      else if (lmmDelimiter.nVariantIdx == 4)
+         nSize = nSize * 55 / 20;
    }
-   switch (lmmDelimiter.edt) {
+   return _BuildDelimiter(lmmDelimiter.nUni, lmmDelimiter.edt, nSize, style, fUserScale);
+}
+CMathItem* COpenCloseBuilder::_BuildDelimiter(uint32_t nUni, EnumDelimType edt, uint32_t nSize,
+                                             const CMathStyle& style, float fUserScale) {
+   _ASSERT_RET(nUni, nullptr);
+   CMathItem* pRet;
+   if (nSize <= 0) {
+      CWordItem* pWordItem = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
+      pWordItem->SetText({ nUni });
+      pRet = pWordItem;
+   }
+   else 
+      pRet = CExtGlyphBuilder::BuildVerticalGlyph(nUni, style, nSize, fUserScale);
+   switch (edt) {
    case edtOpen: pRet->SetAtom(etaOPEN); break;
    case edtClose: pRet->SetAtom(etaCLOSE); break;
    case edtFence: pRet->SetAtom(etaINNER); break;
@@ -174,31 +202,4 @@ CMathItem* COpenCloseBuilder::BuildDelimiter(const SLMMDelimiter& lmmDelimiter, 
    }
    return pRet;
 }
-CMathItem* COpenCloseBuilder::BuildOpenClose(uint32_t nUniOpen, uint32_t nUniClose, CMathItem* pItem,
-   const CMathStyle& style, float fUserScale) {
-   _ASSERT_RET(nUniOpen || nUniClose, nullptr);
-   float fScale = style.StyleScale() * fUserScale;
-   CHBoxItem* pHBox = new CHBoxItem(style);
-   int32_t nSize = otfAxisHeight;//dummy/default
-   int32_t nAxisY = 0;
-   if (pItem) {
-      nAxisY = pItem->Box().AxisY();
-      nSize = 2*max(nAxisY - pItem->Box().Top(), pItem->Box().Bottom() - nAxisY);
-   }
-   if (nUniOpen) {
-      CMathItem* pOpen = CExtGlyphBuilder::BuildVerticalGlyph(nUniOpen, style, nSize, fUserScale);
-      _ASSERT_RET(pOpen, nullptr);
-      pHBox->AddItem(pOpen);
-   }
-   if(pItem)
-      pHBox->AddItem(pItem);
-   if (nUniClose) {
-      CMathItem* pClose = CExtGlyphBuilder::BuildVerticalGlyph(nUniClose, style, nSize, fUserScale);
-      _ASSERT_RET(pClose, nullptr);
-      pHBox->AddItem(pClose);
-   }
-   pHBox->Update();
-   return pHBox;
-}
-
 

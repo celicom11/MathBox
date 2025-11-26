@@ -18,7 +18,8 @@ public:
    CMathItem* ConsumeItem(EnumLCATParenthesis eParens, const SParserContext& ctx) override;
    bool ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) override;
    bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) override;
-   bool ConsumeKeyword(PCSTR szKeyword) override;
+   EnumTokenType GetTokenData(OUT string& sText) override;
+   void SkipToken() override { ++m_nTkIdx; } //unsafe?
    bool ConsumeHSkipGlue(OUT STexGlue& glue) override;
 
    //context info

@@ -24,7 +24,7 @@ bool CHBoxItem::AddItem(CMathItem* pItem) {
       //add inter-item glue
       m_Glue.fNorm += pItemGlue ? pItemGlue->fNorm : pItem->Box().Width();
       CMathItem* pPrev = m_vItems.back();
-      CGlueItem* pGlue = pItemGlue? nullptr: CGlueItem::_Create(pPrev, pItem, m_Style, m_fUserScale);
+      CGlueItem* pGlue = pItem->Type() == eacGLUE ? nullptr: CGlueItem::_Create(pPrev, pItem, m_Style, m_fUserScale);
       const STexGlue* pInterGlue = pGlue ? pGlue->GetGlue() : nullptr;
       if (pInterGlue) {
          //update virtual glue

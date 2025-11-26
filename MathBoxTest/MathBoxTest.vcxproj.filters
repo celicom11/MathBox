@@ -79,6 +79,9 @@
     <ClCompile Include="..\MathBox\MathSymBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\RawItem.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

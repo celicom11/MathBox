@@ -6,12 +6,15 @@
 
 extern CLMFontManager g_LMFManager;
 namespace {
-   void _GetSuperscriptRelPos(CMathItem* pBase, bool bCramped, float fScale, const STexBox& boxSuper, OUT int32_t& nDY) {
-      //position superscript
-      int32_t nSuperShiftUp = F2NEAREST((bCramped ? otfSuperscriptShiftUpCramped : otfSuperscriptShiftUp) * fScale);
-      nSuperShiftUp = max(nSuperShiftUp, F2NEAREST(otfSuperscriptBottomMin * fScale) + boxSuper.Depth());
-      nSuperShiftUp = max(nSuperShiftUp, pBase->Box().Ascent() - F2NEAREST(otfSuperscriptBaselineDropMax * fScale));
-      nDY = nSuperShiftUp + boxSuper.Ascent();
+   int32_t _GetSuperscriptShiftUp(CMathItem* pBase, bool bCramped, float fScale, const STexBox& boxSuper) {
+      int32_t nSuperShiftUp;
+      if(pBase->Type() != eacWORD) //kernel is a boxed formula or LargeOP
+         nSuperShiftUp = pBase->Box().Ascent() - F2NEAREST(otfSuperscriptBaselineDropMax * fScale);
+      else { //kernel is a symbol
+         nSuperShiftUp = F2NEAREST((bCramped ? otfSuperscriptShiftUpCramped : otfSuperscriptShiftUp) * fScale);
+         nSuperShiftUp = max(nSuperShiftUp, F2NEAREST(otfSuperscriptBottomMin * fScale) + boxSuper.Depth());
+      }
+      return nSuperShiftUp;
    }
    void _GetSubscriptRelPos(CMathItem* pBase, float fScale, const STexBox& boxSubs, const STexBox* pBoxSuper,
                               OUT int32_t& nDY, IN OUT int32_t& nSuperShiftUp) {
@@ -64,8 +67,8 @@ CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserSca
       }
       else {
          nSuperDX = pBase->Box().Right();
-         _GetSuperscriptRelPos(pBase, style.IsCramped(), fScale, pSupers->Box(), nSuperDY);
-         nSuperShiftUp = nSuperDY - pSupers->Box().Ascent();
+         nSuperShiftUp = _GetSuperscriptShiftUp(pBase, style.IsCramped(), fScale, pSupers->Box());
+         nSuperDY = nSuperShiftUp + pSupers->Box().Ascent();
       }
    }
    if (pSubs) {
@@ -92,5 +95,6 @@ CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserSca
    if(bAddSpace)
       pRetBox->AddWidth(F2NEAREST(otfSpaceAfterScript * fScale));
    pRetBox->NormalizeOrigin(0, 0);
+   pRetBox->SetAtom(pBase->AtomType());
    return pRetBox;
 }

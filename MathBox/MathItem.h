@@ -92,7 +92,7 @@ enum EnumTexAtom {
 };
 // Math item types
 enum EnumMathItemType {
-   eacUNK = -1,         // exention glyphs/fillers and other non selectable items
+   eacUNK = -1,         // unknown OR non selectable Word item
    eacWORD,             // word item: variable's name, number, operator, punctuation,etc or text
    eacHBOX,             // HBox container, e.g. \left..\right subformula, any line with items, etc.
    eacOVERUNDER,        // Ord: container item with an over/under-brace child
@@ -102,9 +102,12 @@ enum EnumMathItemType {
    eacVBOX,             // Ord: fraction or stacked items: \frac, \binom, \stackrel, \substack, \atop, \genfrac, \overset, etc.
    eacBIGOP,            // OP(large),word item: integrals,sum, prod, etc. + optional \limits
    eacMATHOP,           // OP(small),word item: math op + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
-   //eacOverlay,        // container item with a cancel,not, cross, etc. lines/curves
-   //eacFiller,         // filler item
    eacGLUE,             // -, glue: invisible spacing item of variable width
+   eacFILLER,           // filler/lines/rectangles,etc. item
+   eacVDELIM,           // Ord: container item with vertical delimiter + parts
+   eacHDELIM,           // Ord: container item with horizontal bracket + parts
+   //eacOverlay,        // container item with a base + cancel,not, cross, etc. fillers
+   //
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -209,6 +212,29 @@ public:
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
    virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0;
 };
+////tmp items
+//// NULL/PHANTOM Item
+//class CNullItem : public CMathItem {
+//public:
+//   //CTOR/DTOR
+//   CNullItem() : CMathItem(eacNull, CMathStyle()) {}
+//   //CMathItem implementation
+//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//};
+//class CTabAlignmentItem : public CMathItem {
+//public:
+//   //CTOR/DTOR
+//   CTabAlignmentItem() : CMathItem(eacAMP, CMathStyle()) {}
+//   //CMathItem implementation
+//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//};
+//class CNewLineItem : public CMathItem {
+//public:
+//   //CTOR/DTOR
+//   CNewLineItem() : CMathItem(eacNewLine, CMathStyle()) {}
+//   //CMathItem implementation
+//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//};
 //
 //LMM glyph MATH tables + other info
 enum EnumGlyphClass {
@@ -288,47 +314,38 @@ enum EnumLCATParenthesis {
    elcapFig,      // non-optional {} brackets
    elcapSquare,   // non-optional [] brackets
 };
-
-/*
-struct SLaTexCmdArgInfo {
-   bool                 bOpt{ false };
-   bool                 bBase{ false };
-   bool                 bScript{ false };          // decreased style, of the Base OR the cmd input style if no base!
-   int16_t              nArgPos{ 0 };              // -1 = BEFORE command,0 -inside command (e.g. "_{}^{}), >0 after command
-   EnumLatexCmdArgType  eLCAT{ elcatItem };
-   EnumLCATParenthesis  eParenthesis{ elcapAny };
-};
-struct SLaTexCmdInfo {
-   bool                       bHasLimits{ false }; //command supports \limits
-   vector<SLaTexCmdArgInfo>   vArgInfo;
-};
-struct SLaTexCmdArgValue {
-   EnumLatexCmdArgType  eLCAT;
-   union {
-      int16_t     nVal;
-      float       fVal;
-      CMathItem* pMathItem{ nullptr };
-   }       uVal;
-};*/
+enum EnumAlignments { ecaUndef=0, ecaLeft, ecaCenter, ecaRight };
 struct SParserContext {
-   bool bTextMode{ false };            // TEXT/MATH mode
-   bool bInLeftRight{ false };         // inside \left...\right construct
-   bool bInSubscript{ false };         // building atom's subscript
-   bool bInSuperscript{ false };       // building atom's superscript
-   bool bInCmdArg{ false };            // building command's argument
-   CMathStyle currentStyle;            // MATH mode style
-   float fUserScale{ 1.0f };           // User scaling factor
-   string sFontCmd;                    // Current font (for both Math/Text modes!)
+   bool        bTextMode{ false };            // TEXT/MATH mode
+   bool        bInLeftRight{ false };         // inside \left...\right construct
+   bool        bInSubscript{ false };         // building atom's subscript
+   bool        bInSuperscript{ false };       // building atom's superscript
+   bool        bInCmdArg{ false };            // building command's argument
+   CMathStyle  currentStyle;                  // MATH mode style
+   float       fUserScale{ 1.0f };            // User scaling factor
+   string      sFontCmd;                      // Current font (for both Math/Text modes!)
+   string      sEnv;                          // array,matrix,pmatrix,vmatrix,...
+   uint32_t    nColAlignments{ 0 };           // for array env
+   //CTOR
+   SParserContext() = default;
+   SParserContext(const SParserContext& other) {
+      this->bTextMode = other.bTextMode;
+      this->currentStyle = other.currentStyle;
+      this->fUserScale = other.fUserScale;
+      this->sFontCmd = other.sFontCmd;
+   }
    //helpers
    void SetInSubscript() {
       _ASSERT(!this->bInSubscript);
       this->currentStyle.ToSubscriptStyle();
       this->bInSubscript = true;
+      this->bInLeftRight = false; //cannot handle \\middle in subscript
    }
    void SetInSuperscript() {
       _ASSERT(!this->bInSuperscript);
       this->currentStyle.ToSuperscriptStyle();
       this->bInSuperscript = true;
+      this->bInLeftRight = false; //cannot handle \\middle in superscript
    }
 };
 
@@ -336,8 +353,10 @@ DECLARE_INTERFACE(IParserAdapter) {
    virtual CMathItem* ConsumeItem(EnumLCATParenthesis eParens,  const SParserContext& ctx) = 0;
    virtual bool ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) = 0;
    virtual bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) = 0;
-   virtual bool ConsumeKeyword(PCSTR szKeyword) = 0; //e.g. \limits|\nolimits
    virtual bool ConsumeHSkipGlue(OUT STexGlue& glue) = 0;
+   // raw access
+   virtual EnumTokenType GetTokenData(OUT string & sText) = 0;
+   virtual void SkipToken() = 0;
    // context info
    virtual const SParserContext& GetContext() const = 0;
    virtual float DocFontSizePts() const = 0;

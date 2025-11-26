@@ -39,12 +39,14 @@ CGlueItem::MuSkipType CGlueItem::_GetMuSkipType_(const CMathStyle& style, CMathI
    //map prev/next types to matrix indices 0=Ord, 1=Op, 2=Bin, 3=Rel, 4=Open, 5=Close, 6=Punct, 7=Inner
    int nPrevClass = pPrev->AtomType(); 
    //in case of inner formula (HBOX+Inner), get atom type of the last item
-   if (pPrev->Type() == eacHBOX && nPrevClass == etaINNER)
-      nPrevClass = ((CHBoxItem*)pPrev)->Items().back()->AtomType();
+   // WHY?
+   //if (pPrev->Type() == eacHBOX && nPrevClass == etaINNER)
+   //   nPrevClass = ((CHBoxItem*)pPrev)->Items().back()->AtomType();
    int nNextClass = pNext->AtomType();
    //in case of inner formula (HBOX+Inner), get atom type of the first item
-   if (pNext->Type() == eacHBOX && nNextClass == etaINNER)
-      nPrevClass = ((CHBoxItem*)pNext)->Items().front()->AtomType();
+   // WHY?
+   //if (pNext->Type() == eacHBOX && nNextClass == etaINNER)
+   //   nNextClass = ((CHBoxItem*)pNext)->Items().front()->AtomType();
 
    if (style.Style() <= etsText)
       return (MuSkipType)ATOM_SPACING_MATRIX[nPrevClass][nNextClass];

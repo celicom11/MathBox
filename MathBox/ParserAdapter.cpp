@@ -75,7 +75,7 @@ bool CParserAdapter::_GetText(int nTkStart, int nTkEnd, OUT string& sText) const
       const STexToken* pTk = m_TexParser.GetToken(nIdx);
       if (!pTk || !(pTk->nType == ettALNUM || pTk->nType == ettNonALPHA))
          return false; //we take only alnum/non-alnum tokens!
-      sText += m_TexParser.TokenText_(nIdx);
+      sText += m_TexParser.TokenText(nIdx);
    }
    return true;
 }
@@ -109,7 +109,7 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    int nTkPos = nTkStart;
    //check for leading '-'
    bool bNegative = false;
-   if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkStart) == "-") {
+   if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText(nTkStart) == "-") {
       ++nTkPos;
       bNegative = true;
       pTkNext = m_TexParser.GetToken(nTkPos);
@@ -118,18 +118,18 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    //next must be number
    if(pTkNext->nType != ettALNUM)
       return false; // not a number, caller must set error!
-   sNum = m_TexParser.TokenText_(nTkPos);
+   sNum = m_TexParser.TokenText(nTkPos);
    if(! _GetDimen(sNum, fPts, sUnit))
       return false; // not an integer number, caller must set error!
+   ++nTkPos; //consume good #{unit} token
    if (sUnit.empty()) {
-      ++nTkPos; 
       pTkNext = m_TexParser.GetToken(nTkPos);
-      if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkPos) == ".") {
+      if (pTkNext->nType == ettNonALPHA && m_TexParser.TokenText(nTkPos) == ".") {
          ++nTkPos; 
          pTkNext = m_TexParser.GetToken(nTkPos);
          if (pTkNext->nType != ettALNUM)
             return false; // not a number, caller must set error!
-         sNum = sNum + "." + m_TexParser.TokenText_(nTkPos);
+         sNum = sNum + "." + m_TexParser.TokenText(nTkPos);
          if (!_GetDimen(sNum, fPts, sUnit))
             return false; // not an integer number, caller must set error!
          // move to next token
@@ -137,8 +137,10 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
          pTkNext = m_TexParser.GetToken(nTkPos);
       }
    }
-   if (sUnit.empty() && pTkNext->nType == ettALNUM)
-      sUnit = m_TexParser.TokenText_(nTkPos);
+   if (sUnit.empty() && pTkNext->nType == ettALNUM) {
+      sUnit = m_TexParser.TokenText(nTkPos);
+      ++nTkPos;
+   }
    if (!sUnit.empty()){
       if (!_IsKnownUnit(sUnit))
          return false; //bad units
@@ -150,7 +152,7 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    pTkNext = m_TexParser.GetToken(m_nTkIdx);//start
    if (pTkNext->nTkIdxEnd && nTkPos + 1 != pTkNext->nTkIdxEnd)
       return false; //not at closing, some extra tokens in the group?
-   m_nTkIdx = nTkPos + 1; //move to next token on success
+   m_nTkIdx = nTkPos; //move to next token on success
    if (bNegative)
       fPts = -fPts;
    return true;
@@ -167,7 +169,7 @@ bool CParserAdapter::ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) 
    } 
    int nTkEnd = nTkStart+1;
    //check for leading '-'
-   if(pTkNext->nType == ettNonALPHA && m_TexParser.TokenText_(nTkStart) == "-")
+   if(pTkNext->nType == ettNonALPHA && m_TexParser.TokenText(nTkStart) == "-")
       ++nTkEnd;
    //get text
    if(!_GetText(nTkStart, nTkEnd, sText))
@@ -192,16 +194,12 @@ bool CParserAdapter::ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) 
 
    return true;
 }
-bool CParserAdapter::ConsumeKeyword(PCSTR szKeyword) {
+EnumTokenType CParserAdapter::GetTokenData(OUT string& sText) {
    const STexToken* pTkNext = m_TexParser.GetToken(m_nTkIdx);
-   if (!pTkNext || (ettCOMMAND != pTkNext->nType && ettALNUM != pTkNext->nType))
-      return false; //caller must set error!
-   string sToken = m_TexParser.TokenText_(m_nTkIdx);
-   if(sToken != szKeyword)
-      return false;
-   // consume it
-   ++m_nTkIdx;
-   return true;
+   if (!pTkNext)
+      return ettUndef; //error
+   sText = m_TexParser.TokenText(m_nTkIdx);
+   return (EnumTokenType)pTkNext->nType;
 }
 bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    // Initialize glue to defaults
@@ -223,7 +221,8 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    glue.fActual = fSizeEM;
 
    // 2. Check for "plus" stretch component
-   if (ConsumeKeyword("plus")) {
+   if (m_TexParser.TokenText(m_nTkIdx) == "plus") {
+      ++m_nTkIdx;
       if (!_ConsumeGlueComponent(glue.fStretchCapacity, glue.nStretchOrder)) {
          m_TexParser.SetError(ParserError{ epsBUILDING,
              m_TexParser.GetToken(m_nTkIdx)->nPos,
@@ -233,7 +232,8 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    }
 
    // 3. Check for "minus" shrink component
-   if (ConsumeKeyword("minus")) {
+   if (m_TexParser.TokenText(m_nTkIdx) == "minus") {
+      ++m_nTkIdx;
       if (!_ConsumeGlueComponent(glue.fShrinkCapacity, glue.nShrinkOrder)) {
          m_TexParser.SetError(ParserError{ epsBUILDING,
              m_TexParser.GetToken(m_nTkIdx)->nPos,
@@ -259,7 +259,7 @@ bool CParserAdapter::_ConsumeGlueComponent(OUT float& fValue, OUT uint16_t& nOrd
       // Check if followed by fil/fill/filll
       pTok = m_TexParser.GetToken(m_nTkIdx);
       if (pTok && pTok->nType == ettALNUM) {
-         string sUnit = m_TexParser.TokenText_(m_nTkIdx);
+         string sUnit = m_TexParser.TokenText(m_nTkIdx);
 
          if (sUnit == "fil") {
             nOrder = 1;

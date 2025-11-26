@@ -185,6 +185,7 @@
     <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp" />
     <ClCompile Include="..\MathBox\ParserAdapter.cpp" />
     <ClCompile Include="..\MathBox\RadicalBuilder.cpp" />
+    <ClCompile Include="..\MathBox\RawItem.cpp" />
     <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp" />
     <ClCompile Include="..\MathBox\TexParser.cpp" />
     <ClCompile Include="..\MathBox\Tokenizer.cpp">

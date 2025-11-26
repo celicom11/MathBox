@@ -79,11 +79,16 @@ CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    CMathStyle style = pParser->GetContext().currentStyle;
    float fUserScale = pParser->GetContext().fUserScale;
    CWordItem* pRet = new CWordItem(FONT_LMM, style, eacBIGOP, fUserScale);
+   pRet->SetAtom(etaOP);
    pRet->SetGlyphIndexes({ style.Style() == etsDisplay ? pGInfo->nIdxD : pGInfo->nIdx });
-   bool bLimits = pParser->ConsumeKeyword("\\limits");
-   bool bNoLimits = false;
-   if(!bLimits)
-      bNoLimits = pParser->ConsumeKeyword("\\nolimits");
+   bool bLimits = false, bNoLimits = false;
+   string sToken;
+   EnumTokenType ettNext = pParser->GetTokenData(sToken);
+   if (ettNext == ettCOMMAND && (sToken == "\\nolimits" || sToken == "\\limits")) {
+      bLimits = sToken == "\\limits";
+      bNoLimits = sToken == "\\nolimits";
+      pParser->SkipToken(); //consumed
+   }
 
    if (bLimits || (bNoLimits == false && style.Style() == etsDisplay && bOverUnderD))
       pRet->SetIdxPlacement(eipOverUnderscript);
