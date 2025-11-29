@@ -2,8 +2,8 @@
 #include "MathItem.h"
 
 
-//Factory for extendable horizontal glyphs with Over/Under items
-class CXArrowBuilder : public IMathItemBuilder {
+//Factory for \{textcmd}{...text...}
+class CTextCmdBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
    bool CanTakeCommand(PCSTR szCmd) const override;

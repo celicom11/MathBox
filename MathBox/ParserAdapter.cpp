@@ -89,10 +89,9 @@ CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, const SParse
       pRet = m_TexParser.ProcessGroup(nTkIdx, ctx); //move to opening
    else { //process single token, without sub/superscripts if any
       SParserContext ctxCmd(ctx);
-      ctxCmd.bInCmdArg = true; //we are in command argument
       pRet = m_TexParser.ProcessItemToken(nTkIdx, ctxCmd);
    }
-   if(pRet && m_TexParser.LastError().sError.empty())
+   if(pRet && !m_TexParser.HasError())
       m_nTkIdx = nTkIdx; //move to next token on success
    return pRet;
 }
@@ -208,9 +207,7 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    // 1. Parse base dimension (required)
    float fSize = 0.0f;
    if (!ConsumeDimension(elcapAny, fSize)) {
-      m_TexParser.SetError(ParserError{ epsBUILDING,
-          m_TexParser.GetToken(m_nTkIdx)->nPos,
-          "Expected dimension for \\hskip" });
+      m_TexParser.SetError(m_nTkIdx, "Expected dimension for \\hskip");
       return false;
    }
 
@@ -224,9 +221,7 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    if (m_TexParser.TokenText(m_nTkIdx) == "plus") {
       ++m_nTkIdx;
       if (!_ConsumeGlueComponent(glue.fStretchCapacity, glue.nStretchOrder)) {
-         m_TexParser.SetError(ParserError{ epsBUILDING,
-             m_TexParser.GetToken(m_nTkIdx)->nPos,
-             "Invalid stretch component after 'plus'" });
+         m_TexParser.SetError(m_nTkIdx, "Invalid stretch component after 'plus'");
          return false;
       }
    }
@@ -235,9 +230,7 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    if (m_TexParser.TokenText(m_nTkIdx) == "minus") {
       ++m_nTkIdx;
       if (!_ConsumeGlueComponent(glue.fShrinkCapacity, glue.nShrinkOrder)) {
-         m_TexParser.SetError(ParserError{ epsBUILDING,
-             m_TexParser.GetToken(m_nTkIdx)->nPos,
-             "Invalid shrink component after 'minus'" });
+         m_TexParser.SetError(m_nTkIdx, "Invalid shrink component after 'minus'");
          return false;
       }
    }

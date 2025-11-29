@@ -60,9 +60,7 @@ namespace {
 }
 
 //IMathItemBuilder 
-bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
-   if (bTextMode)
-      return false; //q&d
+bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if( szCmd[0] == '\\' )
       ++szCmd;
@@ -75,7 +73,7 @@ bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
 CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && *szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    string sCmd(szCmd+1);
    // Get current context
    CMathItem *pTop, *pBottom, *pRet = nullptr;

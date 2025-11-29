@@ -4,7 +4,7 @@
 // \fontsize{size pt}{h_skip}\selectfont{arg} 
 // \scalefnt{factor}{arg}
 // \relscale{factor}{arg}
-bool CScaleCmdBuilder::CanTakeCommand(PCSTR szCmd, bool ) const {
+bool CScaleCmdBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if (*szCmd == '\\')
       ++szCmd;
@@ -15,7 +15,7 @@ bool CScaleCmdBuilder::CanTakeCommand(PCSTR szCmd, bool ) const {
 CMathItem* CScaleCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    if (*szCmd == '\\')
       ++szCmd;
    string sCmd(szCmd);

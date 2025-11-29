@@ -28,11 +28,7 @@ public:
    //error info/setting
    bool HasError() const override { return !m_TexParser.LastError().sError.empty(); }
    void SetError(const string& sMessage) override {
-      ParserError error;
-      error.eStage = epsBUILDING;
-      error.nPosition = m_TexParser.GetToken(m_nTkIdx)->nPos;
-      error.sError = sMessage;
-      m_TexParser.SetError(error);
+      m_TexParser.SetError(m_nTkIdx, sMessage);
    }
 private:
    bool _CanConsumeToken(EnumLCATParenthesis eParens) const;

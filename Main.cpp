@@ -104,10 +104,9 @@ public:
       if (SUCCEEDED(hr)) {
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
-            LeftRightTest_();
-            //ParserTest_();
+            //LeftRightTest_();
             //BuildIndexedParser_("af");
-            //BuildTexts_();
+            BuildTextsParser_();
             //BuildRadicalsParser_();
             //BuildMathFontsParser_();
             //BuildAccentItemsParser_();
@@ -181,57 +180,38 @@ private:
    }
    //$$S_n = \left(a\right)$$
    void LeftRightTest_() {
-      string sTeX("$$S_n = \\left(\\frac{X_1}{A^2}\\right)$$");
+      string sTeX("$$S_n = \\left(\\frac{X_1}{A^2}\\middle|\\frac{X_1^2}{A^2}\\middle\\| \\right)$$");
       CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt); //12pt
       CMathItem* pRet = parser.Parse(sTeX);
       _ASSERT(pRet);
       m_MainBox.AddBox(pRet, 0, 330);
    }
-   //\[S_n = \frac{X_1 + X_2 + \cdots + X_n}{n} = \frac{ 1 }{n}\sum_{ i }^ {n} X_i\]
-   void ParserTest_() {
-      string sTeX("$$S_n = \\frac{X_1 + X_2 + \\cdots + X_n}{n} = \\frac{ 1 }{n}\\sum_{ i }^ {n} X_i$$");
+   // various "Text* 0+1+2+3"in Text Mode
+   void BuildTextsParser_() {
       CTexParser parser;
-      parser.SetDocumentFontSizePts(m_fFontSizePt); //12pt
-      CMathItem* pRet = parser.Parse(sTeX);
+      parser.SetDocumentFontSizePts(m_fFontSizePt);
+      string sText1 = "Text 0+1+2+3\\\\\n"
+         "\\text{Text 0+1+2+3}";
+      string sText = "Text 0+1+2+3\\\\\n"
+         "\\text{Text 0+1+2+3}\\\\\n"
+         "\\textit{Textit 0+1+2+3}\\\\\n"
+         "\\emph{Emph 0+1+2+3}\\\\\n"
+         "\\textsl{Textsl 0+1+2+3 }\\\\\n"
+         "\\textrm{Textrm 0+1+2+3 }\\\\\n"
+         "\\textup{Textup 0+1+2+3 }\\\\\n"
+         "\\textnormal{textnormal 0+1+2+3 }\\\\\n"
+         "\\textmd{Textmd 0+1+2+3 }\\\\\n"
+         "\\textsf{Textsf 0+1+2+3 }\\\\\n"
+         "\\texttt{Texttt 0+1+2+3 }\\\\\n"
+         "\\textbf{Textbf 0+1+2+3 }\\\\\n"
+         "\\textsc{Textsc 0+1+2+3 }";
+      CMathItem* pRet = parser.Parse(sText);
       _ASSERT(pRet);
-      m_MainBox.AddBox(pRet, 0, 330);
+      if(pRet)
+         m_MainBox.AddBox(pRet, 0, 330);
    }
-   // various $$Text\ 0+1+2+3$$
-   void BuildTexts_() {
-      CMathStyle style(m_MainBox.GetStyle());
-      PCSTR szTestText = "Text 0+1+2+3";
-      int32_t nY = 100, nInterLine = 1500;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("text",       szTestText, style, 1.0f),100, nY); 
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textit", szTestText, style, 1.0f),100, nY);
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("emph", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsl", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      szTestText = "Textrm 0+1+2+3";
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textrm", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textup", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textnormal", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textmd", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      szTestText = "Textsf 0+1+2+3";
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsf", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      szTestText = "Texttt 0+1+2+3";
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("texttt", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      szTestText = "Textbf 0+1+2+3";
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textbf", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-      szTestText = "Textsc 0+1+2+3";
-      m_MainBox.AddBox(CWordItemBuilder::BuildText("textsc", szTestText, style, 1.0f), 100, nY);
-      nY += nInterLine;
-   }
+   
    // various $$3x^2 \in R \subset Q$$
    void BuildMathFontsParser_() {
       PCSTR aMathFonts[]{ "mathnormal", "it", "mathit","mathrm","mathbf","mathbfup","mathbfit","mathscr",

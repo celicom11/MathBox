@@ -267,7 +267,7 @@ namespace TexParserTests
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
-         Assert::AreEqual("Double subcsript/superscript is not allowed!", err.sError.c_str());
+         Assert::AreEqual("Double subcsript/superscript is not allowed", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
          Assert::AreEqual(5, (int)err.nPosition, L"Error position should be 5");
       }
@@ -394,10 +394,10 @@ namespace TexParserTests
          Assert::AreEqual((int)eacHBOX, (int)pRet->Type(), L"Result should be HBox");
          CContainerItem* pHBox = dynamic_cast<CContainerItem*>(pRet);
          Assert::IsNotNull(pHBox, L"HBox should be CContainerItem");
-         Assert::IsTrue(pHBox->Items().size() >= 3, L"HBox should have at least 3 items (text + math + text)");
+         Assert::IsTrue(pHBox->Items().size() == 5, L"HBox should have 5 items: Word,Glue,HBox,Glue,Word)");
          // Find math part (should be second item)
-         CMathItem* pMathPart = pHBox->Items()[1];
-         Assert::AreEqual((int)eacHBOX, (int)pMathPart->Type(), L"Math part should be HBox");
+         CMathItem* pMathPart = pHBox->Items()[2];
+         Assert::AreEqual((int)eacHBOX, (int)pMathPart->Type(), L"Item 2 should be HBox");
          CContainerItem* pMathHBox = dynamic_cast<CContainerItem*>(pMathPart);
          bool foundIndexed = false;
          for (CMathItem* pItem : pMathHBox->Items()) {
@@ -571,19 +571,19 @@ namespace TexParserTests
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          auto err = parser.LastError();
-         Assert::AreEqual("Empty group is not allowed here!", err.sError.c_str());
+         Assert::AreEqual("Unexpected empty group", err.sError.c_str());
          pRet = parser.Parse("$ $");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         Assert::AreEqual("Unexpected empty group", err.sError.c_str());
          pRet = parser.Parse("${}$");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         Assert::AreEqual("Unexpected empty group", err.sError.c_str());
          pRet = parser.Parse("{}");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Empty group is not allowed here!");
+         Assert::AreEqual("Unexpected empty group", err.sError.c_str());
       }
       // ## Test 14: BuildGroups has unclosed opening
       // # Input: "$${ abc$$", "${a^bc$"

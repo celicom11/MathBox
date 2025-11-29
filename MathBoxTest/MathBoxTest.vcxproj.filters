@@ -82,6 +82,15 @@
     <ClCompile Include="..\MathBox\RawItem.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\MathModeProcessor.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TextModeProcessor.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TextCmdBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

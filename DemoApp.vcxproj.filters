@@ -8,6 +8,9 @@
     <Filter Include="MathBox\MathItemBuilders">
       <UniqueIdentifier>{41079646-2a73-4ce1-b742-7c07d45bf7cf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MathBox\Parser">
+      <UniqueIdentifier>{8fd9aa81-6beb-41c5-8d14-8a1e3c679d63}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
@@ -34,15 +37,6 @@
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="MathBox\OpenCloseBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="MathBox\Tokenizer.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="MathBox\TexParser.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="MathBox\ParserAdapter.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="MathBox\AccentBuilder.cpp">
@@ -84,6 +78,27 @@
     <ClCompile Include="MathBox\RawItem.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\TextCmdBuilder.cpp">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\OverlayBuilder.cpp">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\MathModeProcessor.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\ParserAdapter.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\TexParser.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\Tokenizer.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\TextModeProcessor.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -121,15 +136,6 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\OpenCloseBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="MathBox\Tokenizer.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="MathBox\TexParser.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="MathBox\ParserAdapter.h">
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\AccentBuilder.h">
@@ -170,6 +176,27 @@
     </ClInclude>
     <ClInclude Include="MathBox\RawItem.h">
       <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TextCmdBuilder.h">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\OverlayBuilder.h">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\MathModeProcessor.h">
+      <Filter>MathBox\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\ParserAdapter.h">
+      <Filter>MathBox\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TexParser.h">
+      <Filter>MathBox\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TextModeProcessor.h">
+      <Filter>MathBox\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\Tokenizer.h">
+      <Filter>MathBox\Parser</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

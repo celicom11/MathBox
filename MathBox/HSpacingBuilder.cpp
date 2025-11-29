@@ -2,7 +2,7 @@
 #include "HSpacingBuilder.h"
 #include "GlueItem.h"
 
-bool CHSpacingBuilder::CanTakeCommand(PCSTR szCmd, bool ) const {
+bool CHSpacingBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if (*szCmd == '\\')
       ++szCmd;
@@ -14,7 +14,7 @@ bool CHSpacingBuilder::CanTakeCommand(PCSTR szCmd, bool ) const {
 CMathItem* CHSpacingBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    string sCmd(szCmd);
    
    CMathItem* pRet = nullptr;

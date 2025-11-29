@@ -5,6 +5,6 @@
 class CMathFontCmdBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
-   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
 };

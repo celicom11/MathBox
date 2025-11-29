@@ -5,7 +5,7 @@
 // \fontsize{size pt}{h_skip}\selectfont{arg} 
 // \scalefnt{factor}{arg}
 // \relscale{factor}{arg}
-bool CMathFontCmdBuilder::CanTakeCommand(PCSTR szCmd, bool) const {
+bool CMathFontCmdBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if (*szCmd == '\\')
       ++szCmd;
@@ -15,7 +15,7 @@ bool CMathFontCmdBuilder::CanTakeCommand(PCSTR szCmd, bool) const {
 
 CMathItem* CMathFontCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
-   _ASSERT_RET(CanTakeCommand(szCmd, false), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    if (*szCmd == '\\')
       ++szCmd;
    string sCmd(szCmd);

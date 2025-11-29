@@ -1,0 +1,254 @@
+#include "stdafx.h"
+#include "TextModeProcessor.h"
+#include "TexParser.h"
+#include "RawItem.h"
+#include "Tokenizer.h"
+#include "ParserAdapter.h"
+#include "LMFontManager.h"
+#include "HBoxItem.h"
+#include "WordItemBuilder.h"
+// TextMode MathItem Builders
+#include "ScaleCmdBuilder.h"
+#include "HSpacingBuilder.h"
+#include "TextCmdBuilder.h"
+//#include "OverlayBuilder.h"
+
+
+
+namespace { //static helpers
+   bool _isFontSizeCommand(const string& sCmd) {
+      PCSTR szCmd = sCmd.c_str();
+      if (szCmd[0] != '\\')
+         return false;
+      szCmd++; //skip '\'
+      for (const SFontSizeVariant& fsVar : _aFontSizeVariants) {
+         if (0 == strcmp(szCmd, fsVar.szFontSizeCmd))
+            return true;
+      }
+      //check for 
+      return false;
+   }
+   bool _isNewlineCommand(const string& sCmd) {
+      // \\, \newline, \cr
+      return (sCmd == "\\\\" || sCmd == "\\newline" || sCmd == "\\cr");
+   }
+}
+// CTextModeProcessor
+CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
+   //TEXT MODE COMMAND PROCESSORS/BUILDERS
+   RegisterBuilder(new CHSpacingBuilder);
+   RegisterBuilder(new CScaleCmdBuilder);
+   RegisterBuilder(new CTextCmdBuilder);
+}
+CTextModeProcessor::~CTextModeProcessor() {
+   for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
+      delete pBuilder;
+   }
+}
+// TEXT MODE PROCESSING
+CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
+   const STexToken* pCurToken = GetToken(nIdx);
+   if (!pCurToken)
+      return nullptr;//ntd
+   STexToken tkItem = *pCurToken;//copy
+   CMathItem* pItem = nullptr;
+   if (tkItem.nTkIdxEnd > 0)
+      pItem = m_Parser.ProcessGroup(nIdx, ctx);
+   else if(tkItem.nType == ettALNUM || tkItem.nType == ettNonALPHA)
+      pItem = BuildItemWordToken_(nIdx, ctx);
+   else if (tkItem.nType == ettCOMMAND) { 
+      // command or symbol!
+      string sCmd = TokenText(nIdx);
+      if (_isFontSizeCommand(sCmd) || _isNewlineCommand(sCmd))
+         return nullptr; // not processed here
+      pItem = BuildItemCmd_(nIdx, ctx);
+   }
+   return pItem;
+}
+CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
+   vector<CRawItem> vGroupItems;
+   SParserContext ctxG(ctx); //may be changed during processing!
+   int nIdxStart, nIdxEnd;
+   if (nIdx == -1) {
+      //root group
+      ctxG = ctx;//deep copy
+      nIdxStart = 0;
+      nIdx = nIdxEnd = m_Parser.TokenCount();
+   }
+   else {
+      //we must be in {} group
+      const STexToken* pTokenOpen = GetToken(nIdx);
+      _ASSERT_RET(pTokenOpen && pTokenOpen->nType == ettFB_OPEN, nullptr); //snbh!
+      nIdxStart = nIdx + 1;   //skip group_open token
+      //skip group_close token
+      nIdxEnd = pTokenOpen->nTkIdxEnd;
+      nIdx = pTokenOpen->nTkIdxEnd + 1;
+   }
+   for (int nIdxG = nIdxStart; nIdxG < nIdxEnd;) {
+      CMathItem* pItem = nullptr;
+      const STexToken* pCurToken = GetToken(nIdxG);
+      _ASSERT_RET(pCurToken,nullptr);//snbh!
+      const int nCurTokenIdx = nIdxG;
+      pItem = ProcessItemToken(nIdxG, ctxG);
+      if(m_Parser.HasError())
+         return nullptr; //error in sub-group
+      if(!pItem) { //ProcessItemToken could not create Item
+         switch (pCurToken->nType) {
+         case ettCOMMAND: { // command or symbol!
+            string sCmd = TokenText(nIdxG);
+            if (_isFontSizeCommand(sCmd))
+               ProcessFontSizeCmd_(nIdxG, ctxG);
+            else if (_isNewlineCommand(sCmd)) {
+               ++nIdxG;
+               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.back().InitNewLine();
+            }
+            else
+               m_Parser.SetError(nCurTokenIdx, "Unexpected command '" + sCmd +"'");
+         }
+            break;
+         case ettCOMMENT:++nIdxG;  break;    // ignore comment tokens
+         case ettAMP: m_Parser.SetError(nCurTokenIdx, "& is not allowed in text mode"); break;
+         case ettSUBS: m_Parser.SetError(nCurTokenIdx, "_ must be in math mode"); break;
+         case ettSUPERS: m_Parser.SetError(nCurTokenIdx, "^ must be in math mode"); break;
+         default:
+            _ASSERT(0);//snbh!
+            m_Parser.SetError(nCurTokenIdx, "Unexpected token in ProcessGroup!");
+         }
+      }
+      if (m_Parser.HasError()) {
+         for (auto& rawitem : vGroupItems) {
+            rawitem.Delete(); //cleanup!
+         }
+         return nullptr;
+      }
+      if (pItem) {
+         if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
+            //prepend spaceGlue
+            const STexToken* pPrevToken = GetToken(vGroupItems.back().TokenIdx());
+            int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
+            if (nSpaces > 0) {
+               STexGlue glueSpace;
+               glueSpace.fNorm = 1000.0f/3;
+               glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
+               glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
+               CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
+               vGroupItems.emplace_back(nCurTokenIdx, pSpaceGlue);
+            }
+         }
+         vGroupItems.emplace_back(nCurTokenIdx, pItem);
+      }
+   } //main for
+   return PackGroupItems_(vGroupItems, ctxG);
+}
+CMathItem* CTextModeProcessor::BuildItemCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
+   string sCmd = TokenText(nIdx);
+   IMathItemBuilder* pBuilder = nullptr;
+   for (IMathItemBuilder* pBldr : m_vItemBuilders) {
+      if (!pBldr->CanTakeCommand(sCmd.c_str()))
+         continue;
+      pBuilder = pBldr;
+      break; //found
+   }
+   if (!pBuilder) {
+      m_Parser.SetError(nIdx, "Unkown command '" + sCmd + "'");
+      return nullptr;
+   }
+   CParserAdapter parserAdapter(m_Parser, ++nIdx, ctx);
+   CMathItem* pItem = pBuilder->BuildFromParser(sCmd.c_str(), &parserAdapter);
+   nIdx = parserAdapter.CurrentTokenIdx();  // Sync position
+   return pItem;
+}
+// HELPERS
+const STexToken* CTextModeProcessor::GetToken(int nIdx) const {
+   return m_Parser.GetToken(nIdx);
+}
+string CTextModeProcessor::TokenText(int nIdx) const {
+   return m_Parser.TokenText(nIdx);
+}
+
+bool CTextModeProcessor::ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx) {
+   string sCmd = TokenText(nIdx);
+   ++nIdx; // next token
+   PCSTR szCmd = sCmd.c_str();
+   if (szCmd[0] != '\\')
+      return false;
+   szCmd++; //skip '\'
+   for (const SFontSizeVariant& fsVar : _aFontSizeVariants) {
+      if (0 == strcmp(szCmd, fsVar.szFontSizeCmd)) {
+         ctx.fUserScale *= fsVar.fSizeFactor; //apply font-size scaling
+         break;
+      }
+   }
+   return true;
+}
+CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SParserContext& ctx) {
+   const STexToken* pCurToken = GetToken(nIdx);
+   _ASSERT_RET(pCurToken, nullptr);
+   _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA, nullptr);
+   string sText = TokenText(nIdx);
+   if (sText[0] == '\\') {//escape char
+      _ASSERT(pCurToken->nType == ettNonALPHA);
+      _ASSERT(sText.size() == 2);
+      sText = sText[1];
+   }
+   CMathItem* pRet = CWordItemBuilder::BuildText(ctx.sFontCmd, sText, ctx.currentStyle, ctx.fUserScale);
+   if(!pRet)
+      m_Parser.SetError(nIdx, "Failed to build word item");
+   ++nIdx; //next token
+   return pRet;
+}
+CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, const SParserContext& ctx) {
+   const int nRealItems = (int)std::count_if(vGroupItems.begin(), vGroupItems.end(), [](const CRawItem& ritem) {
+      return ritem.HasMathItem();
+      });
+   if (!nRealItems)
+      return nullptr; //ntd?
+   vector<vector<CMathItem*>> vvLines(1);
+   for (CRawItem& ritem : vGroupItems) {
+      if (ritem.IsNewLine())
+         vvLines.emplace_back();    // goto new line
+      else {
+         _ASSERT(ritem.HasMathItem());
+         CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+         if (!pItem) {
+            _ASSERT(0);
+            m_Parser.SetError(ritem.TokenIdx(), "RawItem failed to build");
+            return nullptr;
+         }
+         vvLines.back().push_back(pItem);
+      }
+   } //for
+   //pack lines to HBoxes
+   if (vvLines.size() == 1) {
+      if (vvLines[0].size() == 1)
+         return vvLines[0][0];
+      //else, pack items to HBox
+      CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+      for (CMathItem* pItem : vvLines[0]) {
+         pHBox->AddItem(pItem);
+      }
+      pHBox->Update();
+      return pHBox;
+   }
+   //else //multiline
+   int32_t nInterline = 200; // TODO: inter-line spacing
+   CContainerItem* pRet = new CContainerItem(eacVBOX, ctx.currentStyle);
+   for (const vector<CMathItem*>& vLine : vvLines) {
+      if (vLine.empty())
+         continue; //todo!
+      if(vLine.size() == 1)
+         pRet->AddBox(vLine[0], 0, pRet->Box().Bottom() + nInterline);
+      else { //pack line items
+         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         for (CMathItem* pItem : vLine) {
+            pHBox->AddItem(pItem);
+         }
+         pHBox->Update();
+         pRet->AddBox(pHBox, 0, pRet->Box().Bottom() + nInterline);
+      }
+   }
+   return pRet;
+}
+
+

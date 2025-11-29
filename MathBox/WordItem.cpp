@@ -33,6 +33,7 @@ void CWordItem::Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
       ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.BaselineY())
    };
    m_GlyphRun.Draw(dwri, ptfBaseOrigin, fScale);
+   DrawFrame(ptAnchor, dwri);
 }
 
 void CWordItem::OnInit_() {

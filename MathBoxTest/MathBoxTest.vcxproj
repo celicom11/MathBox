@@ -181,6 +181,7 @@
     <ClCompile Include="..\MathBox\LMFontManager.cpp" />
     <ClCompile Include="..\MathBox\LOpBuilder.cpp" />
     <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp" />
+    <ClCompile Include="..\MathBox\MathModeProcessor.cpp" />
     <ClCompile Include="..\MathBox\MathSymBuilder.cpp" />
     <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp" />
     <ClCompile Include="..\MathBox\ParserAdapter.cpp" />
@@ -188,6 +189,8 @@
     <ClCompile Include="..\MathBox\RawItem.cpp" />
     <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp" />
     <ClCompile Include="..\MathBox\TexParser.cpp" />
+    <ClCompile Include="..\MathBox\TextCmdBuilder.cpp" />
+    <ClCompile Include="..\MathBox\TextModeProcessor.cpp" />
     <ClCompile Include="..\MathBox\Tokenizer.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

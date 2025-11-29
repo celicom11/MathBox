@@ -65,9 +65,9 @@ namespace {
    }
 }
 //IMathItemBuilder 
-bool CLOpBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+bool CLOpBuilder::CanTakeCommand(PCSTR szCmd) const {
    bool bOverUnderD;
-   return !bTextMode && _FindCmd(szCmd, bOverUnderD) != nullptr;
+   return _FindCmd(szCmd, bOverUnderD) != nullptr;
 }
 CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && *szCmd && pParser, nullptr);

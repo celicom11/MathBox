@@ -172,6 +172,7 @@ struct STexGlue {
 class CMathItem {
 protected:
    bool                 m_bSelected{ false };    //selection support
+   bool                 m_bDrawFrame{ false };   //\boxed
    float                m_fUserScale{ 1.0f };    //user scaling factor
    EnumIndexPlacement   m_eIndexPlacement{ eipStd };
    EnumTexAtom          m_eAtom{ etaORD };       //TeX atom class, for inter-item spacing rules
@@ -186,6 +187,8 @@ public:
    virtual ~CMathItem() {}
    //ATTS
    bool IsSelected() const { return m_bSelected; }
+   bool HasFrame() const { return m_bDrawFrame; }
+   void SetDrawFrame(bool bDrawFrame = true) { m_bDrawFrame = bDrawFrame; }
    EnumIndexPlacement IndexPlacement() const { return m_eIndexPlacement; }
    void SetIdxPlacement(EnumIndexPlacement eIndexPlacement) { m_eIndexPlacement = eIndexPlacement; }
    EnumTexAtom AtomType() const { return m_eAtom; }
@@ -205,12 +208,24 @@ public:
    void MoveBy(int32_t nDX, int32_t nDY) {
       m_Box.MoveTo(m_Box.Left() + nDX, m_Box.Top() + nDY);
    }
+   void DrawFrame(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
+      if (m_bDrawFrame) {
+         D2D1_POINT_2F ptLT{
+            ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
+            ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Top())
+         };
+         D2D1_RECT_F drcRect{ ptLT.x,ptLT.y,
+                         ptLT.x + EM2DIPS(dwri.fFontSizePts, m_Box.Width()),
+                         ptLT.y + EM2DIPS(dwri.fFontSizePts, m_Box.Height()) };
+         dwri.pRT->DrawRectangle(drcRect, dwri.pBrush);
+      }
+   }
    //VIRTUALS
    virtual const STexGlue* GetGlue() const { return nullptr; } //default: not resizable!
    //resize to Norm + fRatio*StretchCapacity() - for all Glue orders! fRatio<0 means shrink!
    virtual void ResizeByRatio(uint16_t nOrder, float fRatio) {} //default: not resizable!
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
-   virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0;
+   virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0; //PURE
 };
 ////tmp items
 //// NULL/PHANTOM Item
@@ -320,7 +335,7 @@ struct SParserContext {
    bool        bInLeftRight{ false };         // inside \left...\right construct
    bool        bInSubscript{ false };         // building atom's subscript
    bool        bInSuperscript{ false };       // building atom's superscript
-   bool        bInCmdArg{ false };            // building command's argument
+   bool        bDisplayFormula{ false };      // centered on a separate line
    CMathStyle  currentStyle;                  // MATH mode style
    float       fUserScale{ 1.0f };            // User scaling factor
    string      sFontCmd;                      // Current font (for both Math/Text modes!)
@@ -367,6 +382,6 @@ DECLARE_INTERFACE(IParserAdapter) {
 
 DECLARE_INTERFACE(IMathItemBuilder) {
    virtual ~IMathItemBuilder() {}
-   virtual bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const = 0;
+   virtual bool CanTakeCommand(PCSTR szCmd) const = 0;
    virtual CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) = 0;
 };

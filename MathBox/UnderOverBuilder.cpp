@@ -48,15 +48,15 @@ namespace {
    }
 }
 //CUnderOverBuilder
-bool CUnderOverBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+bool CUnderOverBuilder::CanTakeCommand(PCSTR szCmd) const {
    bool bBelow;
-   uint32_t nUni = bTextMode? 0: _GetGlyphUnicode(szCmd, bBelow);
+   uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
    return nUni != 0;
 }
 CMathItem* CUnderOverBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    // Get current context
    CMathItem* pBase = pParser->ConsumeItem(elcapFig, ctx);
    if (!pBase) {

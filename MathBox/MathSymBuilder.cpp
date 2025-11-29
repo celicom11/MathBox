@@ -42,17 +42,17 @@ namespace {
    }
 }
 
-bool CMathSymBuilder::CanTakeCommand(PCSTR szCmd, bool bInTextMode) const {
+bool CMathSymBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if (*szCmd == '\\')
       ++szCmd;
-   return !bInTextMode && (_IsSpecialChar(*szCmd) || _IsMathOp(szCmd) || 
-      g_LMFManager.GetLMMGlyphByCmd(szCmd) != nullptr);
+   return _IsSpecialChar(*szCmd) || _IsMathOp(szCmd) || 
+      g_LMFManager.GetLMMGlyphByCmd(szCmd) != nullptr;
 }
 
 CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
-   _ASSERT_RET(CanTakeCommand(szCmd, false), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    if (*szCmd == '\\')
       ++szCmd;
    SParserContext ctx(pParser->GetContext());

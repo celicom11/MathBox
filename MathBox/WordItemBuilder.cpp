@@ -117,55 +117,17 @@ CMathItem* CWordItemBuilder::BuildMathWord(const string& sFontCmd, const string&
    }
    return pRet;
 }
-// text mode item builder
+// text mode CWordItem builder
 CMathItem* CWordItemBuilder::BuildText(const string& sFontCmd, const string& sText, const CMathStyle& style,
                                        float fUserScale) {
    STextFontStyle tfStyle;
    _ASSERT_RET(g_LMFManager._GetTextFontStyle(sFontCmd, tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont; //TODO!
-   if (!tfStyle.bUseLMM || nFontIdx == FONT_LMM) {
-      //uniform font for all chars
-      CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
-      pWord->SetTextA(sText.c_str());
-      return pWord;
-   }
-   //else, mixed LMM/LM fonts
-   CHBoxItem* pHBox = new CHBoxItem(style);
-   string sLettersDigits;
-   string sLMM;
-   for (char cChar : sText) {
-      if (' ' == cChar || isalnum(cChar)) {
-         if (!sLMM.empty()) {
-            CWordItem* pWord = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
-            pWord->SetTextA(sLMM.c_str());
-            pHBox->AddItem(pWord);
-            sLMM.clear();
-         }
-         sLettersDigits.push_back(cChar);
-      }
-      else {
-         if (!sLettersDigits.empty()) {
-            CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
-            pWord->SetTextA(sLettersDigits.c_str());
-            pHBox->AddItem(pWord);
-            sLettersDigits.clear();
-         }
-         sLMM.push_back(cChar);
-      }
-   }
-   //EPILOG
-   if (!sLettersDigits.empty()) {
-      CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
-      pWord->SetTextA(sLettersDigits.c_str());
-      pHBox->AddItem(pWord);
-   }
-   else if (!sLMM.empty()) {
-      CWordItem* pWord = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
-      pWord->SetTextA(sLMM.c_str());
-      pHBox->AddItem(pWord);
-   }
-   pHBox->Update();
-   return pHBox;
+   if (tfStyle.bUseLMM && nFontIdx != FONT_LMM && sText.size()==1 && !isalnum(sText[0]))
+      nFontIdx = FONT_LMM; //use LMM for non-nLetterDigitsFont
+   CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
+   pWord->SetTextA(sText.c_str());
+   return pWord;
 }
 // @sSym: escape+special, LMM symbol, MathOperator or Space\Kern
 CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string& sSym, const CMathStyle& style,

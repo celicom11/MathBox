@@ -38,8 +38,11 @@ CMathItem* CRawItem::BuildItem(const CMathStyle& style, float fUserScale, int32_
    CMathItem* pRet = m_pBase; //default
    if (IsDelimiter() && m_nUnicode != '.') {
       pRet = COpenCloseBuilder::_BuildDelimiter(m_nUnicode, m_edt, nSize, style, fUserScale);
-      //advised to reset atom to INNER
-      pRet->SetAtom(etaINNER);
+      //fractions and \left...\right constructions are treated as “inner” subformulas (c)
+      if(m_edt == edtOpen || m_edt == edtClose) 
+         pRet->SetAtom(etaINNER);
+      //else
+      //   pRet->SetAtom(etaREL);
    }
    if (m_nPrimes || m_pSubScript || m_pSuperScript) { //build indexed item
       CMathItem* pSuperScript = m_pSuperScript;

@@ -3,15 +3,15 @@
 #include "ContainerItem.h"
 #include "FillerItem.h"
 
-bool CFractionBuilder::CanTakeCommand(PCSTR szCmd, bool bInTextMode) const {
+bool CFractionBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd == '\\', false);
    ++szCmd; // Skip backslash
-   return (!bInTextMode && strcmp(szCmd, "frac") == 0);
+   return 0 == strcmp(szCmd, "frac");
 }
 CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    SParserContext ctx(pParser->GetContext());
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
 
    // Numerator style
    ctx.currentStyle.Decrease();

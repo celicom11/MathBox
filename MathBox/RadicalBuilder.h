@@ -5,7 +5,7 @@
 class CRadicalBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
-   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
    // static helpers
    static CMathItem* _BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree = nullptr);

@@ -56,5 +56,6 @@ public:
       for (CMathItem* pTBox : m_vItems) {
          pTBox->Draw(ptMyAnchor, dwri);
       }
+      DrawFrame(ptAnchor, dwri);
    }
 };

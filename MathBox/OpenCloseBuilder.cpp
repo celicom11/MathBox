@@ -67,12 +67,10 @@ namespace {
       return 0; //not found
    }
 }
-bool COpenCloseBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
+bool COpenCloseBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd, false);
    if (*szCmd == '\\')
       ++szCmd;
-   if (bTextMode)
-      return false;
    vector<string> vCmds{
       "left","right","middle",
       "big","bigl","bigm","bigr",
@@ -85,7 +83,7 @@ bool COpenCloseBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
 CMathItem* COpenCloseBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    string sCmd(szCmd),sToken;
    //check/consume/ next token
    EnumTokenType ettNext = pParser->GetTokenData(sToken);

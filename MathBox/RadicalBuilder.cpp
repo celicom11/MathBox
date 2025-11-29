@@ -45,13 +45,13 @@ namespace {
       return 0;
    }
 }
-bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
-   return (!bTextMode && 0 == strcmp(szCmd, "\\sqrt"));
+bool CRadicalBuilder::CanTakeCommand(PCSTR szCmd) const {
+   return 0 == strcmp(szCmd, "\\sqrt");
 }
 CMathItem* CRadicalBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx(pParser->GetContext());
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
 
    // change context
 

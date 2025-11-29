@@ -5,6 +5,6 @@
 class CHSpacingBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder
-   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
 };

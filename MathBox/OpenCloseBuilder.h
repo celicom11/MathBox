@@ -4,7 +4,7 @@
 class COpenCloseBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation
-   bool CanTakeCommand(PCSTR szCmd, bool bTextMode) const override;
+   bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
    //helper
    static bool _GetDelimiter(PCSTR szCmd, const CMathStyle& style, OUT SLMMDelimiter& lmmDelimiter);

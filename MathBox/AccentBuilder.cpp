@@ -61,9 +61,7 @@ namespace {
       return pItem;
    }
 }
-bool CAccentBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
-   if (bTextMode)
-      return false;
+bool CAccentBuilder::CanTakeCommand(PCSTR szCmd) const {
    bool bBelow;
    UINT32 nAccentUni = _GetAccentUnicode(szCmd, bBelow);
    return nAccentUni != 0;
@@ -71,8 +69,8 @@ bool CAccentBuilder::CanTakeCommand(PCSTR szCmd, bool bTextMode) const {
 CMathItem* CAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
    const SParserContext& ctx = pParser->GetContext();
-   _ASSERT_RET(CanTakeCommand(szCmd, ctx.bTextMode), nullptr);
-   CMathItem* pBase = pParser->ConsumeItem(elcapFig, pParser->GetContext());
+   _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
+   CMathItem* pBase = pParser->ConsumeItem(elcapFig, ctx);
    if (!pBase) {
       if (!pParser->HasError())
          pParser->SetError("Missing {arg} for accent command");
