@@ -19,7 +19,8 @@ CMathItem* CScaleCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    if (*szCmd == '\\')
       ++szCmd;
    string sCmd(szCmd);
-   SParserContext ctxCmd(pParser->GetContext());
+   SParserContext ctxCmd;
+   ctxCmd.CopyBasics(pParser->GetContext());
    float fScale;
    if(!pParser->ConsumeDimension(elcapFig, fScale)) {
       if (!pParser->HasError())

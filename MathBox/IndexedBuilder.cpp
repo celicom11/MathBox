@@ -8,7 +8,7 @@ extern CLMFontManager g_LMFManager;
 namespace {
    int32_t _GetSuperscriptShiftUp(CMathItem* pBase, bool bCramped, float fScale, const STexBox& boxSuper) {
       int32_t nSuperShiftUp;
-      if(pBase->Type() != eacWORD) //kernel is a boxed formula or LargeOP
+      if(pBase->Type() != eacWORD || pBase->UserScale()!=1.0f) //kernel is a boxed formula or LargeOP
          nSuperShiftUp = pBase->Box().Ascent() - F2NEAREST(otfSuperscriptBaselineDropMax * fScale);
       else { //kernel is a symbol
          nSuperShiftUp = F2NEAREST((bCramped ? otfSuperscriptShiftUpCramped : otfSuperscriptShiftUp) * fScale);
@@ -54,7 +54,7 @@ CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserSca
          g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, dwgLast.index) :
          g_LMFManager.GetLMMGlyph(glyphRun.GetFontIdx(), dwgLast.codepoint);
       if (pLMMGlyph)
-         nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale);
+         nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale*pBase->UserScale());
    }
    int32_t nSuperShiftUp = 0;
    int32_t nSuperDX, nSuperDY;

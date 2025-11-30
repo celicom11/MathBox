@@ -56,13 +56,13 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CHSpacingBuilder);
    RegisterBuilder(new CLOpBuilder);
    RegisterBuilder(new CMathFontCmdBuilder);
-   RegisterBuilder(new CMathSymBuilder);
    RegisterBuilder(new CRadicalBuilder);
    RegisterBuilder(new CUnderOverBuilder);
    RegisterBuilder(new CVBoxBuilder);
    RegisterBuilder(new COpenCloseBuilder);
    RegisterBuilder(new CScaleCmdBuilder);
    RegisterBuilder(new CTextCmdBuilder);
+   RegisterBuilder(new CMathSymBuilder);//MUST BE LAST!
 }
 CMathModeProcessor::~CMathModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
@@ -163,8 +163,10 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   ProcessFontSizeCmd_(nIdxG, ctxG);
                else if (_isNewlineCommand(sCmd)) {
                   ++nIdxG;
-                  vGroupItems.emplace_back(nCurTokenIdx);
-                  vGroupItems.back().InitNewLine();
+                  if (!ctxG.bDisplayFormula) {
+                     vGroupItems.emplace_back(nCurTokenIdx);
+                     vGroupItems.back().InitNewLine();
+                  }
                }
                else if (sCmd == "\\middle" && ctxG.bInLeftRight) {
                   nCurTokenIdx = ++nIdxG;//skip to delimiter
@@ -350,7 +352,6 @@ CMathItem* CMathModeProcessor::ProcessNonAlnum_(IN OUT int& nIdx, const SParserC
 }
 //packers
 CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, const SParserContext& ctx) {
-   const bool bOneLine = ctx.currentStyle.Style() == etsDisplay;
    const int nRealItems = (int)std::count_if(vGroupItems.begin(), vGroupItems.end(), [](const CRawItem& ritem) {
       return ritem.HasMathItem();
       });
@@ -358,10 +359,8 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       return nullptr; //ntd?
    vector<vector<CMathItem*>> vvLines(1);
    for (CRawItem& ritem : vGroupItems) {
-      if (ritem.IsNewLine()) {
-         if (!bOneLine)
-            vvLines.emplace_back();    // goto new line
-      }
+      if (ritem.IsNewLine())
+         vvLines.emplace_back();    // goto new line
       else {
          _ASSERT(ritem.HasMathItem());
          CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
@@ -390,12 +389,16 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty())
          continue; //todo!
-      CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
-      for (CMathItem* pItem : vLine) {
-         pHBox->AddItem(pItem);
+      if(vLine.size() == 1)
+         pRet->AddBox(vLine[0], 0, pRet->Box().Bottom());
+      else {
+         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         for (CMathItem* pItem : vLine) {
+            pHBox->AddItem(pItem);
+         }
+         pHBox->Update();
+         pRet->AddBox(pHBox, 0, pRet->Box().Bottom());// TODO: inter-line spacing
       }
-      pHBox->Update();
-      pRet->AddBox(pHBox, 0, pRet->Box().Bottom());// TODO: inter-line spacing
    }
    return pRet;
 }

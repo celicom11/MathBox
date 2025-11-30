@@ -88,8 +88,9 @@ CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, const SParse
    if (eParens != elcapAny) //process group
       pRet = m_TexParser.ProcessGroup(nTkIdx, ctx); //move to opening
    else { //process single token, without sub/superscripts if any
-      SParserContext ctxCmd(ctx);
-      pRet = m_TexParser.ProcessItemToken(nTkIdx, ctxCmd);
+      //SParserContext ctxCmd; 
+      //ctxCmd.CopyBasics(ctx);
+      pRet = m_TexParser.ProcessItemToken(nTkIdx, ctx);
    }
    if(pRet && !m_TexParser.HasError())
       m_nTkIdx = nTkIdx; //move to next token on success
@@ -149,7 +150,7 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
       //++nTkPos; //good units!
    }
    pTkNext = m_TexParser.GetToken(m_nTkIdx);//start
-   if (pTkNext->nTkIdxEnd && nTkPos + 1 != pTkNext->nTkIdxEnd)
+   if (pTkNext->nTkIdxEnd && nTkPos != pTkNext->nTkIdxEnd)
       return false; //not at closing, some extra tokens in the group?
    m_nTkIdx = nTkPos; //move to next token on success
    if (bNegative)

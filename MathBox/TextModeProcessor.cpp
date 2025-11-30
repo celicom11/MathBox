@@ -71,7 +71,6 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
    int nIdxStart, nIdxEnd;
    if (nIdx == -1) {
       //root group
-      ctxG = ctx;//deep copy
       nIdxStart = 0;
       nIdx = nIdxEnd = m_Parser.TokenCount();
    }
@@ -123,20 +122,37 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
          return nullptr;
       }
       if (pItem) {
-         if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
-            //prepend spaceGlue
-            const STexToken* pPrevToken = GetToken(vGroupItems.back().TokenIdx());
-            int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
-            if (nSpaces > 0) {
-               STexGlue glueSpace;
-               glueSpace.fNorm = 1000.0f/3;
-               glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
-               glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-               CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
-               vGroupItems.emplace_back(nCurTokenIdx, pSpaceGlue);
+         if (pCurToken->nTkIdxEnd && (pCurToken->nType == ett$$ || 
+            (pCurToken->nType == ettCOMMAND && TokenText(nCurTokenIdx)=="\\[")) ) {
+            //prepend new line
+            if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
+               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.back().InitNewLine();
+            }
+            //todo: add hfill glues for centering formula
+            vGroupItems.emplace_back(nCurTokenIdx, pItem);
+            if (nIdxG < nIdxEnd) {
+               //append post line
+               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.back().InitNewLine();
             }
          }
-         vGroupItems.emplace_back(nCurTokenIdx, pItem);
+         else {
+            if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
+               //prepend spaceGlue
+               const STexToken* pPrevToken = GetToken(vGroupItems.back().TokenIdx());
+               int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
+               if (nSpaces > 0) {
+                  STexGlue glueSpace;
+                  glueSpace.fNorm = 1000.0f / 3;
+                  glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
+                  glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
+                  CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
+                  vGroupItems.emplace_back(nCurTokenIdx, pSpaceGlue);
+               }
+            }
+            vGroupItems.emplace_back(nCurTokenIdx, pItem);
+         }
       }
    } //main for
    return PackGroupItems_(vGroupItems, ctxG);

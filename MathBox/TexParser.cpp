@@ -56,7 +56,8 @@ CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& 
 }
 CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
    bool bCanBeEmpty = true;
-   SParserContext ctxG(ctx);
+   SParserContext ctxG;
+   ctxG.CopyBasics(ctx);
 
    const STexToken& tkOpen = m_vTokens[nIdx];
    _ASSERT_RET((int)tkOpen.nTkIdxEnd > nIdx && tkOpen.nTkIdxEnd <= m_vTokens.size(), nullptr);//snbh!

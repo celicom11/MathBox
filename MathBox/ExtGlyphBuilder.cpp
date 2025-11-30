@@ -403,9 +403,9 @@ CMathItem* CExtGlyphBuilder::BuildHorizontalGlyph(uint32_t nUnicode, const CMath
          }
          else {
             //1 filler
-            CFillerItem* pFiller = new CFillerItem(nExtSize, F2NEAREST((nFillerSY+5) * fScale));
+            CFillerItem* pFiller = new CFillerItem(nExtSize, F2NEAREST((nFillerSY) * fScale));
             pRet->AddBox(pFiller, nRight1 - F2NEAREST(otfMinConnectorOverlap * fScale),
-                                  pLeft->Box().Ascent() - F2NEAREST((geInfo.nExtenderRight+20)*fScale));
+                                  pLeft->Box().Ascent() - F2NEAREST((geInfo.nExtenderRight)*fScale));
             nLeft2 = pFiller->Box().Right() - F2NEAREST(otfMinConnectorOverlap * fScale);
          }
       }

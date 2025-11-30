@@ -104,9 +104,9 @@ public:
       if (SUCCEEDED(hr)) {
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
-            //LeftRightTest_();
+            LeftRightTest_();
             //BuildIndexedParser_("af");
-            BuildTextsParser_();
+            //BuildTextsParser_();
             //BuildRadicalsParser_();
             //BuildMathFontsParser_();
             //BuildAccentItemsParser_();
@@ -214,20 +214,22 @@ private:
    
    // various $$3x^2 \in R \subset Q$$
    void BuildMathFontsParser_() {
-      PCSTR aMathFonts[]{ "mathnormal", "it", "mathit","mathrm","mathbf","mathbfup","mathbfit","mathscr",
+      PCSTR aMathFonts[]{ "mathnormal", "mathit","mathrm","mathbf","mathbfup","mathbfit","mathscr",
                         "mathbfscr","mathcal","mathbfcal","mathsf","mathsfup","mathsfit","mathbfsfup","mathtt",
                         "mathbb","mathbbit","mathfrak","mathbffrak" };
-      int32_t nY = 100, nInterLine = 1750;
       CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt);
+      string sText("$");
       for (PCSTR szFont : aMathFonts) {
-         string sCmd("$\\");
-         sCmd += string(szFont) + "{3x^2 \\in R \\subset Q}$";
-         CMathItem* pHBox = parser.Parse(sCmd);
-         _ASSERT_RET(pHBox, );
-         m_MainBox.AddBox(pHBox, 100, nY);
-         nY += nInterLine;
+         sText += "\\" + string(szFont) + "{3x^2 \\in R \\subset Q}\\\\\n";
       }
+      sText.pop_back();
+      sText.pop_back();
+      sText.pop_back();
+      sText += "$";
+      CMathItem* pHBox = parser.Parse(sText);
+      _ASSERT_RET(pHBox, );
+      m_MainBox.AddBox(pHBox, 100, 100);
    }
 
    // $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
@@ -237,7 +239,7 @@ private:
       string sTeX("$$");
       for (int nPts : aFontSize) {
          sTeX += "\\textit{\\fontsize{" + std::to_string(nPts) + 
-                 "pt}{1pt}\\selectfont{" + szBase + "}}_1^2,";
+                 "pt}{1pt}\\selectfont{" + szBase + "}}_1^2,\n";
       }
       sTeX.pop_back();
       sTeX += "$$";
@@ -294,7 +296,6 @@ $\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$");
    //$\widehat{ABC},\widecheck{ABC},\widetilde{ABC},\overline{ABC},\overbracket{ABC},\overparen{ABC},
    // \overbrace{ABC},obrbrak{ABC},$
    CMathItem* BuildOverItems_() {
-      //test parser
       CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt);
       return parser.Parse("$\\widehat{ABC},\\widecheck{ABC},\\widetilde{ABC},\\overline{ABC},\
@@ -317,6 +318,13 @@ $\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$");
          \\underparen{ABCDE}_{below},\\underbrace{ABCDE}_{below},$");
    }
    void BuildAccentItemsParser_() {
+      /*CTexParser parser;
+      parser.SetDocumentFontSizePts(m_fFontSizePt);
+      CMathItem* pRet = parser.Parse("$\\overline{ABC},\\overbracket{ABC}$");
+      _ASSERT(pRet);
+      if(pRet)
+         m_MainBox.AddBox(pRet, 100, 100);*/
+      
       CMathStyle style(m_MainBox.GetStyle());
       int32_t nY = 100, nInterLine = 1600;
       m_MainBox.AddBox(BuildAccentItems1_(), 100, nY);

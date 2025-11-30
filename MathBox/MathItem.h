@@ -196,6 +196,7 @@ public:
    const CMathStyle& GetStyle() { return m_Style; }
    const STexBox& Box() const { return m_Box; }
    EnumMathItemType Type() const { return m_eType; }
+   float UserScale() const { return m_fUserScale; }
    //METHODS
    void DenominateBinRel() {
       //make it ordinary atom
@@ -343,7 +344,7 @@ struct SParserContext {
    uint32_t    nColAlignments{ 0 };           // for array env
    //CTOR
    SParserContext() = default;
-   SParserContext(const SParserContext& other) {
+   void CopyBasics(const SParserContext& other) {
       this->bTextMode = other.bTextMode;
       this->currentStyle = other.currentStyle;
       this->fUserScale = other.fUserScale;
