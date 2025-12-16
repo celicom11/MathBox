@@ -104,15 +104,16 @@ public:
       if (SUCCEEDED(hr)) {
          hr = m_d2d.Initialize(m_hwnd);
          if (SUCCEEDED(hr)) {
-            LeftRightTest_();
-            //BuildIndexedParser_("af");
-            //BuildTextsParser_();
-            //BuildRadicalsParser_();
-            //BuildMathFontsParser_();
-            //BuildAccentItemsParser_();
+            ArrayTest_();
+            //LeftRightTest_();
+            //BuildIndexed_("af");
+            //BuildTexts_();
+            //BuildRadicals_();
+            //BuildMathFonts_();
+            //BuildAccentItems_();
             //BuildVBoxes_();
-            //BuildLargeOpsParser_();
-            //BuildOpenCloseParser_();
+            //BuildLargeOps_();
+            //BuildOpenClose_();
             ShowWindow(m_hwnd, SW_SHOWNORMAL);
             UpdateWindow(m_hwnd);
          }
@@ -162,9 +163,10 @@ private:
       m_d2d.pRenderTarget->BeginDraw();
       m_d2d.pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
       SDWRenderInfo dwri{
-          false,
+//          false,
           m_fFontSizePt,
           m_d2d.pRenderTarget,
+          m_d2d.pD2DFactory,
           m_d2d.pBlackBrush,
           nullptr
       };
@@ -187,12 +189,80 @@ private:
       _ASSERT(pRet);
       m_MainBox.AddBox(pRet, 0, 330);
    }
+   //$$\begin{array}{l|c|r}
+   // a&b\\c&d
+   // \end{array}$$
+   void ArrayTest_() {
+      string sA11 = "\\begin{matrix}a & b \\\\c & d\\end{matrix}";
+      string sA11_T = "\\backslash begin\\{matrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{matrix\\}";
+      string sA12 = "\\begin{array}{cc}a & b \\\\c & d\\end{array}";
+      string sA12_T = "\\backslash begin\\{array\\}\\{cc\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{array\\}";
+      string sA21 = "\\begin{pmatrix}a & b \\\\c & d\\end{pmatrix}";
+      string sA21_T = "\\backslash begin\\{pmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{pmatrix\\}";
+      string sA22 = "\\begin{bmatrix}a & b \\\\c & d\\end{bmatrix}";
+      string sA22_T = "\\backslash begin\\{bmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{bmatrix\\}";
+      string sA31 = "\\begin{vmatrix}a & b \\\\c & d\\end{vmatrix}";
+      string sA31_T = "\\backslash begin\\{vmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{vmatrix\\}";
+      string sA32 = "\\begin{Vmatrix}a & b \\\\c & d\\end{Vmatrix}";
+      string sA32_T = "\\backslash begin\\{Vmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{Vmatrix\\}";
+      string sA41 = "\\begin{Bmatrix}a & b \\\\c & d\\end{Bmatrix}";
+      string sA41_T = "\\backslash begin\\{Bmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    c \\& d\\\\\
+\\backslash end\\{Bmatrix\\}";
+      string sA42 = "\\begin{array}{c:c:c} a & b & c \\\\\\hline\n d & e & f\\end{array}";
+      string sA42_T = "\\backslash begin\\{array\\}\\{c:c:c\\}\\\\    a \\& b \\& c\\backslash\\backslash  \\backslash hline\\\\\
+    d \\& e \\& f\\\\\\backslash end\\{array\\}";
+      string sA51 = "x=\\begin{cases}a &\\text{if } b \\\\c &\\text{if } d\\end{cases}";
+      string sA51_T = " x=\\backslash begin\\{cases\\}\\\\a \\&\\backslash text\\{if \\} b \
+\\backslash \\backslash\\\\c \\&\\backslash text\\{if \\} d\\\\\\backslash end\\{cases\\}";
+
+      string sA52 = "\\begin{rcases}a &\\text{if } b \\\\c &\\text{if } d\\end{rcases}\
+\\Rightarrow\\ldots";
+      string sA52_T = "\\backslash begin\\{rcases\\}\\\\a \\&\\backslash text\\{if \\} b \
+\\backslash \\backslash\\\\c \\&\\backslash text\\{if \\} d\\\\\\backslash end\\{rcases\\}\
+\\backslash Rightarrow...";
+      string sA61 = "\\begin{smallmatrix}a & b \\\\c & d\\end{smallmatrix}";
+      string sA61_T = "\\backslash begin\\{smallmatrix\\}\\\\    a \\& b \\backslash\\backslash\\\\    \
+c \\& d\\\\\\backslash end\\{smallmatrix\\}";
+      string sA62 = "\\sum_{\\begin{subarray}{l}i\\in\\Lambda\\\\0<j<n\\end{subarray}}";
+      string sA62_T = "\\backslash sum\\_\\{\\\\\\backslash begin\\{subarray\\}\\{l\\}\\\\\
+i\\backslash in\\backslash Lambda\\backslash\\backslash\\\\\
+0<j<n\\backslash end\\{subarray\\}\\}";
+
+
+
+      string sTeX = "\\Large \\text{Environments} \\normalsize \n\
+$$\\begin{array}{|l|l|l|l|}\\hline\n" + 
+sA11 + "&\\text{\\scriptsize" + sA11_T + "}&" +
+sA12 + "&\\text{\\scriptsize" + sA12_T + "}\\\\\\hline\n" +
+sA21 + "&\\text{\\scriptsize" + sA21_T + "}&" +
+sA22 + "&\\text{\\scriptsize" + sA22_T + "}\\\\\\hline\n" +
+sA31 + "&\\text{\\scriptsize" + sA31_T + "}&" +
+sA32 + "&\\text{\\scriptsize" + sA32_T + "}\\\\\\hline\n" +
+sA41 + "&\\text{\\scriptsize" + sA41_T + "}&" +
+sA42 + "&\\text{\\scriptsize" + sA42_T + "}\\\\\\hline\n" +
+sA51 + "&\\text{\\scriptsize" + sA51_T + "}&" +
+sA52 + "&\\text{\\scriptsize" + sA52_T + "}\\\\\\hline\n" +
+sA61 + "&\\text{\\scriptsize" + sA61_T + "}&" +
+sA62 + "&\\text{\\scriptsize" + sA62_T + "}" +
+"\\\\\n\\hline\n\\end{array}$$";
+      CTexParser parser;
+      parser.SetDocumentFontSizePts(m_fFontSizePt); //12pt
+      CMathItem* pRet = parser.Parse(sTeX);
+      _ASSERT(pRet);
+      m_MainBox.AddBox(pRet, 0, 330);
+   }
+
    // various "Text* 0+1+2+3"in Text Mode
-   void BuildTextsParser_() {
+   void BuildTexts_() {
       CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt);
-      string sText1 = "Text 0+1+2+3\\\\\n"
-         "\\text{Text 0+1+2+3}";
+      string sText1 = "\\text{A }\\text{B }\\text{C }\\\\\\text{A B C }";
       string sText = "Text 0+1+2+3\\\\\n"
          "\\text{Text 0+1+2+3}\\\\\n"
          "\\textit{Textit 0+1+2+3}\\\\\n"
@@ -206,14 +276,14 @@ private:
          "\\texttt{Texttt 0+1+2+3 }\\\\\n"
          "\\textbf{Textbf 0+1+2+3 }\\\\\n"
          "\\textsc{Textsc 0+1+2+3 }";
-      CMathItem* pRet = parser.Parse(sText);
+      CMathItem* pRet = parser.Parse(sText1);
       _ASSERT(pRet);
       if(pRet)
          m_MainBox.AddBox(pRet, 0, 330);
    }
    
    // various $$3x^2 \in R \subset Q$$
-   void BuildMathFontsParser_() {
+   void BuildMathFonts_() {
       PCSTR aMathFonts[]{ "mathnormal", "mathit","mathrm","mathbf","mathbfup","mathbfit","mathscr",
                         "mathbfscr","mathcal","mathbfcal","mathsf","mathsfup","mathsfit","mathbfsfup","mathtt",
                         "mathbb","mathbbit","mathfrak","mathbffrak" };
@@ -233,7 +303,7 @@ private:
    }
 
    // $$\textit{\fontsize{##pt}{##pt}\selectfont {base}}_1^2$$
-   void BuildIndexedParser_(PCSTR szBase) {
+   void BuildIndexed_(PCSTR szBase) {
       CMathStyle style(m_MainBox.GetStyle());
       int aFontSize[] = { 9, 12 , 14, 18 , 21, 24, 30, 40, 50 };
       string sTeX("$$");
@@ -251,7 +321,7 @@ private:
    }
    // $$\int_{a}^{b} x^2 \,dx, \int_{a}\limits^{b} x^2 \,dx,$$
    // $\int_{a}^{b} x^2 \,dx, \int_{a}\limits^{b} x^2 \,dx,$
-   void BuildLargeOpsParser_() {
+   void BuildLargeOps_() {
       CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt);
       CMathItem* pRet = parser.Parse("$$\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$$\
@@ -260,7 +330,7 @@ $\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$");
    }
    //$$\sqrt{\sqrt[\textit{ABC}]{\frac{\textit{\fontsize{##pt}{??pt}\selectfont x}_1^2}{2}}}
    //\quad...$$
-   void BuildRadicalsParser_() {
+   void BuildRadicals_() {
       PCSTR aFontSize[] = { "9", "12", "14", "18", "21", "24", "30", "40", "50" };
       string sTex = "$$";
       for (PCSTR szPts : aFontSize) {
@@ -317,7 +387,7 @@ $\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$");
       return parser.Parse("$\\utilde{ABC},\\underline{ABC},\\underbracket{ABCDE}_{below},\
          \\underparen{ABCDE}_{below},\\underbrace{ABCDE}_{below},$");
    }
-   void BuildAccentItemsParser_() {
+   void BuildAccentItems_() {
       /*CTexParser parser;
       parser.SetDocumentFontSizePts(m_fFontSizePt);
       CMathItem* pRet = parser.Parse("$\\overline{ABC},\\overbracket{ABC}$");
@@ -349,7 +419,7 @@ $\\int_{a}^{b} x^2 \\,dx, \\int\\limits_{a}^{b} x^2 \\,dx,$");
 \\stackunder{a}{b},\\stackunder[0.1em]{a}{b},\\stackunder[0.2em]{a}{b},\\stackunder[0.3em]{a}{b},\\binom{ a }{b}$");
       m_MainBox.AddBox(pRet, 100, nY);
    }
-   void BuildOpenCloseParser_() {
+   void BuildOpenClose_() {
       CMathStyle style(m_MainBox.GetStyle());
       int32_t nY = 100, nInterLine = 3200;
       CMathItem* pHBox = BuildDelimitersParser_("(", ")", "\\lbrack", "]");

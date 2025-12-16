@@ -123,8 +123,6 @@ CMathItem* CWordItemBuilder::BuildText(const string& sFontCmd, const string& sTe
    STextFontStyle tfStyle;
    _ASSERT_RET(g_LMFManager._GetTextFontStyle(sFontCmd, tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont; //TODO!
-   if (tfStyle.bUseLMM && nFontIdx != FONT_LMM && sText.size()==1 && !isalnum(sText[0]))
-      nFontIdx = FONT_LMM; //use LMM for non-nLetterDigitsFont
    CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
    pWord->SetTextA(sText.c_str());
    return pWord;

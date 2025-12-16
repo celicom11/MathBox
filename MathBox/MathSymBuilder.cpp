@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "MathSymBuilder.h"
 #include "LMFontManager.h"
-#include "HBoxItem.h"
 #include "WordItem.h"
 
 extern CLMFontManager g_LMFManager;
@@ -58,7 +57,7 @@ CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    SParserContext ctx(pParser->GetContext());
    CMathItem* pRet = nullptr;
    SMathFontStyle mfStyle;
-   if (!g_LMFManager._GetMathFontStyle((ctx.sFontCmd.empty() ? "mathnormal" : ctx.sFontCmd), mfStyle)) {
+   if (!ctx.sFontCmd.empty() && !g_LMFManager._GetMathFontStyle(ctx.sFontCmd, mfStyle)) {
       if (!pParser->HasError())
          pParser->SetError("Unknown font '" + ctx.sFontCmd + "'");
       return nullptr;

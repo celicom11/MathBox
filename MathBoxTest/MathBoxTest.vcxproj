@@ -161,6 +161,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\MathBox\AccentBuilder.cpp" />
+    <ClCompile Include="..\MathBox\EnvHelper.cpp" />
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp" />
     <ClCompile Include="..\MathBox\FractionBuilder.cpp" />
     <ClCompile Include="..\MathBox\GlueItem.cpp">
@@ -188,9 +189,12 @@
     <ClCompile Include="..\MathBox\RadicalBuilder.cpp" />
     <ClCompile Include="..\MathBox\RawItem.cpp" />
     <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp" />
+    <ClCompile Include="..\MathBox\TableItem.cpp" />
     <ClCompile Include="..\MathBox\TexParser.cpp" />
+    <ClCompile Include="..\MathBox\TextAccentBuilder.cpp" />
     <ClCompile Include="..\MathBox\TextCmdBuilder.cpp" />
     <ClCompile Include="..\MathBox\TextModeProcessor.cpp" />
+    <ClCompile Include="..\MathBox\TextSymBuilder.cpp" />
     <ClCompile Include="..\MathBox\Tokenizer.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)UnitTest\include;..\MathBox;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

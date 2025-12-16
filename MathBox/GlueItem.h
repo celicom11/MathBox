@@ -13,8 +13,8 @@ public:
    CGlueItem(const STexGlue& glue, const CMathStyle& style, float fUserScale = 1.0f) :
       CMathItem(eacGLUE, style, fUserScale), m_Glue(glue) {
       float fScale = m_fUserScale * m_Style.StyleScale();
-      m_Box.nHeight = F2NEAREST(otfUnitsPerEm * fScale); //fontsize in em = otfUnitsPerEm units
-      m_Box.nAscent = F2NEAREST(otfAscent * fScale);
+      m_Box.nHeight = 0; //F2NEAREST(otfUnitsPerEm * fScale); //fontsize in em = otfUnitsPerEm units
+      m_Box.nAscent = 0; //F2NEAREST(otfAscent * fScale);
       UpdateBox_();
    }
    //factory for intermediate glue 

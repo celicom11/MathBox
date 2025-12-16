@@ -1,0 +1,180 @@
+#include "stdafx.h"
+#include "TableItem.h"
+
+void CTableItem::Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
+   D2D1_POINT_2F ptMyAnchor{
+     ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
+     ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Top())
+   };
+   //
+   for (vector<CMathItem*>& vRow: m_vvCells) {
+      for (CMathItem* pCell : vRow) {
+         pCell->Draw(ptMyAnchor, dwri);
+      }
+   }
+   //draw vert lines in array environment
+   if (!m_vVLines.empty()) {
+      //tmp dashed vert line test
+      static const float _aDashes[] = { 4.0f, 2.0f };
+      ID2D1StrokeStyle* pStrokeStyle = nullptr;
+      dwri.pD2DFactory->CreateStrokeStyle(
+         D2D1::StrokeStyleProperties(
+            D2D1_CAP_STYLE_FLAT,
+            D2D1_CAP_STYLE_FLAT,
+            D2D1_CAP_STYLE_FLAT,
+            D2D1_LINE_JOIN_MITER,
+            10.0f,
+            D2D1_DASH_STYLE_CUSTOM,
+            0.0f),
+         _aDashes,
+         _countof(_aDashes),
+         &pStrokeStyle);
+
+      int32_t nX = m_Box.Left();
+      const float fYBottom = ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Bottom());
+      for (int nIdx = 0; nIdx < (int)m_vVLines.size(); ++nIdx) {
+         if (m_vVLines[nIdx]) {
+            float fX = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, nX);
+            dwri.pRT->DrawLine({ fX, ptMyAnchor.y }, { fX, fYBottom }, dwri.pBrush, 1.0f,
+               (m_vVLines[nIdx] == ':' ? pStrokeStyle : nullptr));
+            if (m_vVLines[nIdx] == 'd') {
+               nX += 200; //double line extra space
+               fX = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, nX);
+               dwri.pRT->DrawLine({ fX, ptMyAnchor.y }, { fX, fYBottom }, dwri.pBrush, 1.0f);
+            }
+         }
+         if(nIdx < (int)m_vColWidths.size()) //go to start of the next column
+            nX += m_vColWidths[nIdx] + m_nColSep;
+      }
+      pStrokeStyle->Release();
+   }
+   //draw horz lines
+   const float fXRight = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Right());
+   for (int nIdx = 0; nIdx < (int)m_vHLines.size(); ++nIdx) {
+      if (m_vHLines[nIdx]) {
+         int32_t nY = nIdx < (int)m_vRowLayouts.size() ? 
+            m_vRowLayouts[nIdx].nTop : m_vRowLayouts.back().Bottom();
+         float fY = ptMyAnchor.y + EM2DIPS(dwri.fFontSizePts, nY);
+         dwri.pRT->DrawLine({ ptMyAnchor.x, fY }, { fXRight, fY }, dwri.pBrush, 1.0f);
+      }
+   }
+   //DrawFrame(ptAnchor, dwri);
+}
+
+bool CTableItem::Init(const vector<EnumColAlignment>& vColAligns, const vector<char>& vVLines, 
+                        const SEnvTable& table) {
+   _ASSERT_RET(vVLines.empty() || vVLines.size() == vColAligns.size()+1, false);
+   m_vColAligns = vColAligns;
+   m_vVLines = vVLines;
+   bool bArrayEnv = !m_vVLines.empty();
+   if (m_Style.Style() >= etsScript){
+      float fScale = bArrayEnv? m_Style.StyleScale(): 0.45f; //test aggressive scaling
+      m_nMinAscent = F2NEAREST(m_nMinAscent * fScale);
+      m_nMinDescent = F2NEAREST(m_nMinDescent * fScale);
+      m_nColSep = F2NEAREST(m_nColSep * fScale);
+      m_nRowSep = 40;//test // F2NEAREST(m_nRowSep * fScale);
+   }
+
+   //adjust columns in envh
+   while (m_vColAligns.size() < (size_t)table.nCols) {
+      m_vColAligns.push_back(ecaCenter);
+      if(bArrayEnv)
+         m_vVLines.push_back(0); //no vline by default
+   }
+
+   m_vHLines.resize(table.vRows.size(), 0);
+   m_vColWidths.resize(table.nCols, 0);
+   m_vRowLayouts.resize(table.vRows.size());
+   for (int nIdx = 0; nIdx < (int)table.vRows.size(); ++nIdx) {
+      const SEnvTableRow& row = table.vRows[nIdx];
+      m_vHLines[nIdx] = row.cHLine;
+      m_vvCells.emplace_back(row.vCells);
+      _ASSERT_RET(row.vCells.size() == (size_t)table.nCols, false); //snbh!
+      CalcRowGeometry_(nIdx);
+   }
+   //update table box
+   m_Box.nHeight = m_vRowLayouts.back().Bottom();
+   m_Box.SetMathAxis(m_Box.nHeight/2);
+   for (int nCol = 0; nCol < (int)m_vColWidths.size(); ++nCol) {
+      m_Box.nAdvWidth += m_vColWidths[nCol] + m_nColSep;
+      if (nCol < (int)m_vVLines.size() && m_vVLines[nCol] == 'd')
+         m_Box.nAdvWidth += 200;
+   }
+   if(!bArrayEnv)
+      m_Box.nAdvWidth -= m_nColSep; //no half-sep in first/last columns
+   //PASS2 - needed as column widths known only now
+   for (int nIdx = 0; nIdx < (int)table.vRows.size(); ++nIdx) {
+      LayoutRowItems_(nIdx);
+   }
+   if(table.cHLineBottom)
+      m_vHLines.push_back(table.cHLineBottom);
+
+   return true;
+}
+//updates m_vColWidths and m_vRowHeights
+void CTableItem::CalcRowGeometry_(int nRowIdx) {
+   m_vRowLayouts[nRowIdx].nTop = nRowIdx ? m_vRowLayouts[nRowIdx - 1].Bottom(): 0;
+   //enforce strut
+   int32_t nMaxAscent = m_nMinAscent, nMaxDescent = m_nMinDescent;
+   const vector<CMathItem*>& vRow = m_vvCells[nRowIdx];
+   for (int nCol = 0; nCol < (int)m_vColWidths.size(); ++nCol) {
+      CMathItem* pCell = vRow[nCol];
+      if (!pCell) 
+         continue;
+      //else
+      const STexBox& box = pCell->Box();
+      //update col width
+      if (box.Width() > m_vColWidths[nCol])
+         m_vColWidths[nCol] = box.Width();
+      //update row ascent/descent
+      if (box.Ascent() > nMaxAscent)
+         nMaxAscent = box.Ascent();
+      int32_t nDescent = box.Height() - box.Ascent();
+      if (nDescent > nMaxDescent)
+         nMaxDescent = nDescent;
+   }
+   m_vRowLayouts[nRowIdx].nAscent = nMaxAscent;
+   m_vRowLayouts[nRowIdx].nDescent = nMaxDescent;
+   if (nRowIdx) {
+      m_vRowLayouts[nRowIdx].nAscent += m_nRowSep / 2;
+      m_vRowLayouts[nRowIdx].nDescent += m_nRowSep / 2;
+   }
+   else {
+      //top row, no gap above
+      m_vRowLayouts[0].nDescent += m_nRowSep / 2;
+   }
+}
+// position MathItems in the nRowIdx row relative to table's origin (0,0) and
+// according to column alignment,m_nColSep, m_nRowSep and input nRowHeight,nRowAscent
+void CTableItem::LayoutRowItems_(int nRowIdx) {
+   bool bArrayEnv = !m_vVLines.empty();
+   int32_t nCellX = bArrayEnv ? m_nColSep / 2 : 0;
+   int32_t nCellY = m_vRowLayouts[nRowIdx].Top() + (nRowIdx ? m_nRowSep / 2 : 0);
+   const vector<CMathItem*>& vRow = m_vvCells[nRowIdx];
+   for (int nCol = 0; nCol < (int)m_vColWidths.size(); ++nCol) {
+      CMathItem* pCell = vRow[nCol];
+      if (pCell) {
+         //horizontal alignment
+         int nX = nCellX;
+         int32_t nExcess = m_vColWidths[nCol] - pCell->Box().Width();
+         _ASSERT(nExcess >= 0);
+         if (nExcess > 1 && m_vColAligns[nCol]) {
+            //align within the column
+            if(m_vColAligns[nCol] == ecaCenter)
+               nX += nExcess / 2;
+            else
+               nX = nCellX + nExcess;
+         }
+         //vertical alignment: nY + pCell->Box().Ascent() = nCellY + rowAscent
+         int nY = nCellY + m_vRowLayouts[nRowIdx].nAscent - pCell->Box().nAscent;
+         pCell->MoveTo(nX, nY);
+      }
+      if (nCol + 1 < (int)m_vColWidths.size()) {
+         nCellX += m_vColWidths[nCol] + m_nColSep;
+         if (bArrayEnv && m_vVLines[nCol] == 'd')
+            nCellX += 200; //double line extra space
+      }
+   }
+
+}
+

@@ -57,10 +57,10 @@ void CHBoxItem::Update() {
 // align items both vertically and horizontally without any re-sizing!
 void CHBoxItem::UpdateLayout_() {
    //1. adust items vertically by the baseline of the SBox AND update box top/bottom
-   const int32_t nAscent = m_Box.Ascent();
+   const int32_t nBaseline = m_Box.BaselineY();
    for (CMathItem* pItem : m_vItems) {
-      int32_t nItemAscent = pItem->Box().Ascent();
-      int32_t nDY = nAscent - nItemAscent;
+      int32_t nItemBaseline = pItem->Box().BaselineY();
+      int32_t nDY = nBaseline - nItemBaseline;
       pItem->MoveBy(0, nDY);
       m_Box.Union(pItem->Box());     //only top/bottom are valid now!
    }
@@ -100,7 +100,7 @@ void CHBoxItem::ResizeByRatio(uint16_t nOrder, float fRatio) {
    //4. update width
    if (IsAuto()) {
       m_Glue.fActual = fWidth + m_vItems.back()->Box().Width();
-      m_Box.nAdvWidth = F2NEAREST(fWidth);
+      m_Box.nAdvWidth = F2NEAREST(m_Glue.fActual); //why fWidth?
    }
    else {
       //fixed width? -> reset m_Glue 

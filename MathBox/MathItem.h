@@ -67,9 +67,10 @@ struct STexBox {
    }
 };
 struct SDWRenderInfo {
-   bool                 bDrawBoxes{ false };       //debugging aid
+   //bool                 bDrawBoxes{ false };       //debugging aid
    float                fFontSizePts{ 0.0f };      //document font size, in points
    ID2D1RenderTarget*   pRT{ nullptr };
+   ID2D1Factory*        pD2DFactory{ nullptr };
    ID2D1Brush*          pBrush{ nullptr };
    ID2D1Brush*          pSelBrush{ nullptr };      //selection support
 };
@@ -102,12 +103,12 @@ enum EnumMathItemType {
    eacVBOX,             // Ord: fraction or stacked items: \frac, \binom, \stackrel, \substack, \atop, \genfrac, \overset, etc.
    eacBIGOP,            // OP(large),word item: integrals,sum, prod, etc. + optional \limits
    eacMATHOP,           // OP(small),word item: math op + optional \limits .Used for (\lim, \liminf, \min, \max, \gcd, \sin etc.)
-   eacGLUE,             // -, glue: invisible spacing item of variable width
+   eacGLUE,             // invisible spacing item of variable width
    eacFILLER,           // filler/lines/rectangles,etc. item
    eacVDELIM,           // Ord: container item with vertical delimiter + parts
    eacHDELIM,           // Ord: container item with horizontal bracket + parts
+   eacTABLE,            // Ord: special container item for matrices and arrays
    //eacOverlay,        // container item with a base + cancel,not, cross, etc. fillers
-   //
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -228,7 +229,7 @@ public:
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
    virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0; //PURE
 };
-////tmp items
+////virtual/empty items
 //// NULL/PHANTOM Item
 //class CNullItem : public CMathItem {
 //public:
@@ -237,17 +238,21 @@ public:
 //   //CMathItem implementation
 //   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
 //};
-//class CTabAlignmentItem : public CMathItem {
+//class CHLineItem : public CMathItem {
 //public:
 //   //CTOR/DTOR
-//   CTabAlignmentItem() : CMathItem(eacAMP, CMathStyle()) {}
+//   CHLineItem() : CMathItem(eacHLINE, CMathStyle()) {}
 //   //CMathItem implementation
 //   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
 //};
-//class CNewLineItem : public CMathItem {
+// vertical strut item
+//class CStrutItem : public CMathItem {
 //public:
 //   //CTOR/DTOR
-//   CNewLineItem() : CMathItem(eacNewLine, CMathStyle()) {}
+//   CStrutItem(const CMathStyle& style, float fUserScale = 1.0f) : CMathItem(eacSTRUT, style, fUserScale) {
+//      m_Box.nHeight = F2NEAREST(1000 * fUserScale * style.StyleScale());
+//      m_Box.nAscent = F2NEAREST(750 * fUserScale * style.StyleScale()); //~average; 75% ascent
+//   }
 //   //CMathItem implementation
 //   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
 //};
@@ -330,7 +335,7 @@ enum EnumLCATParenthesis {
    elcapFig,      // non-optional {} brackets
    elcapSquare,   // non-optional [] brackets
 };
-enum EnumAlignments { ecaUndef=0, ecaLeft, ecaCenter, ecaRight };
+enum EnumColAlignment { ecaLeft=0, ecaCenter, ecaRight };
 struct SParserContext {
    bool        bTextMode{ false };            // TEXT/MATH mode
    bool        bInLeftRight{ false };         // inside \left...\right construct
@@ -339,11 +344,16 @@ struct SParserContext {
    bool        bDisplayFormula{ false };      // centered on a separate line
    CMathStyle  currentStyle;                  // MATH mode style
    float       fUserScale{ 1.0f };            // User scaling factor
+   float       fFontScale{ 1.0f };            // User scaling factor
    string      sFontCmd;                      // Current font (for both Math/Text modes!)
-   string      sEnv;                          // array,matrix,pmatrix,vmatrix,...
-   uint32_t    nColAlignments{ 0 };           // for array env
-   //CTOR
-   SParserContext() = default;
+   //METHODS
+   float EffectiveScale() const {
+      return fUserScale * currentStyle.StyleScale();
+   }
+   void ApplyFontScale(float fNewFontScale) {
+      fUserScale = fUserScale/fFontScale* fNewFontScale;
+      fFontScale = fNewFontScale;
+   }
    void CopyBasics(const SParserContext& other) {
       this->bTextMode = other.bTextMode;
       this->currentStyle = other.currentStyle;
@@ -371,7 +381,7 @@ DECLARE_INTERFACE(IParserAdapter) {
    virtual bool ConsumeInteger(EnumLCATParenthesis eParens, OUT int& nVal) = 0;
    virtual bool ConsumeHSkipGlue(OUT STexGlue& glue) = 0;
    // raw access
-   virtual EnumTokenType GetTokenData(OUT string & sText) = 0;
+   virtual EnumTokenType GetTokenData(OUT string& sText) = 0;
    virtual void SkipToken() = 0;
    // context info
    virtual const SParserContext& GetContext() const = 0;

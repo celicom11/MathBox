@@ -18,7 +18,7 @@ CMathItem* CHSpacingBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    string sCmd(szCmd);
    
    CMathItem* pRet = nullptr;
-   if (sCmd[1] == ' ' || sCmd == "\\quad")
+   if (sCmd[1] == ' ' || sCmd == "\\quad") //1em
       pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(18),MU2EM(18) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd[1] == ',')//3mu
       pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(3),MU2EM(3) }, ctx.currentStyle, ctx.fUserScale);

@@ -3,6 +3,7 @@
 //forward decls
 class CTexParser;
 class CRawItem;
+class CEnvHelper;
 
 class CMathModeProcessor {
  //DATA
@@ -17,7 +18,7 @@ public:
    const STexToken* GetToken(int nIdx) const;
    string TokenText(int nIdx) const;
    //processing methods
-   CMathItem* ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx);
+   CMathItem* ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx, IN OUT CEnvHelper& envh);
    CMathItem* ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx);
    void RegisterBuilder(IMathItemBuilder* pBuilder) {
       m_vItemBuilders.push_back(pBuilder);
@@ -34,7 +35,6 @@ private:
    //group's output raw item packers
    CMathItem* PackGroupItems_(vector<CRawItem>& vGroupItems, const SParserContext& ctx);
    CMathItem* PackGroupItemsLeftRight_(vector<CRawItem>& vGroupItems, const SParserContext& ctx);
-   CMathItem* PackGroupItemsTabularEnv_(vector<CRawItem>& vGroupItems, const SParserContext& ctx) {
-      _ASSERT_RET(0, nullptr); //TODO!
-   }
+   CMathItem* PackGroupItemsTabularEnv_(vector<CRawItem>& vGroupItems, const SParserContext& ctx,
+                                          const CEnvHelper& envh);
 };

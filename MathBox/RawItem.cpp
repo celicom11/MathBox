@@ -6,25 +6,59 @@
 #include "IndexedBuilder.h"
 #include "VBoxBuilder.h"
 
-bool CRawItem::AddSubScript(CMathItem* pSubScript) {
+bool CRawItem::AddSubScript(CMathItem* pSubScript, int nTkIdxStart, int nTkIdxEnd) {
    if (!pSubScript || m_pSubScript)
       return false; //double subscript
    m_pSubScript = pSubScript;
+   _ASSERT(m_nTkIdxEnd < nTkIdxStart);
+   m_nTkIdxEnd = nTkIdxEnd;
    return true;
 }
-bool CRawItem::AddSuperScript(CMathItem* pSuperScript) {
+bool CRawItem::AddSuperScript(CMathItem* pSuperScript, int nTkIdxStart, int nTkIdxEnd) {
    if (!pSuperScript || m_pSuperScript)
       return false; //double subscript
    m_pSuperScript = pSuperScript;
+   _ASSERT(m_nTkIdxEnd < nTkIdxStart);
+   m_nTkIdxEnd = nTkIdxEnd;
    return true;
 }
-bool CRawItem::AddPrime() {
+bool CRawItem::AddPrime(int nTkIdx) {
    if (m_pSuperScript)
       return false; //double subscript
    ++m_nPrimes;
+   _ASSERT(m_nTkIdxEnd < nTkIdx);
+   m_nTkIdxEnd = nTkIdx;
    return true;
 }
-
+bool CRawItem::TryAppendWord(CMathItem* pWordItem, int nTkIdxStart, int nTkIdxEnd) {
+   if (!m_pBase || m_pSubScript || m_pSuperScript || m_nUnicode)
+      return false;
+   if (m_pBase->Type() != eacWORD || pWordItem->Type() != eacWORD)
+      return false;
+   CWordItem* pBaseWord = static_cast<CWordItem*>(m_pBase);
+   CWordItem* pWord2 = static_cast<CWordItem*>(pWordItem);
+   if (pBaseWord->AtomType() != etaORD || pWord2->AtomType() != etaORD)
+      return false;
+   if (pBaseWord->GlyphRun().GetFontIdx() != pWord2->GlyphRun().GetFontIdx() ||
+         pBaseWord->UserScale() != pWord2->UserScale() ||
+         pBaseWord->GetStyle().Style() != pWord2->GetStyle().Style() )
+      return false;
+   CWordItem* pNewBase = new CWordItem(pBaseWord->GlyphRun().GetFontIdx(),
+      pBaseWord->GetStyle(), eacWORD, pBaseWord->UserScale());
+   vector<UINT16> vGlyphIdx(pBaseWord->GlyphRun().Glyphs().size());
+   for (int nIdx = 0; nIdx < vGlyphIdx.size(); ++nIdx) {
+      vGlyphIdx[nIdx] = pBaseWord->GlyphRun().Glyphs()[nIdx].index;
+   }
+   for (auto& glyph : pWord2->GlyphRun().Glyphs()) {
+      vGlyphIdx.push_back(glyph.index);
+   }
+   pNewBase->SetGlyphIndexes(vGlyphIdx);
+   delete m_pBase;
+   m_pBase = pNewBase;
+   _ASSERT(m_nTkIdxEnd < nTkIdxStart);
+   m_nTkIdxEnd = nTkIdxEnd;
+   return true;
+}
 bool CRawItem::InitDelimiter(const string& sDelim, EnumDelimType edt) {
    _ASSERT_RET(!m_pBase && edt != edtAny, false);//snbh!
    SLMMDelimiter lmmDelimiter;

@@ -6,11 +6,14 @@ namespace { //static helpers
    inline bool _IsGAP(char wc) { return wc == ' ' || wc == '\t'; }
    inline bool _IsSpace(char wc) { return _IsGAP(wc) || _IsCRLF(wc); }
    inline bool _IsDigit(char wc) { return wc >= '0' && wc <= '9'; }
+   inline bool _IsHexDigit(char wc) { 
+      return _IsDigit(wc) || (wc >= 'a' && wc <= 'f') || (wc >= 'A' && wc <= 'F');
+   }
    inline bool _IsAlpha(char wc) { return (wc >= 'a' && wc <= 'z') || (wc >= 'A' && wc <= 'Z'); }
    inline bool _IsAlNum(char wc) { return _IsAlpha(wc) || _IsDigit(wc); }
 
    inline bool _IsEscapedChar(char cChar) {
-      static const string _sSpecial{ "$%&~_{}" };
+      static const string _sSpecial{ "$%&_{}" };
       return _sSpecial.find(cChar) != string::npos;
    }
    inline bool _IsCmdNonAlphaChar(char cChar) {
@@ -22,6 +25,39 @@ namespace { //static helpers
          ++szText;
       }
       return szText;
+   }
+   //char{"}###
+   inline bool _IsCharCmd(PCSTR szCmd) {
+      if(szCmd[0] != 'c' || szCmd[1] != 'h' || szCmd[2] != 'a' || szCmd[3] != 'r')
+         return false;
+      szCmd += 4;
+      if (*szCmd == '"') {
+         ++szCmd;
+         //verify next is hex digit
+         if (!_IsHexDigit(*szCmd))
+            return false;
+      }
+      else if (!_IsDigit(*szCmd))
+         return false;
+      return true;
+   }
+   //presume _IsCharCmd == TRUE!
+   PCSTR _ConsumeCharCmd(PCSTR szCmd) {
+      PCSTR szPos = szCmd + 4; //skip "char"
+      if (*szPos == '"') {
+         ++szPos; //skip '"'
+         while (_IsHexDigit(*szPos)) {
+            ++szPos;
+         }
+      }
+      else {
+         while (_IsDigit(*szPos)) {
+            ++szPos;
+         }
+      }
+      if(*szPos && _IsSpace(*szPos))
+         ++szPos; //post space must be eaten!
+      return szPos;
    }
 }
 bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) {
@@ -52,6 +88,10 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
          //newline, glue and isplay mode start/end commands
          if (_IsCmdNonAlphaChar(*szPos))
             ++szPos; //skip special 1-non-alpha-cmd-char
+         else if (_IsCharCmd(szPos)) {
+            //\char{"}### unicode char command, post space must be eaten!
+            szPos = _ConsumeCharCmd(szPos);
+         }
          else {
             //command\sym - sequence of letters
             while (_IsAlpha(*szPos)) {

@@ -11,6 +11,8 @@
 #include "ScaleCmdBuilder.h"
 #include "HSpacingBuilder.h"
 #include "TextCmdBuilder.h"
+#include "TextAccentBuilder.h"
+#include "TextSymBuilder.h"
 //#include "OverlayBuilder.h"
 
 
@@ -32,6 +34,10 @@ namespace { //static helpers
       // \\, \newline, \cr
       return (sCmd == "\\\\" || sCmd == "\\newline" || sCmd == "\\cr");
    }
+   inline bool _IsDigit(char wc) { return wc >= '0' && wc <= '9'; }
+   inline bool _IsAlpha(char wc) { return (wc >= 'a' && wc <= 'z') || (wc >= 'A' && wc <= 'Z'); }
+   inline bool _IsAlNum(char wc) { return _IsAlpha(wc) || _IsDigit(wc); }
+
 }
 // CTextModeProcessor
 CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
@@ -39,6 +45,8 @@ CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CHSpacingBuilder);
    RegisterBuilder(new CScaleCmdBuilder);
    RegisterBuilder(new CTextCmdBuilder);
+   RegisterBuilder(new CTextAccentBuilder);
+   RegisterBuilder(new CTextSymBuilder);
 }
 CTextModeProcessor::~CTextModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
@@ -99,7 +107,7 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                ProcessFontSizeCmd_(nIdxG, ctxG);
             else if (_isNewlineCommand(sCmd)) {
                ++nIdxG;
-               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                vGroupItems.back().InitNewLine();
             }
             else
@@ -126,35 +134,63 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
             (pCurToken->nType == ettCOMMAND && TokenText(nCurTokenIdx)=="\\[")) ) {
             //prepend new line
             if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
-               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                vGroupItems.back().InitNewLine();
             }
             //todo: add hfill glues for centering formula
-            vGroupItems.emplace_back(nCurTokenIdx, pItem);
+            vGroupItems.emplace_back(nCurTokenIdx, nIdxG-1, pItem);
             if (nIdxG < nIdxEnd) {
                //append post line
-               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.emplace_back(nIdxG - 1, nIdxG - 1);
                vGroupItems.back().InitNewLine();
             }
          }
          else {
-            if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine()) {
+            if (!vGroupItems.empty()) {
                //prepend spaceGlue
-               const STexToken* pPrevToken = GetToken(vGroupItems.back().TokenIdx());
+               const STexToken* pPrevToken = GetToken(vGroupItems.back().TkIdxEnd());
                int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
+               //ignore 1 space after command that ends with ALNUM char
+               if (nSpaces > 0 && pPrevToken->nType == ettCOMMAND){
+                  string sPrevCmd = TokenText(vGroupItems.back().TkIdxEnd());
+                  if (_IsAlNum(sPrevCmd.back()))
+                     --nSpaces;
+               }
                if (nSpaces > 0) {
                   STexGlue glueSpace;
-                  glueSpace.fNorm = 1000.0f / 3;
+                  glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
                   glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
                   glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
                   CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
-                  vGroupItems.emplace_back(nCurTokenIdx, pSpaceGlue);
+                  vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx, pSpaceGlue);
+               }
+               else if (pCurToken->nType == ettCOMMAND || pCurToken->nType == ettALNUM || 
+                        pCurToken->nType == ettNonALPHA) { 
+                  if (vGroupItems.back().TryAppendWord(pItem, nCurTokenIdx, nIdxG - 1)) {
+                     delete pItem;
+                     pItem = nullptr;
+                  }
                }
             }
-            vGroupItems.emplace_back(nCurTokenIdx, pItem);
+            if(pItem)
+               vGroupItems.emplace_back(nCurTokenIdx, nIdxG - 1, pItem);
          }
       }
    } //main for
+   if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine() && GetToken(nIdxEnd)) {
+      //post-pend spaceGlue
+      const STexToken* pClosing = GetToken(nIdxEnd);
+      const STexToken* pPrevToken = GetToken(vGroupItems.back().TkIdxEnd());
+      int nSpaces = pClosing->nPos - (pPrevToken->nPos + pPrevToken->nLen);
+      if (nSpaces > 0) {
+         STexGlue glueSpace;
+         glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
+         glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
+         glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
+         CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
+         vGroupItems.emplace_back(vGroupItems.back().TkIdxEnd(), vGroupItems.back().TkIdxEnd(), pSpaceGlue);
+      }
+   }
    return PackGroupItems_(vGroupItems, ctxG);
 }
 CMathItem* CTextModeProcessor::BuildItemCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
@@ -185,18 +221,18 @@ string CTextModeProcessor::TokenText(int nIdx) const {
 
 bool CTextModeProcessor::ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx) {
    string sCmd = TokenText(nIdx);
-   ++nIdx; // next token
    PCSTR szCmd = sCmd.c_str();
    if (szCmd[0] != '\\')
       return false;
    szCmd++; //skip '\'
    for (const SFontSizeVariant& fsVar : _aFontSizeVariants) {
       if (0 == strcmp(szCmd, fsVar.szFontSizeCmd)) {
-         ctx.fUserScale *= fsVar.fSizeFactor; //apply font-size scaling
-         break;
+         ctx.ApplyFontScale(fsVar.fSizeFactor); //apply font-size scaling
+         ++nIdx; // next token
+         return true;
       }
    }
-   return true;
+   _ASSERT_RET(0, false);//snbh!
 }
 CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SParserContext& ctx) {
    const STexToken* pCurToken = GetToken(nIdx);
@@ -229,7 +265,7 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
          if (!pItem) {
             _ASSERT(0);
-            m_Parser.SetError(ritem.TokenIdx(), "RawItem failed to build");
+            m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
             return nullptr;
          }
          vvLines.back().push_back(pItem);
@@ -245,6 +281,7 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          pHBox->AddItem(pItem);
       }
       pHBox->Update();
+      pHBox->NormalizeOrigin(0, 0);
       return pHBox;
    }
    //else //multiline
@@ -261,9 +298,12 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
             pHBox->AddItem(pItem);
          }
          pHBox->Update();
+         pHBox->NormalizeOrigin(0, 0);
          pRet->AddBox(pHBox, 0, pRet->Box().Bottom() + nInterline);
       }
    }
+   pRet->NormalizeOrigin(0, 0);
+   pRet->SetMathAxis(pRet->Box().Height() / 2); //keep axis in the middle
    return pRet;
 }
 

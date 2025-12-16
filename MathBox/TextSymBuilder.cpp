@@ -1,0 +1,89 @@
+#include "stdafx.h"
+#include "TextSymBuilder.h"
+#include "LMFontManager.h"
+#include "WordItem.h"
+
+extern CLMFontManager g_LMFManager;
+
+//handles:  char{"}###,
+//          textunderscore, textendash, textemdash, textasciitilde, textasciicircum, textellipsis,
+//          textbackslash, textbraceleft, textbraceright, textdagger, textdaggerdbl, textquoteleft,
+//          textquoteright, textdegree, textregistered, copyright, checkmark, backslash,
+//          textquotedblleft, textquotedblright, textbullet
+namespace {
+   struct SCmd2Sym {
+      PCSTR    szCmd;
+      uint32_t nUnicode;
+   };
+   const SCmd2Sym _aTextSym[] = {
+      { "backslash", 0x005C },
+      { "textunderscore", 0x005F },
+      { "textendash",     0x2013 },
+      { "textemdash",     0x2014 },
+      { "textasciitilde", 0x007E },
+      { "textasciicircum",0x005E },
+      { "textellipsis",   0x2026 },
+      { "textbackslash",  0x005C },
+      { "textbraceleft",  0x007B },
+      { "textbraceright", 0x007D },
+      { "textdagger",     0x2020 },
+      { "textdaggerdbl",  0x2021 },
+      { "textquoteleft",  0x2018 },
+      { "textquoteright", 0x2019 },
+      { "textdegree",     0x00B0 },
+      { "textregistered", 0x00AE },
+      { "copyright",     0x00A9 },
+      { "checkmark",      0x2713 },
+      { "textquotedblleft",  0x201C },
+      { "textquotedblright", 0x201D },
+      { "textbullet",        0x2022 },
+   };
+}
+uint32_t CTextSymBuilder::_GetTextSymbolUni(PCSTR szCmd) {
+   _ASSERT_RET(szCmd, 0);
+   if (*szCmd == '\\')
+      ++szCmd;
+   _ASSERT_RET(*szCmd, 0);
+   string sCmdStr(szCmd);
+   if (sCmdStr.back() == ' ') //tokenizer may add a single trailing space!
+      sCmdStr.pop_back();
+   if (sCmdStr.substr(0, 4) == "char") {
+      uint32_t nRet = 0;
+      if (sCmdStr[4] == '"') {
+         //parse hex
+         PCSTR szHex = sCmdStr.c_str() + 5;
+         nRet = std::stoul(szHex, nullptr, 16);
+      }
+      else {
+         //parse decimal
+         PCSTR szDec = sCmdStr.c_str() + 4;
+         nRet = std::stoul(szDec);
+      }
+      return nRet;
+   }
+   //else
+   for (const SCmd2Sym cmd2sym : _aTextSym) {
+      if (sCmdStr == cmd2sym.szCmd)
+         return cmd2sym.nUnicode;
+   }
+   return 0;
+}
+
+CMathItem* CTextSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
+   _ASSERT_RET(szCmd && pParser, nullptr);
+   uint32_t nUnicode = _GetTextSymbolUni(szCmd);
+   _ASSERT_RET(nUnicode, nullptr);
+   const SParserContext& ctx(pParser->GetContext());
+   STextFontStyle tfStyle;
+   if (!ctx.sFontCmd.empty() && !g_LMFManager._GetTextFontStyle(ctx.sFontCmd, tfStyle)) {
+      if (!pParser->HasError())
+         pParser->SetError("Unknown font '" + ctx.sFontCmd + "'");
+      return nullptr;
+   }
+   int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont;
+   CWordItem* pWord = new CWordItem(nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
+   pWord->SetText({ nUnicode });
+
+   return pWord;
+}
+

@@ -36,9 +36,6 @@
     <ClCompile Include="MathBox\ExtGlyphBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="MathBox\OpenCloseBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
     <ClCompile Include="MathBox\AccentBuilder.cpp">
       <Filter>MathBox\MathItemBuilders</Filter>
     </ClCompile>
@@ -99,6 +96,21 @@
     <ClCompile Include="MathBox\TextModeProcessor.cpp">
       <Filter>MathBox\Parser</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\TextAccentBuilder.cpp">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\EnvHelper.cpp">
+      <Filter>MathBox\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\OpenCloseBuilder.cpp">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\TableItem.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="MathBox\TextSymBuilder.cpp">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -133,9 +145,6 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\ExtGlyphBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="MathBox\OpenCloseBuilder.h">
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\AccentBuilder.h">
@@ -198,5 +207,23 @@
     <ClInclude Include="MathBox\Tokenizer.h">
       <Filter>MathBox\Parser</Filter>
     </ClInclude>
+    <ClInclude Include="MathBox\TextAccentBuilder.h">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\EnvHelper.h">
+      <Filter>MathBox\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\OpenCloseBuilder.h">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TableItem.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\TextSymBuilder.h">
+      <Filter>MathBox\MathItemBuilders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Screenshots\Test6.png" />
   </ItemGroup>
 </Project>

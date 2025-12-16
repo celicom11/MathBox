@@ -7,6 +7,8 @@
 #include "LMFontManager.h"
 #include "HBoxItem.h"
 #include "ExtGlyphBuilder.h"
+#include "EnvHelper.h"
+#include "TableItem.h"
 // MathItem Builders
 #include "WordItemBuilder.h"
 #include "VBoxBuilder.h"
@@ -90,7 +92,7 @@ CMathItem* CMathModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
             string sCmd = TokenText(nIdx);
             if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd) || _isNewlineCommand(sCmd))
                return nullptr; // not an Item Token!
-            if (sCmd == "\\middle")
+            if (sCmd == "\\middle" || sCmd == "\\hline")
                return nullptr; //group should handle this command!
             pItem = BuildItemCmd_(nIdx, ctx);
          }
@@ -99,7 +101,8 @@ CMathItem* CMathModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
    }
    return pItem;
 }
-CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
+CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx,
+                                             IN OUT CEnvHelper& envh) {
    int nIdxStart, nIdxEnd;
    SParserContext ctxG(ctx);
    vector<CRawItem> vGroupItems;
@@ -110,7 +113,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
    nIdxEnd = tkOpen.nTkIdxEnd;
    if (ctxG.bInLeftRight) {
       //try to add opening delimiter
-      vGroupItems.emplace_back(nIdx + 1);
+      vGroupItems.emplace_back(nIdx + 1, nIdx + 1);
       const STexToken* pNext = GetToken(nIdx + 1);
       if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
          !vGroupItems.back().InitDelimiter(TokenText(nIdx + 1), edtOpen)
@@ -121,10 +124,8 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       nIdxStart = nIdx + 2;            //skip opening delimiter token
       nIdx = tkOpen.nTkIdxEnd + 2;     //skip closing delimiter token
    }
-   else if (!ctxG.sEnv.empty()) {
-      //tmp: no params
-      nIdxStart = nIdx + 4;            //skip: \begin,{,env,}[,{,params,},]
-      //TODO: read env. params
+   else if (envh.Enabled()) {
+      nIdxStart = envh.GetStartTkIdx();
       nIdx = tkOpen.nTkIdxEnd + 4;     //skip: \end,{,env,}
    }
    else {
@@ -148,7 +149,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                if (vGroupItems.empty()) //cannot add prime as superscript->add a prime glyph as an Item
                   pItem = ProcessNonAlnum_(nIdx, ctx);
                else {// superscript!
-                  if (!vGroupItems.back().AddPrime())
+                  if (!vGroupItems.back().AddPrime(nCurTokenIdx))
                      m_Parser.SetError(nCurTokenIdx, "' is a double superscript");
                   else
                      pItem = nullptr; // already consumed
@@ -164,13 +165,13 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                else if (_isNewlineCommand(sCmd)) {
                   ++nIdxG;
                   if (!ctxG.bDisplayFormula) {
-                     vGroupItems.emplace_back(nCurTokenIdx);
+                     vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                      vGroupItems.back().InitNewLine();
                   }
                }
                else if (sCmd == "\\middle" && ctxG.bInLeftRight) {
                   nCurTokenIdx = ++nIdxG;//skip to delimiter
-                  vGroupItems.emplace_back(nCurTokenIdx);
+                  vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                   const STexToken* pNext = GetToken(nIdxG);
                   if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
                      !vGroupItems.back().InitDelimiter(TokenText(nIdxG), edtFence)
@@ -178,17 +179,26 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                      m_Parser.SetError(nIdxG, "Missing or bad delimiter after '\\middle'");
                   ++nIdxG; // skip delimiter
                }
+               else if(sCmd == "\\hline"){
+                  if (!envh.Enabled())
+                     m_Parser.SetError(nCurTokenIdx, "\\hline is allowed only in environments");
+                  else {
+                     ++nIdxG;
+                     vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
+                     vGroupItems.back().InitHLine();
+                  }
+               }
                else
                   m_Parser.SetError(nCurTokenIdx, "Unexpected command '" + sCmd + "'");
             }
             break;
          case ettCOMMENT:++nIdxG;  break;    // ignore comment tokens
          case ettAMP:
-            if (ctxG.sEnv.empty())
+            if (!envh.Enabled())
                m_Parser.SetError(nCurTokenIdx, "& is allowed only in environments");
             else {
                ++nIdxG;
-               vGroupItems.emplace_back(nCurTokenIdx);
+               vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                vGroupItems.back().InitAmp();
             }
             break;
@@ -203,14 +213,14 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                pItem = ProcessItemToken(nIdxG, ctxGS);
                if (pItem) {
                   if (vGroupItems.empty())
-                     vGroupItems.emplace_back(nCurTokenIdx);//new raw item
+                     vGroupItems.emplace_back(nCurTokenIdx, nIdxG - 1);//gen fraction base
                   bool bOk = false;
                   if (pCurToken->nType == ettSUBS)
-                     bOk = vGroupItems.back().AddSubScript(pItem);
+                     bOk = vGroupItems.back().AddSubScript(pItem, nCurTokenIdx, nIdxG - 1);
                   else
-                     bOk = vGroupItems.back().AddSuperScript(pItem);
+                     bOk = vGroupItems.back().AddSuperScript(pItem, nCurTokenIdx, nIdxG - 1);
                   if (!bOk)
-                     m_Parser.SetError(nCurTokenIdx-1, "Double subcsript/superscript is not allowed");
+                     m_Parser.SetError(nCurTokenIdx - 1, "Double subcsript/superscript is not allowed");
                   else
                      pItem = nullptr; // already consumed
                }
@@ -229,11 +239,11 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
          return nullptr;
       }
       if (pItem)
-         vGroupItems.emplace_back(nCurTokenIdx, pItem);
+         vGroupItems.emplace_back(nCurTokenIdx, nIdxG-1, pItem);
    } //main for
    if (ctxG.bInLeftRight) {
       //try to add closing delimiter
-      vGroupItems.emplace_back(nIdxEnd + 1);
+      vGroupItems.emplace_back(nIdxEnd + 1, nIdxEnd + 1);
       const STexToken* pNext = GetToken(nIdxEnd + 1);
       if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
          !vGroupItems.back().InitDelimiter(TokenText(nIdxEnd + 1), edtClose)
@@ -245,8 +255,8 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
    //packing dispatch
    if (ctxG.bInLeftRight)
       return PackGroupItemsLeftRight_(vGroupItems, ctxG);
-   if (!ctxG.sEnv.empty())
-      return PackGroupItemsTabularEnv_(vGroupItems, ctxG);
+   if (envh.Enabled())
+      return PackGroupItemsTabularEnv_(vGroupItems, ctxG, envh);
    //else, default
    return PackGroupItems_(vGroupItems, ctxG);
 }
@@ -302,7 +312,7 @@ bool CMathModeProcessor::ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserCon
    szCmd++; //skip '\\'
    for (const SFontSizeVariant& fsVar : _aFontSizeVariants) {
       if (0 == strcmp(szCmd, fsVar.szFontSizeCmd)) {
-         ctx.fUserScale *= fsVar.fSizeFactor; //apply font-size scaling
+         ctx.ApplyFontScale(fsVar.fSizeFactor); //apply font-size scaling
          ++nIdx; // next token
          return true;
       }
@@ -324,6 +334,7 @@ CMathItem* CMathModeProcessor::ProcessAlnum_(IN OUT int& nIdx, const SParserCont
          pHBox->AddItem(pWord);
       }
       pHBox->Update();
+      pHBox->NormalizeOrigin(0, 0);
       pRet = pHBox;
    }
    else //single-char word
@@ -366,7 +377,7 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
          if (!pItem) {
             _ASSERT(0);
-            m_Parser.SetError(-1, "RawItem failed to build"); //todo!
+            m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
             return nullptr;
          }
          vvLines.back().push_back(pItem);
@@ -382,6 +393,7 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          pHBox->AddItem(pItem);
       }
       pHBox->Update();
+      pHBox->NormalizeOrigin(0, 0);
       return pHBox;
    }
    //else //multiline
@@ -397,13 +409,14 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
             pHBox->AddItem(pItem);
          }
          pHBox->Update();
+         pHBox->NormalizeOrigin(0, 0);
          pRet->AddBox(pHBox, 0, pRet->Box().Bottom());// TODO: inter-line spacing
       }
    }
    return pRet;
 }
-CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_(vector<CRawItem>& vGroupItems, 
-   const SParserContext& ctx) {
+CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_( vector<CRawItem>& vGroupItems, 
+                                                         const SParserContext& ctx) {
    _ASSERT(vGroupItems.size() >= 2 && vGroupItems.front().IsDelimiter() &&
       vGroupItems.back().IsDelimiter()); //snbh!
    //process raw_items
@@ -418,7 +431,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_(vector<CRawItem>& vGroup
       CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
       if (!pItem) {
          _ASSERT(0); //snbh!
-         m_Parser.SetError(-1, "RawItem failed to build"); //todo!
+         m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
          return nullptr;
       }
       vItems.push_back(pItem);
@@ -450,8 +463,8 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_(vector<CRawItem>& vGroup
          vItems[nItemIdx] = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale, nSize);
       else if (!ritem.HasMathItem())
          continue; //ignore AMP or NewLine
-      _ASSERT(vItems[nItemIdx]);
-      pHBox->AddItem(vItems[nItemIdx]);
+      if(vItems[nItemIdx])
+         pHBox->AddItem(vItems[nItemIdx]);
       ++nItemIdx;
    }
    pHBox->Update();
@@ -459,6 +472,119 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_(vector<CRawItem>& vGroup
    pHBox->SetAtom(etaINNER);
    return pHBox;
 }
+CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGroupItems,
+                                 const SParserContext& ctx, const CEnvHelper& envh) {
+   SEnvTable table;
+   //build a table/grid of CRawItemindexes
+   vector<CMathItem*> vCell; //current cell
+   table.vRows.emplace_back(); //first row
+   for (int nIdx = 0; nIdx < (int)vGroupItems.size(); ++nIdx) {
+      const CRawItem& ritem = vGroupItems[nIdx];
+      if (ritem.IsNewLine() || ritem.IsAmp()) {
+         //pack last cell
+         if (!vCell.empty()) {
+            if (vCell.size() == 1)
+               table.vRows.back().vCells.push_back(vCell[0]);
+            else { //pack items to hbox
+               CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+               for (CMathItem* pItem : vCell) {
+                  pHBox->AddItem(pItem);
+               }
+               pHBox->Update();
+               pHBox->NormalizeOrigin(0, 0);
+               table.vRows.back().vCells.push_back(pHBox);
+            }
+            vCell.clear();
+         }
+         if (ritem.IsNewLine()) {
+            if(table.nCols < (int16_t)table.vRows.back().vCells.size())
+               table.nCols = (int16_t)table.vRows.back().vCells.size();
+            table.vRows.emplace_back();
+         }
+      }
+      else if (ritem.IsHLine()) {
+         if (!vCell.empty() || !table.vRows.back().vCells.empty()) {
+            m_Parser.SetError(ritem.TkIdxStart(), "Unexpected \\hline");
+            return nullptr;
+         }
+         if (table.vRows.back().cHLine == '=') {
+            m_Parser.SetError(ritem.TkIdxStart(), "Tripple \\hline is not allowed");
+            return nullptr;
+         }
+         else if (table.vRows.back().cHLine == '-')
+            table.vRows.back().cHLine = '=';
+         else
+            table.vRows.back().cHLine = '-';
+      }
+      else {
+         _ASSERT(ritem.HasMathItem());
+         CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+         if (!pItem) {
+            _ASSERT(0);
+            m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
+            return nullptr;
+         }
+         vCell.push_back(pItem);
+      }
+   } //for
+   //pack last cell
+   if (!vCell.empty()) {
+      if (vCell.size() == 1)
+         table.vRows.back().vCells.push_back(vCell[0]);
+      else { //pack items to hbox
+         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         for (CMathItem* pItem : vCell) {
+            pHBox->AddItem(pItem);
+         }
+         pHBox->Update();
+         pHBox->NormalizeOrigin(0, 0);
+         table.vRows.back().vCells.push_back(pHBox);
+      }
+      vCell.clear();
+   }
+   //remove move last row if empty
+   if (table.vRows.back().vCells.empty()) {
+      table.cHLineBottom = table.vRows.back().cHLine;
+      table.vRows.pop_back();
+   }
+   vector<char> vHLines(table.vRows.size(),'\0');
+   //build Tabel Item
+   CTableItem* pTable = new CTableItem(ctx.currentStyle);
+   if( !pTable->Init( envh.ColAlignments(), envh.VertLines(),table) ) {
+      _ASSERT(0);//snbh!
+      delete pTable;
+      return nullptr;
+   }
+   //pack to left/right delimiters
+   if(envh.LeftDelim() || envh.RightDelim() ) {
+      vector<CRawItem> vLRItems;
+      string sDelim;
+      //left delim
+      vLRItems.emplace_back(0, 0);
+      if (!envh.LeftDelim())
+         sDelim = ".";
+      else if(envh.LeftDelim() == 'd')
+         sDelim = "\\|"; //double pipe
+      else         
+         sDelim.append(1,envh.LeftDelim());
+      vLRItems.back().InitDelimiter(sDelim, edtOpen);
+      //table item
+      vLRItems.emplace_back(0, 0, pTable);
+      //right delim
+      vLRItems.emplace_back(0, 0);
+      if (!envh.RightDelim())
+         sDelim = ".";
+      else if (envh.RightDelim() == 'd')
+         sDelim = "\\|"; //double pipe
+      else
+         sDelim = string(1, envh.RightDelim());
+      vLRItems.back().InitDelimiter(sDelim, edtClose);
+      return PackGroupItemsLeftRight_(vLRItems, ctx);
+   }
+   //else
+   return pTable;
+}
+
 
 
 

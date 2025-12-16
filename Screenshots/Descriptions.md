@@ -98,3 +98,20 @@ Testing delimiter's variants vs LuaLaTeX (right) with 24pt font.
 \lfloor\big\lfloor\Big\lfloor\bigg\lfloor\Bigg\lfloor\Bigg\rfloor\bigg\rfloor\Big\rfloor\big\rfloor\rfloor
 ```
 **Note:** MathBox has minor discrepancies on up/down arrows sizes - will be left as is for now.
+
+## Test6.
+Ultimate test for the array/matrix environments (w/o gather, align, etc.):
+```
+\Large \text{Environments} \normalsize 
+$$\begin{array}{|l|l|l|l|}\hline
+\begin{matrix}a & b \\c & d\end{matrix}&\text{\scriptsize\backslash begin\{matrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{matrix\}}&\begin{array}{cc}a & b \\c & d\end{array}&\text{\scriptsize\backslash begin\{array\}\{cc\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{array\}}\\\hline
+\begin{pmatrix}a & b \\c & d\end{pmatrix}&\text{\scriptsize\backslash begin\{pmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{pmatrix\}}&\begin{bmatrix}a & b \\c & d\end{bmatrix}&\text{\scriptsize\backslash begin\{bmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{bmatrix\}}\\\hline
+\begin{vmatrix}a & b \\c & d\end{vmatrix}&\text{\scriptsize\backslash begin\{vmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{vmatrix\}}&\begin{Vmatrix}a & b \\c & d\end{Vmatrix}&\text{\scriptsize\backslash begin\{Vmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{Vmatrix\}}\\\hline
+\begin{Bmatrix}a & b \\c & d\end{Bmatrix}&\text{\scriptsize\backslash begin\{Bmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{Bmatrix\}}&\begin{array}{c:c:c} a & b & c \\\hline
+ d & e & f\end{array}&\text{\scriptsize\backslash begin\{array\}\{c:c:c\}\\    a \& b \& c\backslash\backslash  \backslash hline\\    d \& e \& f\\\backslash end\{array\}}\\\hline
+x=\begin{cases}a &\text{if } b \\c &\text{if } d\end{cases}&\text{\scriptsize x=\backslash begin\{cases\}\\a \&\backslash text\{if \} b \backslash \backslash\\c \&\backslash text\{if \} d\\\backslash end\{cases\}}&\begin{rcases}a &\text{if } b \\c &\text{if } d\end{rcases}\Rightarrow\ldots&\text{\scriptsize\backslash begin\{rcases\}\\a \&\backslash text\{if \} b \backslash \backslash\\c \&\backslash text\{if \} d\\\backslash end\{rcases\}\backslash Rightarrow...}\\\hline
+\begin{smallmatrix}a & b \\c & d\end{smallmatrix}&\text{\scriptsize\backslash begin\{smallmatrix\}\\    a \& b \backslash\backslash\\    c \& d\\\backslash end\{smallmatrix\}}&\sum_{\begin{subarray}{l}i\in\Lambda\\0<j<n\end{subarray}}&\text{\scriptsize\backslash sum\_\{\\\backslash begin\{subarray\}\{l\}\\i\backslash in\backslash Lambda\backslash\backslash\\0<j<n\backslash end\{subarray\}\}}\\
+\hline
+\end{array}$$
+```
+Noticable differences: MathBox handles newlines(or \\) inside \text{} while LuaLaTeX and KaTex do not!

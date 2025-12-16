@@ -3,6 +3,7 @@
 #include "Tokenizer.h"
 #include "MathModeProcessor.h"
 #include "TextModeProcessor.h"
+#include "EnvHelper.h"
 
 
 namespace { //static helpers
@@ -21,9 +22,6 @@ namespace { //static helpers
       if (sOpen == "\\begin" && sClose == "\\end") //environments
          return true;
       return false;
-   }
-   bool _IsKnownEnvironment(const string& sEnv) {
-      return sEnv == "array" || sEnv == "matrix"; //q&d
    }
 }
 // CTexParser
@@ -61,10 +59,11 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
 
    const STexToken& tkOpen = m_vTokens[nIdx];
    _ASSERT_RET((int)tkOpen.nTkIdxEnd > nIdx && tkOpen.nTkIdxEnd <= m_vTokens.size(), nullptr);//snbh!
-   if (!OnGroupOpen_(tkOpen, ctxG, bCanBeEmpty))
+   CEnvHelper envh;
+   if (!OnGroupOpen_(nIdx, ctxG, bCanBeEmpty, envh))
       return nullptr; //error in group open token
    CMathItem* pRet = ctxG.bTextMode ? m_pTextProcessor->ProcessGroup(nIdx, ctxG) :
-      m_pMathProcessor->ProcessGroup(nIdx, ctxG);
+      m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
    if (!pRet && m_Error.sError.empty() && !bCanBeEmpty) {
       m_Error.nPosition = tkOpen.nPos;
       m_Error.sError = "Unexpected empty group";
@@ -72,7 +71,9 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
    return pRet;
 }
 // HELPERS
-bool CTexParser::OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ctxG, OUT bool& bCanBeEmpty) {
+bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
+                              OUT bool& bCanBeEmpty, IN OUT CEnvHelper& envh) {
+   const STexToken& tkOpen = m_vTokens[nTkIdx];
    if (!ctxG.bTextMode && (tkOpen.nType == ett$ || tkOpen.nType == ett$$)) {
       m_Error.nPosition = tkOpen.nPos;
       m_Error.sError = "Inner $..$/$$...$$ are not allowed in math mode!";
@@ -114,6 +115,18 @@ bool CTexParser::OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ct
          }
          bCanBeEmpty = true;
          ctxG.bInLeftRight = true;
+      }
+      else if (sCmd == "\\begin") {
+         if (!envh.Init(*this, nTkIdx)) {
+            if (m_Error.sError.empty()) {
+               _ASSERT(0);//snbh!
+               m_Error.nPosition = tkOpen.nPos;
+               m_Error.sError = "Failed to init environment!";
+            }
+            return false;
+         }
+         if (envh.WantsScriptStyle() && ctxG.currentStyle.Style() < etsScript)
+            ctxG.currentStyle.ToSubscriptStyle();
       }
       else 
          _ASSERT_RET(0, false); //snbh!
@@ -157,7 +170,6 @@ bool CTexParser::BuildGroups_() {
       case ettCOMMAND: {
          string sCmd = TokenText(nIdx);
          if (sCmd == "\\left" || sCmd == "\\[" || sCmd == "\\begin") {
-
             if (sCmd == "\\begin") {
                const STexToken* pTknFBOpen = GetToken(nIdx+1);
                const STexToken* pTknEnv = GetToken(nIdx + 2);
@@ -167,11 +179,6 @@ bool CTexParser::BuildGroups_() {
                   !pTknFBClose || pTknFBClose->nType != ettFB_CLOSE) {
                   m_Error.nPosition = nIdx;
                   m_Error.sError = "Missing {environment} argument after \\begin";
-                  return false;
-               }
-               if (!_IsKnownEnvironment(TokenText(nIdx + 2))) {
-                  m_Error.nPosition = nIdx+2;
-                  m_Error.sError = "Unknown environment '" + TokenText(nIdx + 2) + "'";
                   return false;
                }
             }
@@ -197,10 +204,9 @@ bool CTexParser::BuildGroups_() {
                }
                //const STexToken* pTknOpenEnv = GetToken(vGroupStarts.back() + 2);
                if (TokenText(vGroupStarts.back() + 2) != TokenText(nIdx + 2)) {
-                  m_Error.nPosition = nIdx + 2;
+                  m_Error.nPosition = pTknEnv->nPos;
                   m_Error.sError = "Unmatched environment name'" + TokenText(nIdx + 2) + "' afetr \\end";
                   return false;
-
                }
             }
             m_vTokens[vGroupStarts.back()].nTkIdxEnd = nGroupEnd;
@@ -208,24 +214,52 @@ bool CTexParser::BuildGroups_() {
          }
       }
          break;
-      case ettFB_CLOSE:
-      case ettSB_CLOSE: {
-         string sClosing = (tkn.nType == ettFB_CLOSE) ? "}" : "]";
-         if (vGroupStarts.empty() || !_IsOpenClose(TokenText(vGroupStarts.back()), sClosing)) {
+      case ettFB_CLOSE: { //non-optional!
+         bool bOk = false;
+            while(!vGroupStarts.empty() ) {
+               STexToken& tkOpen = m_vTokens[vGroupStarts.back()];
+               if (tkOpen.nType == ettSB_OPEN) {
+                  tkOpen.nType = ettNonALPHA;
+                  vGroupStarts.pop_back();
+                  continue;
+               }
+               //else
+               if (tkOpen.nType == ettFB_OPEN) {
+                  bOk = true;
+                  break;
+               }
+               //else
+               m_Error.nPosition = tkn.nPos;
+               m_Error.sError = "Unmatched closing '}' bracket is not allowed";
+               return false;
+            }
+            m_vTokens[vGroupStarts.back()].nTkIdxEnd = nIdx;
+            vGroupStarts.pop_back();
+         }
+         break;
+      case ettSB_CLOSE:
+         if (vGroupStarts.empty() || m_vTokens[vGroupStarts.back()].nType != ettSB_OPEN) {
             //change token to nonAlpha
             tkn.nType = ettNonALPHA;
             continue;
          }
+         //else
          m_vTokens[vGroupStarts.back()].nTkIdxEnd = nIdx;
          vGroupStarts.pop_back();
-      }
          break;
       }//switch
    } //for
-   if(!vGroupStarts.empty()) {
-      const STexToken& tkUnmatched = m_vTokens[vGroupStarts.back()];
+   while(!vGroupStarts.empty()) {
+      STexToken& tkUnmatched = m_vTokens[vGroupStarts.back()];
+      if (tkUnmatched.nType == ettSB_OPEN) {
+         //change token to nonAlpha
+         tkUnmatched.nType = ettNonALPHA;
+         vGroupStarts.pop_back();
+         continue;
+      }
+      //else
       m_Error.nPosition = tkUnmatched.nPos;
-      m_Error.sError = "Unclosed opening token '" + TokenText(vGroupStarts.back()) + "' !";
+      m_Error.sError = "Unclosed opening token '" + TokenText(vGroupStarts.back()) + "'";
       return false;
    }
    return true;

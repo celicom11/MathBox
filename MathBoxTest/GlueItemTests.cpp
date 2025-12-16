@@ -8,8 +8,8 @@ namespace GlueItemTests
          STexGlue glueDef{ 0,0, 900.0f, 100.f, 100.f, 100.0f };  //finite glue [0,100,1000]
          CGlueItem gFinite(glueDef, CMathStyle()); //finite glue [0,100,1000]
          Assert::AreEqual(0, gFinite.Box().Top());
-         Assert::AreEqual(otfUnitsPerEm, gFinite.Box().Bottom());
-         Assert::AreEqual(otfAscent, gFinite.Box().BaselineY());
+         Assert::AreEqual(0, gFinite.Box().Bottom());
+         Assert::AreEqual(0, gFinite.Box().BaselineY());
          Assert::AreEqual(0, gFinite.Box().Left());
          Assert::AreEqual(100, gFinite.Box().Width());
          //half stretch
@@ -30,8 +30,8 @@ namespace GlueItemTests
          STexGlue glueDef{ 1,1, 3.0f, 2.f, 100.f, 100.0f };  //100 plus 3fil minus 2fil
          CGlueItem gFinite(glueDef, CMathStyle()); //finite glue [0,100,1000]
          Assert::AreEqual(0, gFinite.Box().Top());
-         Assert::AreEqual(otfUnitsPerEm, gFinite.Box().Bottom());
-         Assert::AreEqual(otfAscent, gFinite.Box().BaselineY());
+         Assert::AreEqual(0, gFinite.Box().Bottom());
+         Assert::AreEqual(0, gFinite.Box().BaselineY());
          Assert::AreEqual(0, gFinite.Box().Left());
          Assert::AreEqual(100, gFinite.Box().Width());
          //half stretch

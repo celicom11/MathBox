@@ -15,6 +15,7 @@
 #include <set>
 #include <unordered_map>
 #include <algorithm>
+#include <numeric>
 using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}

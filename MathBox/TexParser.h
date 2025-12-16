@@ -5,6 +5,7 @@ class CTokenizer;
 class CRawItem;
 class CMathModeProcessor;
 class CTextModeProcessor;
+class CEnvHelper;
 
 class CTexParser {
  //DATA
@@ -41,5 +42,6 @@ public:
    CMathItem* ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx);
 private:
    bool BuildGroups_();
-   bool OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ctxG, OUT bool& bCanBeEmpty);
+   bool OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG, 
+                     OUT bool& bCanBeEmpty, IN OUT CEnvHelper& envh);
 };

@@ -91,6 +91,18 @@
     <ClCompile Include="..\MathBox\TextCmdBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\TextAccentBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TableItem.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\EnvHelper.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TextSymBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

@@ -3,6 +3,7 @@
 #include "LMFontManager.h"
 #include "ContainerItem.h"
 #include "WordItem.h"
+#include "RawItem.h"
 //MathBuiders
 #include "AccentBuilder.h"
 #include "FractionBuilder.h"
@@ -11,7 +12,10 @@
 
 CLMFontManager g_LMFManager;
 IDWriteFactory* g_pDWriteFactory = nullptr;
-
+struct SMemGuard {
+   CMathItem* pItem;
+   ~SMemGuard() { delete pItem; }
+};
 
 namespace TexParserTests
 {
@@ -65,10 +69,7 @@ namespace TexParserTests
       TEST_METHOD(SimpleIndexed_Subscript_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_a$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(eacINDEXED == pRet->Type(), L"Resulting item is not INDEXED");
          CContainerItem* pCont = dynamic_cast<CContainerItem*>(pRet);
@@ -104,10 +105,7 @@ namespace TexParserTests
       TEST_METHOD(SimpleIndexed_Superscript_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x^2$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(eacINDEXED == pRet->Type(), L"Resulting item is not INDEXED");
          CContainerItem* pCont = dynamic_cast<CContainerItem*>(pRet);
@@ -144,10 +142,7 @@ namespace TexParserTests
       TEST_METHOD(Indexed_SubSuperscript_Inline) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$x_a^b$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(eacINDEXED == pRet->Type(), L"Resulting item is not INDEXED");
          Assert::AreEqual((int)etsText, (int)pRet->GetStyle().Style(), L"Base should have Text style");
@@ -191,10 +186,7 @@ namespace TexParserTests
          // Input: "$$x_{ab}$$"
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_{ab}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse succeeded
          Assert::IsNotNull(pRet, L"Parser failed!");
@@ -259,10 +251,7 @@ namespace TexParserTests
          // Input: "$$x_a_b$$" -> parsed as (x_a)_b
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_a_b$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
@@ -288,10 +277,7 @@ namespace TexParserTests
       TEST_METHOD(Indexed_GeneralizedFraction_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$_a^b$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse should succeed
          Assert::IsNotNull(pRet, L"Parse should succeed for _a^b");
@@ -325,10 +311,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$${X_Y^Z}_A$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet, L"Parse should succeed");
          Assert::IsTrue(parser.LastError().sError.empty());
@@ -383,10 +366,7 @@ namespace TexParserTests
       TEST_METHOD(MathInText_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("Text $E=mc^2$ more");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          // Parse should succeed
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(parser.LastError().sError.empty(), L"Unexpected parse error");
@@ -423,10 +403,7 @@ namespace TexParserTests
       TEST_METHOD(MultipleTerms_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$a+b-c$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          // Parse should succeed
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(parser.LastError().sError.empty(), L"Unexpected parse error");
@@ -459,10 +436,7 @@ namespace TexParserTests
       TEST_METHOD(NestedGroups_OptimizedToSingleItem) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$${[a]}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse should succeed
          Assert::IsNotNull(pRet, L"Parse should succeed for nested groups");
@@ -495,10 +469,7 @@ namespace TexParserTests
       TEST_METHOD(Error_MissingSubscriptArgument_EndOfInput) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
@@ -520,10 +491,7 @@ namespace TexParserTests
       TEST_METHOD(Error_MissedSubSuperscript) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x_^y$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
@@ -545,10 +513,7 @@ namespace TexParserTests
       TEST_METHOD(Error_MissedSuperSubscript) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$x^_y$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          // Parse should fail
          Assert::IsNull(pRet, L"Parse should fail for missing subscript argument");
          auto err = parser.LastError();
@@ -678,10 +643,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$\\frac{\\frac{a}{b}}{c}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet, L"Parse should succeed");
          Assert::IsTrue(parser.LastError().sError.empty());
@@ -705,10 +667,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$\\frac{a}{b}^2$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet);
          Assert::IsTrue(parser.LastError().sError.empty());
@@ -734,10 +693,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$\\sqrt{x}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse succeeded
          Assert::IsNotNull(pRet, L"Parse should succeed");
@@ -763,10 +719,7 @@ namespace TexParserTests
       TEST_METHOD(RadicalBuilder_Degree_Display) {
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$\\sqrt[3]{A}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
          Assert::IsTrue(eacRADICAL == pRet->Type(), L"Resulting item is not RADICAL");
          // Ret overall style: Display (from $$)
@@ -809,10 +762,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$\\sqrt[\\sqrt{2}]{x}$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse succeeded
          Assert::IsNotNull(pRet, L"Parse should succeed");
@@ -864,10 +814,7 @@ namespace TexParserTests
 
          CTexParser parser;
          CMathItem* pRet = parser.Parse("$$\\ocirc{a}$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          // Parse succeeded
          Assert::IsNotNull(pRet, L"Parse should succeed");
@@ -898,10 +845,7 @@ namespace TexParserTests
          parser.SetDocumentFontSizePts(10.f);
 
          CMathItem* pRet = parser.Parse("$$a\\hskip 10pt b$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet, L"Parse should succeed");
          Assert::IsTrue(parser.LastError().sError.empty(), L"No parse errors");
@@ -935,10 +879,7 @@ namespace TexParserTests
          // (Assuming you have a way to set this)
 
          CMathItem* pRet = parser.Parse("$$\\hskip 2em$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet);
 
@@ -957,10 +898,7 @@ namespace TexParserTests
          parser.SetDocumentFontSizePts(10.f);
 
          CMathItem* pRet = parser.Parse("$$\\hskip 3ex$$");
-         struct SMemGuard {
-            CMathItem* pItem;
-            ~SMemGuard() { delete pItem; }
-         } mg{ pRet };
+         SMemGuard mg{ pRet };
 
          Assert::IsNotNull(pRet);
 
@@ -970,6 +908,24 @@ namespace TexParserTests
          float fExpected = DIPS2EM(10.0f, PTS2DIPS(15.0f));
 
          Assert::AreEqual(fExpected, pGlue->fNorm, 0.01f, L"3ex should equal ~1.5em (15pts) at 10pt font");
+      }
+   };
+   TEST_CLASS(RawItemTests)
+   {
+   public:
+      TEST_METHOD(TryAppendWord_ReturnTrue) {
+         //emulate a\'{a}b
+         CWordItem* pWordItem1 = new CWordItem(0, CMathStyle());
+         pWordItem1->SetText(L"a");
+         CWordItem* pWordItem2 = new CWordItem(0, CMathStyle());
+         pWordItem2->SetText({0x00E0});
+         CWordItem* pWordItem3 = new CWordItem(0, CMathStyle());
+         pWordItem3->SetText(L"b");
+         //SMemGuard mg1{ pWordItem1 };
+         CRawItem ritem{ 1, 1, pWordItem1 };
+         Assert::IsTrue(ritem.TryAppendWord(pWordItem2,2,2));
+         Assert::IsTrue(ritem.TryAppendWord(pWordItem3,3,3));
+         delete ritem.Base();
       }
 
    };
