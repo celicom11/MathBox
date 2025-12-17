@@ -14,7 +14,7 @@ namespace {
    }
 }
 
-bool CEnvHelper::Init(CTexParser& parser, int nTkIdx) {
+bool CEnvHelper::Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx) {
    const STexToken* pToken = parser.GetToken(nTkIdx);
    //nTkIdx must be ettCOMMAND, "\\begin"
    _ASSERT_RET(pToken && pToken->nType == ettCOMMAND, false);
@@ -31,7 +31,7 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx) {
       return false;
    }
    m_nStartTkIdx = nTkIdx + 4; //default: next token after \begin{env}
-   if (m_sEnv == "array" || m_sEnv == "subarray") {
+   if (m_sEnv == "array" || m_sEnv == "darray" || m_sEnv == "subarray") {
       if (!InitArrayColumnSpecs_(parser, nTkIdx + 4))
          return false; //error set by InitArrayColumnSpecs_
       if (m_sEnv == "subarray") {
@@ -43,12 +43,24 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx) {
          m_vVLines.clear(); //ignore vlines
       }
    }
-   else if (m_sEnv == "cases" || m_sEnv == "rcases") {
+   else if (m_sEnv == "cases" || m_sEnv == "rcases" || m_sEnv == "dcases" || m_sEnv == "drcases") {
       m_vColAlignments.push_back(ecaLeft);
       m_vColAlignments.push_back(ecaLeft);
    }
    else
       m_vColAlignments.push_back(ecaCenter); //default matrix alignment
+   //set context stles
+   if (m_sEnv == "array" || m_sEnv == "cases" || m_sEnv == "rcases") {
+      if (ctx.currentStyle.Style() == etsDisplay)
+         ctx.currentStyle.SetStyle(etsText); //cases use text style even in display math
+   }
+   else if (m_sEnv == "darray" || m_sEnv == "dcases" || m_sEnv == "drcases") {
+      ctx.currentStyle.SetStyle(etsDisplay); //force display math
+   }
+   else if (m_sEnv == "smallmatrix" || m_sEnv == "subarray") {
+      if(ctx.currentStyle.Style() < etsScript)
+         ctx.currentStyle.ToSubscriptStyle();
+   }
    return true;
 }
 bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {
@@ -121,7 +133,7 @@ bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {
 }
 bool CEnvHelper::InitEnvDelimiters_(OUT string& sError) {
    
-   if (m_sEnv == "array" || m_sEnv == "matrix" || 
+   if (m_sEnv == "darray" || m_sEnv == "array" || m_sEnv == "matrix" ||
       m_sEnv=="smallmatrix" || m_sEnv == "subarray")
       return true;//no delimiters, no checks
    if (m_sEnv == "pmatrix" )
@@ -134,9 +146,9 @@ bool CEnvHelper::InitEnvDelimiters_(OUT string& sError) {
       m_cLeftDelim = m_cRightDelim = '|';
    else if (m_sEnv == "Vmatrix")
       m_cLeftDelim = m_cRightDelim = 'd'; //double vertical line
-   else if (m_sEnv == "cases")
+   else if (m_sEnv == "cases" || m_sEnv == "dcases")
       m_cLeftDelim = '{', m_cRightDelim = 0;
-   else if (m_sEnv == "rcases")
+   else if (m_sEnv == "rcases" || m_sEnv == "drcases")
       m_cLeftDelim = 0, m_cRightDelim = '}';
    else {
       sError = "Unsupported environment '" + m_sEnv + "'";

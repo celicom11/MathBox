@@ -27,12 +27,8 @@ public:
    char RightDelim() const { return m_cRightDelim; }
 
    bool Enabled() const { return !m_sEnv.empty();}
-   bool WantsScriptStyle() const {
-      return m_sEnv == "smallmatrix" || m_sEnv == "subarray";
-   }
 //METHODS
-   bool Init(CTexParser& parser, int nTkIdx); //nTkIdx must be ettCOMMAND, "\\begin"
-   //CMathItem* PackItems(const SEnvTable& envTable, const CMathStyle& style, float fUserScale);
+   bool Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx); //nTkIdx must be ettCOMMAND, "\\begin"
 private:
    bool InitArrayColumnSpecs_(CTexParser& parser, int nIdxColSpec);
    bool InitEnvDelimiters_(OUT string& sError); //also, checks env validity

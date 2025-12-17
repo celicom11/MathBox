@@ -117,7 +117,7 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
          ctxG.bInLeftRight = true;
       }
       else if (sCmd == "\\begin") {
-         if (!envh.Init(*this, nTkIdx)) {
+         if (!envh.Init(*this, nTkIdx, ctxG)) {
             if (m_Error.sError.empty()) {
                _ASSERT(0);//snbh!
                m_Error.nPosition = tkOpen.nPos;
@@ -125,8 +125,6 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
             }
             return false;
          }
-         if (envh.WantsScriptStyle() && ctxG.currentStyle.Style() < etsScript)
-            ctxG.currentStyle.ToSubscriptStyle();
       }
       else 
          _ASSERT_RET(0, false); //snbh!
