@@ -90,6 +90,7 @@ enum EnumMathItemType {
    eacHDELIM,           // Ord: container item with horizontal bracket + parts
    eacTABLE,            // Ord: special container item for matrices and arrays
    //eacOverlay,        // container item with a base + cancel,not, cross, etc. fillers
+   eacSTRUT,
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -229,16 +230,18 @@ public:
 //   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
 //};
 // vertical strut item
-//class CStrutItem : public CMathItem {
-//public:
-//   //CTOR/DTOR
-//   CStrutItem(const CMathStyle& style, float fUserScale = 1.0f) : CMathItem(eacSTRUT, style, fUserScale) {
-//      m_Box.nHeight = F2NEAREST(1000 * fUserScale * style.StyleScale());
-//      m_Box.nAscent = F2NEAREST(750 * fUserScale * style.StyleScale()); //~average; 75% ascent
-//   }
-//   //CMathItem implementation
-//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
-//};
+class CStrutItem : public CMathItem {
+public:
+   //CTOR/DTOR
+   CStrutItem(IDocParams& doc, const CMathStyle& style, float fUserScale = 1.0f) : 
+      CMathItem(doc, eacSTRUT, style, fUserScale) {
+      float fScale = fUserScale * style.StyleScale();
+      m_Box.nHeight = F2NEAREST(otfUnitsPerEm * fScale);
+      m_Box.nAscent = F2NEAREST(otfUnitsPerEm * 0.75f * fScale); //~average; 75% ascent
+   }
+   //CMathItem implementation
+   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
+};
 //
 
 enum EnumDelimType {

@@ -285,12 +285,14 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       return pHBox;
    }
    //else //multiline
-   int32_t nInterline = 200; // TODO: inter-line spacing
+   const int32_t nInterline = m_Parser.Doc().DefaultLineSkipEm();
    CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
-      if (vLine.empty())
-         continue; //todo!
-      if(vLine.size() == 1)
+      if (vLine.empty()) {
+         CStrutItem* pStrut = new CStrutItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
+         pRet->AddBox(pStrut, 0, pRet->Box().Bottom() + nInterline);
+      }
+      else if(vLine.size() == 1)
          pRet->AddBox(vLine[0], 0, pRet->Box().Bottom() + nInterline);
       else { //pack line items
          CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);

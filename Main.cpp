@@ -95,7 +95,8 @@ class DemoApp : public IDocParams,
    CD2DFontManager   m_D2DFontManager;
    CLMMFont          m_LMMFont;
    CMathItem*        m_pMainBox{nullptr};
-   //single document params
+   //single/current document params
+   int32_t           m_nLineSkipFDU{ 200 };
    uint32_t          m_clrText{ 0x004F00 };
    uint32_t          m_clrBkg{ 0xFFFFFF };
    uint32_t          m_clrSel{ 0xFF4FFF };
@@ -190,6 +191,7 @@ public:
    IFontManager& FontManager() override { return m_D2DFontManager; }
    ILMFManager& LMFManager() override { return m_LMMFont; }
    float DefaultFontSizePts() override { return m_fFontSizePts; }
+   int32_t DefaultLineSkipEm() override { return m_nLineSkipFDU; }
    uint32_t ColorText() override { return m_clrText; }
    uint32_t ColorBkg() override { return m_clrBkg;}
    uint32_t ColorSelection() override {return m_clrSel;}

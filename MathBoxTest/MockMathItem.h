@@ -14,6 +14,9 @@ public:
    float DefaultFontSizePts() override {
       return 12.0f;
    }
+   int32_t DefaultLineSkipEm() override {
+      return 200;
+   }
    uint32_t ColorBkg() override { return 0; }
    uint32_t ColorSelection() override { return 0; }
    //Text color ~= Foreground color!
