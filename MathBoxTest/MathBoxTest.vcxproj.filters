@@ -97,6 +97,15 @@
     <ClCompile Include="..\MathBox\TextSymBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="..\D2DFontManager.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\D2DRenderer.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LMMFont.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

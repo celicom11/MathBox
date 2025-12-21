@@ -20,6 +20,12 @@ using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}
 #define CHECK_HR(hr) {if(FAILED(hr)){_ASSERT(0);return hr;}}
+template <class T> void SafeRelease(T** ppT) {
+   if (*ppT) {
+      (*ppT)->Release();
+      *ppT = nullptr;
+   }
+}
 
 #include <CppUnitTest.h>
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;

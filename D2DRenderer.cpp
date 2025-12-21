@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "D2DRenderer.h"
+#include "MathBox\LMMConsts.h"
 
 HRESULT CD2DRenderer::Initialize(HWND hwnd) {
    HRESULT hr = ::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
@@ -69,7 +70,7 @@ void CD2DRenderer::DrawGlyphRun(int32_t nFontIdx, uint32_t nCount, const uint16_
 
    DWRITE_GLYPH_RUN glyphRun = {};
    glyphRun.fontFace = pFontFace;
-   glyphRun.fontEmSize = m_FontProvider.GetFontSizePts() * fScale;
+   glyphRun.fontEmSize = PTS2DIPS(m_FontProvider.GetFontSizePts() * fScale);
    glyphRun.glyphCount = nCount;
    glyphRun.glyphIndices = pIndices;
    glyphRun.glyphAdvances = nullptr; //use font advances

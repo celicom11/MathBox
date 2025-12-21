@@ -127,7 +127,7 @@ public:
       }
       // Apply cfg:
       cfgr.GetFVal(L"FontSizePts", m_fFontSizePts);
-      cfgr.GetHVal(L"ColorText", m_clrText);
+      cfgr.GetHVal(L"ColorText", m_clrText); m_d2dr.SetTextColor(m_clrText);
       cfgr.GetHVal(L"ColorBkg", m_clrBkg);
       cfgr.GetHVal(L"ColorSelect", m_clrSel);
 
@@ -193,7 +193,10 @@ public:
    uint32_t ColorText() override { return m_clrText; }
    uint32_t ColorBkg() override { return m_clrBkg;}
    uint32_t ColorSelection() override {return m_clrSel;}
-   void SetColorText(uint32_t clrText) override { m_clrText = clrText; }
+   void SetColorText(uint32_t clrText) override { 
+      m_clrText = clrText; 
+      m_d2dr.SetTextColor(clrText);
+   }
  //IFontProvider_
    uint32_t FontCount() const override { return m_D2DFontManager.FontCount(); }
    IDWriteFontFace* GetDWFont(int32_t nIdx) const { 
