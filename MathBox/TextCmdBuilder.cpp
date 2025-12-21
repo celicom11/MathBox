@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "TextCmdBuilder.h"
-#include "LMFontManager.h"
+#include "FontStyleHelper.h"
 
 bool CTextCmdBuilder::CanTakeCommand(PCSTR szCmd) const {
    // text mode + font commands: \text,\textit,etc.
@@ -10,7 +10,7 @@ bool CTextCmdBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (!*szCmd)
       return false;
    STextFontStyle tfStyle; //dummy
-   return CLMFontManager::_GetTextFontStyle(szCmd, tfStyle);
+   return FontStyleHelper::_GetTextFontStyle(szCmd, tfStyle);
 }
 CMathItem* CTextCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);

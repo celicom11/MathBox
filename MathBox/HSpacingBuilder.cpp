@@ -19,17 +19,17 @@ CMathItem* CHSpacingBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    
    CMathItem* pRet = nullptr;
    if (sCmd[1] == ' ' || sCmd == "\\quad") //1em
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(18),MU2EM(18) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), {0,0,0.0f,0.0f,MU2EM(18),MU2EM(18)}, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd[1] == ',')//3mu
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(3),MU2EM(3) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(3),MU2EM(3) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd[1] == ':')//4mu
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(4),MU2EM(4) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(4),MU2EM(4) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd[1] == ';')//5mu
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(5),MU2EM(5) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(5),MU2EM(5) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd[1] == '!')//-3mu
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(-3),MU2EM(-3) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(-3),MU2EM(-3) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd == "\\qquad")//2 em
-      pRet = new CGlueItem({ 0,0,0.0f,0.0f,MU2EM(36),MU2EM(36) }, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(36),MU2EM(36) }, ctx.currentStyle, ctx.fUserScale);
    else if (sCmd == "\\hskip") {
       STexGlue glue;
       if (!pParser->ConsumeHSkipGlue(glue)) {
@@ -37,7 +37,7 @@ CMathItem* CHSpacingBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
             pParser->SetError("Failed to parse \\hskip arguments");
          return nullptr;
       }
-      pRet = new CGlueItem(glue, ctx.currentStyle, ctx.fUserScale);
+      pRet = new CGlueItem(pParser->Doc(), glue, ctx.currentStyle, ctx.fUserScale);
    }
    return pRet;
 }

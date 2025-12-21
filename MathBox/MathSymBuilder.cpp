@@ -1,9 +1,7 @@
 #include "stdafx.h"
 #include "MathSymBuilder.h"
-#include "LMFontManager.h"
+#include "FontStyleHelper.h"
 #include "WordItem.h"
-
-extern CLMFontManager g_LMFManager;
 
 namespace {
    inline bool _IsSpecialChar(char cChar) {
@@ -17,28 +15,6 @@ namespace {
       }
       return false;
    }
-   // BUILDERS
-   CWordItem* _BuildMathOperator(PCSTR szOp, const CMathStyle& style, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style, eacMATHOP, fUserScale);
-      //TODO:liminf->lim inf,limsup->lim sup
-      pRet->SetTextA(szOp);
-      return pRet;
-   }
-   CWordItem* _BuildLMMSymbol(const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
-      EnumTexAtom eAtom = etaORD;//default
-      switch (pLmmGlyph->eClass) {
-      case egcLOP:   eAtom = etaOP; break;
-      case egcBin:   eAtom = etaBIN; break;
-      case egcRel:   eAtom = etaREL; break;
-      case egcOpen:  eAtom = etaOPEN; break;
-      case egcClose: eAtom = etaCLOSE; break;
-      case egcPunct: eAtom = etaPUNCT; break;
-      }
-      pRet->SetGlyphIndexes({ pLmmGlyph->nIndex });
-      pRet->SetAtom(eAtom);
-      return pRet;
-   }
 }
 
 bool CMathSymBuilder::CanTakeCommand(PCSTR szCmd) const {
@@ -46,7 +22,7 @@ bool CMathSymBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (*szCmd == '\\')
       ++szCmd;
    return _IsSpecialChar(*szCmd) || _IsMathOp(szCmd) || 
-      g_LMFManager.GetLMMGlyphByCmd(szCmd) != nullptr;
+      m_Doc.LMFManager().GetLMMGlyphByCmd(szCmd) != nullptr;
 }
 
 CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
@@ -57,18 +33,18 @@ CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    SParserContext ctx(pParser->GetContext());
    CMathItem* pRet = nullptr;
    SMathFontStyle mfStyle;
-   if (!ctx.sFontCmd.empty() && !g_LMFManager._GetMathFontStyle(ctx.sFontCmd, mfStyle)) {
+   if (!ctx.sFontCmd.empty() && !FontStyleHelper::_GetMathFontStyle(ctx.sFontCmd, mfStyle)) {
       if (!pParser->HasError())
          pParser->SetError("Unknown font '" + ctx.sFontCmd + "'");
       return nullptr;
 
    }
    if (_IsSpecialChar(*szCmd)) {
-      CWordItem* pRet = new CWordItem(mfStyle.nLetterDigitsFont, ctx.currentStyle, eacWORD, ctx.fUserScale);
+      CWordItem* pRet = new CWordItem(m_Doc, mfStyle.nLetterDigitsFont, ctx.currentStyle, eacWORD, ctx.fUserScale);
       pRet->SetText({ UINT32(*szCmd) });
    }
    else if (_IsMathOp(szCmd)) 
-      pRet = _BuildMathOperator(szCmd, ctx.currentStyle, ctx.fUserScale);
+      pRet = BuildMathOperator_(szCmd, ctx.currentStyle, ctx.fUserScale);
    else {
       //map LMMSym WITH font_cmd first
       const SLMMGlyph* pLmmGlyph = nullptr;
@@ -79,15 +55,38 @@ CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
             sArg.push_back('}');
             ++szNextBracket;
          }
-         pLmmGlyph = g_LMFManager.GetLMMGlyphByCmd(sArg.c_str());
+         pLmmGlyph = m_Doc.LMFManager().GetLMMGlyphByCmd(sArg.c_str());
       }
       if (!pLmmGlyph) // try sym w/o font decoration
-         pLmmGlyph = g_LMFManager.GetLMMGlyphByCmd(szCmd);
+         pLmmGlyph = m_Doc.LMFManager().GetLMMGlyphByCmd(szCmd);
       _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//snbh!
-      pRet = _BuildLMMSymbol(pLmmGlyph, ctx.currentStyle, ctx.fUserScale);
+      pRet = BuildLMMSymbol_(pLmmGlyph, ctx.currentStyle, ctx.fUserScale);
 
    }
 
    return pRet;
 }
+// BUILDERS
+CWordItem* CMathSymBuilder::BuildMathOperator_(PCSTR szOp, const CMathStyle& style, float fUserScale) {
+   CWordItem* pRet = new CWordItem(m_Doc, FONT_LMM, style, eacMATHOP, fUserScale);
+   //TODO:liminf->lim inf,limsup->lim sup
+   pRet->SetTextA(szOp);
+   return pRet;
+}
+CWordItem* CMathSymBuilder::BuildLMMSymbol_(const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale) {
+   CWordItem* pRet = new CWordItem(m_Doc, FONT_LMM, style, eacWORD, fUserScale);
+   EnumTexAtom eAtom = etaORD;//default
+   switch (pLmmGlyph->eClass) {
+   case egcLOP:   eAtom = etaOP; break;
+   case egcBin:   eAtom = etaBIN; break;
+   case egcRel:   eAtom = etaREL; break;
+   case egcOpen:  eAtom = etaOPEN; break;
+   case egcClose: eAtom = etaCLOSE; break;
+   case egcPunct: eAtom = etaPUNCT; break;
+   }
+   pRet->SetGlyphIndexes({ pLmmGlyph->nIndex });
+   pRet->SetAtom(eAtom);
+   return pRet;
+}
+
 

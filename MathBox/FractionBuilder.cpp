@@ -36,16 +36,17 @@ CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
 
    // 3. Build fraction item
    ctx = pParser->GetContext(); //reset
-   return _BuildFraction(ctx.currentStyle, ctx.fUserScale, pNumerator, pDenominator);
+   return _BuildFraction(pParser->Doc(), ctx.currentStyle, ctx.fUserScale, pNumerator, pDenominator);
 }
 
-CMathItem* CFractionBuilder::_BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom) {
+CMathItem* CFractionBuilder::_BuildFraction(IDocParams& doc, const CMathStyle& style, float fUserScale, 
+                                             CMathItem* pNum, CMathItem* pDenom) {
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
-   CContainerItem* pRetBox = new CContainerItem(eacVBOX, style, etaORD);
+   CContainerItem* pRetBox = new CContainerItem(doc, eacVBOX, style, etaORD);
    //1. Build fraction rule - it is an anchor!
    CFillerItem* pFracRule =
-      new CFillerItem(max(pNum->Box().Width(), pDenom->Box().Width()), F2NEAREST(otfFractionRuleThickness * fScale));
+      new CFillerItem(doc, max(pNum->Box().Width(), pDenom->Box().Width()), F2NEAREST(otfFractionRuleThickness * fScale));
    pRetBox->AddBox(pFracRule, 0, 0);
    //2. Params to calculate the required gaps
    const int32_t nMinNumGap = bDisplayStyle ? otfFractionNumDisplayStyleGapMin : otfFractionNumeratorGapMin;

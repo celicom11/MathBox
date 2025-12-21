@@ -10,8 +10,8 @@ class CGlueItem : public CMathItem {
    STexGlue m_Glue;            //TeX glue info
 public:
 //CTOR/DTOR
-   CGlueItem(const STexGlue& glue, const CMathStyle& style, float fUserScale = 1.0f) :
-      CMathItem(eacGLUE, style, fUserScale), m_Glue(glue) {
+   CGlueItem(IDocParams& doc, const STexGlue& glue, const CMathStyle& style, float fUserScale = 1.0f) :
+      CMathItem(doc, eacGLUE, style, fUserScale), m_Glue(glue) {
       float fScale = m_fUserScale * m_Style.StyleScale();
       m_Box.nHeight = 0; //F2NEAREST(otfUnitsPerEm * fScale); //fontsize in em = otfUnitsPerEm units
       m_Box.nAscent = 0; //F2NEAREST(otfAscent * fScale);
@@ -32,7 +32,7 @@ public:
       UpdateBox_();
    }
    void Select(bool bSelect) override {} //ntd
-   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {} //ntd
+   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {} //ntd
 private:
    static MuSkipType _GetMuSkipType_(const CMathStyle& style, CMathItem* pPrev, CMathItem* pNext);
    void UpdateBox_();

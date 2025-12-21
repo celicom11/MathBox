@@ -25,7 +25,7 @@ namespace { //static helpers
    }
 }
 // CTexParser
-CTexParser::CTexParser() {
+CTexParser::CTexParser(IDocParams& doc):m_Doc(doc) {
    m_pMathProcessor = new CMathModeProcessor(*this);
    m_pTextProcessor = new CTextModeProcessor(*this);
 }

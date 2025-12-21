@@ -15,7 +15,7 @@ public:
    CRawItem(int nTkIdxStart, int nTkIdxEnd, CMathItem* pBase = nullptr):
       m_nTkIdxStart(nTkIdxStart), m_nTkIdxEnd(nTkIdxEnd), m_pBase(pBase) {};
    ~CRawItem() = default;
-   bool InitDelimiter(const string& sDelim, EnumDelimType edt);
+   bool InitDelimiter(ILMFManager& lmfm, const string& sDelim, EnumDelimType edt);
    void InitAmp() { m_nUnicode = 0x26; }
    void InitNewLine() { m_nUnicode = 0xA; }
    void InitHLine() { m_nUnicode = '-'; }
@@ -41,5 +41,5 @@ public:
    bool AddPrime(int nTkIdxStart); //"^\\prime", can be multiple!
    bool AddSuperScript(CMathItem* pSuperScript, int nTkIdxStart, int nTkIdxEnd);
    bool TryAppendWord(CMathItem* pWordItem, int nTkIdxStart, int nTkIdxEnd);
-   CMathItem* BuildItem(const CMathStyle& style, float fUserScale, int32_t nSize = 0) const;
+   CMathItem* BuildItem(IDocParams& doc, const CMathStyle& style, float fUserScale, int32_t nSize = 0) const;
 };

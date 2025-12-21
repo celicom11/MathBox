@@ -4,7 +4,6 @@
 #include "RawItem.h"
 #include "Tokenizer.h"
 #include "ParserAdapter.h"
-#include "LMFontManager.h"
 #include "HBoxItem.h"
 #include "ExtGlyphBuilder.h"
 #include "EnvHelper.h"
@@ -64,7 +63,7 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new COpenCloseBuilder);
    RegisterBuilder(new CScaleCmdBuilder);
    RegisterBuilder(new CTextCmdBuilder);
-   RegisterBuilder(new CMathSymBuilder);//MUST BE LAST!
+   RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
 CMathModeProcessor::~CMathModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
@@ -116,7 +115,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       vGroupItems.emplace_back(nIdx + 1, nIdx + 1);
       const STexToken* pNext = GetToken(nIdx + 1);
       if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
-         !vGroupItems.back().InitDelimiter(TokenText(nIdx + 1), edtOpen)
+         !vGroupItems.back().InitDelimiter(m_Parser.Doc().LMFManager(), TokenText(nIdx + 1), edtOpen)
          ) {
          m_Parser.SetError(nIdx + 1, "Missing or bad delimiter after \\left");
          return nullptr;
@@ -174,7 +173,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                   const STexToken* pNext = GetToken(nIdxG);
                   if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
-                     !vGroupItems.back().InitDelimiter(TokenText(nIdxG), edtFence)
+                     !vGroupItems.back().InitDelimiter(m_Parser.Doc().LMFManager(), TokenText(nIdxG), edtFence)
                      )
                      m_Parser.SetError(nIdxG, "Missing or bad delimiter after '\\middle'");
                   ++nIdxG; // skip delimiter
@@ -246,7 +245,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       vGroupItems.emplace_back(nIdxEnd + 1, nIdxEnd + 1);
       const STexToken* pNext = GetToken(nIdxEnd + 1);
       if (!pNext || (pNext->nType != ettNonALPHA && pNext->nType != ettCOMMAND) ||
-         !vGroupItems.back().InitDelimiter(TokenText(nIdxEnd + 1), edtClose)
+         !vGroupItems.back().InitDelimiter(m_Parser.Doc().LMFManager(), TokenText(nIdxEnd + 1), edtClose)
          ) {
          m_Parser.SetError(nIdxEnd + 1, "Missing or bad delimiter after \\right");
          return nullptr;
@@ -324,13 +323,12 @@ CMathItem* CMathModeProcessor::ProcessAlnum_(IN OUT int& nIdx, const SParserCont
    string sText = TokenText(nIdx);
    CMathItem* pRet = nullptr;
    if (CWordItemBuilder::_IsNumber(sText.c_str()))
-      pRet = CWordItemBuilder::BuildMathWord(ctx.sFontCmd, sText, true, ctx.currentStyle, ctx.fUserScale);
+      pRet = CWordItemBuilder::_BuildMathWord(m_Parser.Doc(), sText, true, ctx);
    else if(sText.size() > 1) {
       // word to be split to chars in Math Mode!
-      CHBoxItem *pHBox = new CHBoxItem(ctx.currentStyle);
+      CHBoxItem *pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
       for (char cChar : sText) {
-         CMathItem* pWord = CWordItemBuilder::BuildMathWord(ctx.sFontCmd,
-            string(1, cChar), false, ctx.currentStyle, ctx.fUserScale);
+         CMathItem* pWord = CWordItemBuilder::_BuildMathWord(m_Parser.Doc(), string(1, cChar), false, ctx);
          pHBox->AddItem(pWord);
       }
       pHBox->Update();
@@ -338,7 +336,7 @@ CMathItem* CMathModeProcessor::ProcessAlnum_(IN OUT int& nIdx, const SParserCont
       pRet = pHBox;
    }
    else //single-char word
-      pRet = CWordItemBuilder::BuildMathWord(ctx.sFontCmd, sText, false, ctx.currentStyle, ctx.fUserScale);
+      pRet = CWordItemBuilder::_BuildMathWord(m_Parser.Doc(), sText, false, ctx);
    if(!pRet)
       m_Parser.SetError(nIdx, "Failed to build alphanumeric item");
    else
@@ -354,7 +352,7 @@ CMathItem* CMathModeProcessor::ProcessNonAlnum_(IN OUT int& nIdx, const SParserC
       _ASSERT(sText[0] == '\\');
       sText = sText[1];
    }
-   pRet = CWordItemBuilder::BuildMathWord(ctx.sFontCmd, sText, false, ctx.currentStyle, ctx.fUserScale);
+   pRet = CWordItemBuilder::_BuildMathWord(m_Parser.Doc(), sText, false, ctx);
    if (!pRet)
       m_Parser.SetError(nIdx, "Failed to build non-alphanumeric character");
    else
@@ -374,7 +372,7 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          vvLines.emplace_back();    // goto new line
       else {
          _ASSERT(ritem.HasMathItem());
-         CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+         CMathItem* pItem = ritem.BuildItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
          if (!pItem) {
             _ASSERT(0);
             m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
@@ -388,7 +386,7 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       if (vvLines[0].size() == 1)
          return vvLines[0][0];//just 1 item
       //else, pack items to HBox
-      CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+      CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
       for (CMathItem* pItem : vvLines[0]) {
          pHBox->AddItem(pItem);
       }
@@ -397,14 +395,14 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       return pHBox;
    }
    //else //multiline
-   CContainerItem* pRet = new CContainerItem(eacVBOX, ctx.currentStyle);
+   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty())
          continue; //todo!
       if(vLine.size() == 1)
          pRet->AddBox(vLine[0], 0, pRet->Box().Bottom());
       else {
-         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
          for (CMathItem* pItem : vLine) {
             pHBox->AddItem(pItem);
          }
@@ -428,7 +426,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_( vector<CRawItem>& vGrou
       }
       if (!ritem.HasMathItem())
          continue; //ignore AMP or NewLine
-      CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+      CMathItem* pItem = ritem.BuildItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
       if (!pItem) {
          _ASSERT(0); //snbh!
          m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
@@ -455,12 +453,12 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_( vector<CRawItem>& vGrou
       }
    }
    const int32_t nSize = box.Height();
-   CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+   CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
    // pack to one line + build missed delimiters
    int nItemIdx = 0;
    for (CRawItem& ritem : vGroupItems) {
       if (ritem.IsDelimiter())
-         vItems[nItemIdx] = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale, nSize);
+         vItems[nItemIdx] = ritem.BuildItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale, nSize);
       else if (!ritem.HasMathItem())
          continue; //ignore AMP or NewLine
       if(vItems[nItemIdx])
@@ -486,7 +484,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
             if (vCell.size() == 1)
                table.vRows.back().vCells.push_back(vCell[0]);
             else { //pack items to hbox
-               CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+               CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
                for (CMathItem* pItem : vCell) {
                   pHBox->AddItem(pItem);
                }
@@ -518,7 +516,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
       }
       else {
          _ASSERT(ritem.HasMathItem());
-         CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+         CMathItem* pItem = ritem.BuildItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
          if (!pItem) {
             _ASSERT(0);
             m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
@@ -532,7 +530,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
       if (vCell.size() == 1)
          table.vRows.back().vCells.push_back(vCell[0]);
       else { //pack items to hbox
-         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
          for (CMathItem* pItem : vCell) {
             pHBox->AddItem(pItem);
          }
@@ -549,7 +547,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
    }
    vector<char> vHLines(table.vRows.size(),'\0');
    //build Tabel Item
-   CTableItem* pTable = new CTableItem(ctx.currentStyle);
+   CTableItem* pTable = new CTableItem(m_Parser.Doc(), ctx.currentStyle);
    if( !pTable->Init( envh.ColAlignments(), envh.VertLines(),table) ) {
       _ASSERT(0);//snbh!
       delete pTable;
@@ -567,7 +565,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
          sDelim = "\\|"; //double pipe
       else         
          sDelim.append(1,envh.LeftDelim());
-      vLRItems.back().InitDelimiter(sDelim, edtOpen);
+      vLRItems.back().InitDelimiter(m_Parser.Doc().LMFManager(), sDelim, edtOpen);
       //table item
       vLRItems.emplace_back(0, 0, pTable);
       //right delim
@@ -578,7 +576,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
          sDelim = "\\|"; //double pipe
       else
          sDelim = string(1, envh.RightDelim());
-      vLRItems.back().InitDelimiter(sDelim, edtClose);
+      vLRItems.back().InitDelimiter(m_Parser.Doc().LMFManager(), sDelim, edtClose);
       return PackGroupItemsLeftRight_(vLRItems, ctx);
    }
    //else

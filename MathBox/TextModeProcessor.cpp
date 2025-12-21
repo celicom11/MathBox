@@ -4,7 +4,6 @@
 #include "RawItem.h"
 #include "Tokenizer.h"
 #include "ParserAdapter.h"
-#include "LMFontManager.h"
 #include "HBoxItem.h"
 #include "WordItemBuilder.h"
 // TextMode MathItem Builders
@@ -161,7 +160,8 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
                   glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
                   glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-                  CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
+                  CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle, 
+                     ctxG.fUserScale);
                   vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx, pSpaceGlue);
                }
                else if (pCurToken->nType == ettCOMMAND || pCurToken->nType == ettALNUM || 
@@ -187,7 +187,7 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
          glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
          glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
          glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-         CGlueItem* pSpaceGlue = new CGlueItem(glueSpace, ctxG.currentStyle, ctxG.fUserScale);
+         CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle, ctxG.fUserScale);
          vGroupItems.emplace_back(vGroupItems.back().TkIdxEnd(), vGroupItems.back().TkIdxEnd(), pSpaceGlue);
       }
    }
@@ -244,7 +244,7 @@ CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SPars
       _ASSERT(sText.size() == 2);
       sText = sText[1];
    }
-   CMathItem* pRet = CWordItemBuilder::BuildText(ctx.sFontCmd, sText, ctx.currentStyle, ctx.fUserScale);
+   CMathItem* pRet = CWordItemBuilder::_BuildText(m_Parser.Doc(), sText, ctx);
    if(!pRet)
       m_Parser.SetError(nIdx, "Failed to build word item");
    ++nIdx; //next token
@@ -262,7 +262,7 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
          vvLines.emplace_back();    // goto new line
       else {
          _ASSERT(ritem.HasMathItem());
-         CMathItem* pItem = ritem.BuildItem(ctx.currentStyle, ctx.fUserScale);
+         CMathItem* pItem = ritem.BuildItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
          if (!pItem) {
             _ASSERT(0);
             m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
@@ -276,7 +276,7 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       if (vvLines[0].size() == 1)
          return vvLines[0][0];
       //else, pack items to HBox
-      CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+      CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
       for (CMathItem* pItem : vvLines[0]) {
          pHBox->AddItem(pItem);
       }
@@ -286,14 +286,14 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
    }
    //else //multiline
    int32_t nInterline = 200; // TODO: inter-line spacing
-   CContainerItem* pRet = new CContainerItem(eacVBOX, ctx.currentStyle);
+   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty())
          continue; //todo!
       if(vLine.size() == 1)
          pRet->AddBox(vLine[0], 0, pRet->Box().Bottom() + nInterline);
       else { //pack line items
-         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         CHBoxItem* pHBox = new CHBoxItem(m_Parser.Doc(), ctx.currentStyle);
          for (CMathItem* pItem : vLine) {
             pHBox->AddItem(pItem);
          }

@@ -1,17 +1,6 @@
 #pragma once
+#include "AGL.h"
 #include "LMMConsts.h"
-
-#define PTS2DIPS(x) ((x)*96.0f/72.0f)
-#define DIPS2PTS(x) ((x)*72.0f/96.0f)
-#define F2NEAREST(x) ((int32_t)((x)<0?(x)-0.5f:(x)+0.5f))
-//TODO: EM->FDU (Font Design Units!)
-#define EM2DIPS(fFontHPts, x) ((x)*PTS2DIPS(fFontHPts)/otfUnitsPerEm)
-#define DIPS2EM(fFontHPts, x) F2NEAREST((x)*otfUnitsPerEm/PTS2DIPS(fFontHPts))
-
-//
-//forward declarations
-struct ID2D1RenderTarget;
-struct ID2D1Brush;
 
 //abstract TexBox. all coordinates are in EM/font design units!!! 
 struct STexBox {
@@ -65,14 +54,6 @@ struct STexBox {
       nAscent = b.nAscent;
       nLBearing = b.nLBearing; nRBearing = b.nRBearing;
    }
-};
-struct SDWRenderInfo {
-   //bool                 bDrawBoxes{ false };       //debugging aid
-   float                fFontSizePts{ 0.0f };      //document font size, in points
-   ID2D1RenderTarget*   pRT{ nullptr };
-   ID2D1Factory*        pD2DFactory{ nullptr };
-   ID2D1Brush*          pBrush{ nullptr };
-   ID2D1Brush*          pSelBrush{ nullptr };      //selection support
 };
 enum EnumTexStyle {
    etsDisplay = 0,   // display mode
@@ -172,18 +153,19 @@ struct STexGlue {
 //base class for math items, abstract!
 class CMathItem {
 protected:
-   bool                 m_bSelected{ false };    //selection support
-   bool                 m_bDrawFrame{ false };   //\boxed
-   float                m_fUserScale{ 1.0f };    //user scaling factor
+   bool                 m_bSelected{ false };      //selection support
+   bool                 m_bDrawFrame{ false };     //\boxed
+   float                m_fUserScale{ 1.0f };      //user scaling factor
    EnumIndexPlacement   m_eIndexPlacement{ eipStd };
-   EnumTexAtom          m_eAtom{ etaORD };       //TeX atom class, for inter-item spacing rules
-   EnumMathItemType     m_eType{ eacUNK };       //~TeX atom type
-   CMathStyle           m_Style;                 //Tex style info   
+   EnumTexAtom          m_eAtom{ etaORD };         //TeX atom class, for inter-item spacing rules
+   EnumMathItemType     m_eType{ eacUNK };         //~TeX atom type
+   IDocParams&          m_Doc;                     //doc params ref  
+   CMathStyle           m_Style;                   //Tex style info   
    STexBox              m_Box;
 public:
    //CTOR/DTOR
-   CMathItem(EnumMathItemType eType, const CMathStyle& style, float fUserScale = 1.0f) :
-      m_eType(eType), m_Style(style), m_fUserScale(fUserScale) {
+   CMathItem(IDocParams& doc, EnumMathItemType eType, const CMathStyle& style, float fUserScale = 1.0f) :
+      m_Doc(doc),m_eType(eType), m_Style(style), m_fUserScale(fUserScale) {
    }
    virtual ~CMathItem() {}
    //ATTS
@@ -198,6 +180,7 @@ public:
    const STexBox& Box() const { return m_Box; }
    EnumMathItemType Type() const { return m_eType; }
    float UserScale() const { return m_fUserScale; }
+   IDocParams& Doc() { return m_Doc; }
    //METHODS
    void DenominateBinRel() {
       //make it ordinary atom
@@ -210,16 +193,16 @@ public:
    void MoveBy(int32_t nDX, int32_t nDY) {
       m_Box.MoveTo(m_Box.Left() + nDX, m_Box.Top() + nDY);
    }
-   void DrawFrame(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
+   void DrawFrame(SPointF ptfAnchor, IDocRenderer& docr) {
       if (m_bDrawFrame) {
-         D2D1_POINT_2F ptLT{
-            ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
-            ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Top())
+         SPointF ptfLT{
+            ptfAnchor.fX + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Left()),
+            ptfAnchor.fY + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Top())
          };
-         D2D1_RECT_F drcRect{ ptLT.x,ptLT.y,
-                         ptLT.x + EM2DIPS(dwri.fFontSizePts, m_Box.Width()),
-                         ptLT.y + EM2DIPS(dwri.fFontSizePts, m_Box.Height()) };
-         dwri.pRT->DrawRectangle(drcRect, dwri.pBrush);
+         SRectF rcf{ ptfLT.fX, ptfLT.fY,
+                     ptfLT.fX + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Width()),
+                     ptfLT.fY + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Height()) };
+         docr.DrawRect(rcf);
       }
    }
    //VIRTUALS
@@ -227,7 +210,7 @@ public:
    //resize to Norm + fRatio*StretchCapacity() - for all Glue orders! fRatio<0 means shrink!
    virtual void ResizeByRatio(uint16_t nOrder, float fRatio) {} //default: not resizable!
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
-   virtual void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) = 0; //PURE
+   virtual void Draw(SPointF ptfAnchor, IDocRenderer& docr) = 0; //PURE
 };
 ////virtual/empty items
 //// NULL/PHANTOM Item
@@ -236,14 +219,14 @@ public:
 //   //CTOR/DTOR
 //   CNullItem() : CMathItem(eacNull, CMathStyle()) {}
 //   //CMathItem implementation
-//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
 //};
 //class CHLineItem : public CMathItem {
 //public:
 //   //CTOR/DTOR
 //   CHLineItem() : CMathItem(eacHLINE, CMathStyle()) {}
 //   //CMathItem implementation
-//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
 //};
 // vertical strut item
 //class CStrutItem : public CMathItem {
@@ -254,31 +237,10 @@ public:
 //      m_Box.nAscent = F2NEAREST(750 * fUserScale * style.StyleScale()); //~average; 75% ascent
 //   }
 //   //CMathItem implementation
-//   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {}
+//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
 //};
 //
-//LMM glyph MATH tables + other info
-enum EnumGlyphClass {
-   egcOrd = 0, //mathordand others/default
-   egcLOP,     //largeop
-   egcBin,     //mathbin
-   egcRel,     //mathrel, including arrows
-   egcOpen,    //mathopen
-   egcClose,   //mathclose
-   egcPunct,   //mathpunct
-   egcAccent,  //mathaccent, mathbotaccent
-   egcOver,    //mathover
-   egcUnder,   //mathunder
-};
-struct SLMMGlyph {
-   uint32_t nUnicode{ 0 };
-   uint16_t nIndex{ 0 };
-   uint16_t eClass{ 0 };               //EnumGlyphClass
-   int16_t  nTopAccentX{ 0 };          //MATH
-   uint16_t nItalCorrection{ 0 };      //MATH
-   string   sName;                     //cmap glyph name
-   string   sLaTexCmd;                 //latex-unicode.json
-};
+
 enum EnumDelimType {
    edtNotDelim = 0,
    edtAny,     //valid, but undefined
@@ -344,12 +306,13 @@ struct SParserContext {
    bool        bDisplayFormula{ false };      // centered on a separate line
    CMathStyle  currentStyle;                  // MATH mode style
    float       fUserScale{ 1.0f };            // User scaling factor
-   float       fFontScale{ 1.0f };            // User scaling factor
+   float       fFontScale{ 1.0f };            // current font scaling factor, need in ApplyFontScale!
    string      sFontCmd;                      // Current font (for both Math/Text modes!)
-   //METHODS
+ //METHODS
    float EffectiveScale() const {
       return fUserScale * currentStyle.StyleScale();
    }
+   //rescale
    void ApplyFontScale(float fNewFontScale) {
       fUserScale = fUserScale/fFontScale* fNewFontScale;
       fFontScale = fNewFontScale;
@@ -385,7 +348,7 @@ DECLARE_INTERFACE(IParserAdapter) {
    virtual void SkipToken() = 0;
    // context info
    virtual const SParserContext& GetContext() const = 0;
-   virtual float DocFontSizePts() const = 0;
+   virtual IDocParams& Doc() = 0;
    // error info/setting
    virtual bool HasError() const = 0;
    virtual void SetError(const string& sMessage) = 0;

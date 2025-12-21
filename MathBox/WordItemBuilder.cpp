@@ -1,10 +1,8 @@
 #include "stdafx.h"
 #include "WordItemBuilder.h"
 #include "WordItem.h"
-#include "LMFontManager.h"
+#include "FontStyleHelper.h"
 #include "HBoxItem.h"
-
-extern CLMFontManager g_LMFManager;
 
 namespace {
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
@@ -30,14 +28,14 @@ namespace {
       return false;
    }
    // BUILDERS
-   CWordItem* _BuildMathOperator(PCSTR szOp, const CMathStyle& style, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style, eacMATHOP, fUserScale);
+   CWordItem* _BuildMathOperator(IDocParams& doc, PCSTR szOp, const CMathStyle& style, float fUserScale) {
+      CWordItem* pRet = new CWordItem(doc, FONT_LMM, style, eacMATHOP, fUserScale);
       //TODO:liminf->lim inf,limsup->lim sup
       pRet->SetTextA(szOp);
       return pRet;
    }
-   CWordItem* _BuildLMMSymbol(const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style, eacWORD, fUserScale);
+   CWordItem* _BuildLMMSymbol(IDocParams& doc, const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale) {
+      CWordItem* pRet = new CWordItem(doc, FONT_LMM, style, eacWORD, fUserScale);
       EnumTexAtom eAtom = etaORD;//default
       switch (pLmmGlyph->eClass) {
       case egcLOP:   eAtom = etaOP; break;
@@ -51,7 +49,7 @@ namespace {
       pRet->SetAtom(eAtom);
       return pRet;
    }
-   bool _GetLMMIndexes(const string& sLatexUnicodeCmd, const string& sText, OUT vector<UINT16>& vGIdx) {
+   bool _GetLMMIndexes(IDocParams& doc, const string& sLatexUnicodeCmd, const string& sText, OUT vector<UINT16>& vGIdx) {
       for (char cChar : sText) {
          string sArg = "\\" + sLatexUnicodeCmd + '{' + cChar + '}';
          PCSTR szNextBracket = sLatexUnicodeCmd.c_str();
@@ -59,14 +57,14 @@ namespace {
             sArg.push_back('}');
             ++szNextBracket;
          }
-         const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyphByCmd(sArg.c_str());
+         const SLMMGlyph* pLmmGlyph = doc.LMFManager().GetLMMGlyphByCmd(sArg.c_str());
          if (!pLmmGlyph && sLatexUnicodeCmd != "mathit") {
             //try default mathit
             sArg = string("\\mathit{") + cChar + '}';
-            pLmmGlyph = g_LMFManager.GetLMMGlyphByCmd(sArg.c_str());
+            pLmmGlyph = doc.LMFManager().GetLMMGlyphByCmd(sArg.c_str());
          }
          if (!pLmmGlyph)
-            pLmmGlyph = g_LMFManager.GetLMMGlyph(FONT_LMM, UINT32(cChar));
+            pLmmGlyph = doc.LMFManager().GetLMMGlyph(FONT_LMM, UINT32(cChar));
          _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, false);//unkown character?
          vGIdx.push_back(pLmmGlyph->nIndex);
       }
@@ -91,42 +89,42 @@ bool CWordItemBuilder::_IsNumber(PCSTR szNum) {
 
 //used for a letter OR numbers (integer or float)
 //@sWord: already processed, no spaces, no special chars
-CMathItem* CWordItemBuilder::BuildMathWord(const string& sFontCmd, const string& sWord, bool bIsNumber,
-                                           const CMathStyle& style, float fUserScale) {
+CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord, bool bNumber, const SParserContext& ctx) {
    _ASSERT_RET(!sWord.empty(), nullptr); //ntd?
 
    SMathFontStyle mfStyle;
-   _ASSERT_RET(g_LMFManager._GetMathFontStyle((sFontCmd.empty() ? "mathnormal" : sFontCmd), mfStyle), nullptr);
-   if(bIsNumber && (sFontCmd == "mathbfit" || sFontCmd == "mathsfit" || sFontCmd == "mathssit"))
+   PCSTR szFontCmd = (ctx.sFontCmd.empty() ? "mathnormal" : ctx.sFontCmd.c_str());
+   _ASSERT_RET(FontStyleHelper::_GetMathFontStyle(szFontCmd, mfStyle), nullptr);
+   if(bNumber && (ctx.sFontCmd == "mathbfit" || ctx.sFontCmd == "mathsfit" || ctx.sFontCmd == "mathssit"))
       mfStyle.nLetterDigitsFont = FONT_LMM; //use upright digits with these math fonts!
    if (sWord.size() == 1 && !isalnum(sWord[0])) {
       _ASSERT(!_IsSpace(sWord[0]));
       // Check atom type!
-      const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyph(mfStyle.nLetterDigitsFont, UINT32(sWord[0]));
+      const SLMMGlyph* pLmmGlyph = doc.LMFManager().GetLMMGlyph(mfStyle.nLetterDigitsFont, UINT32(sWord[0]));
       _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//unkown unicode?
-      return _BuildLMMSymbol(pLmmGlyph, style, fUserScale);
+      return _BuildLMMSymbol(doc, pLmmGlyph, ctx.currentStyle, ctx.fUserScale);
    }
-   CWordItem* pRet = new CWordItem(mfStyle.nLetterDigitsFont, style, eacWORD, fUserScale);
+   CWordItem* pRet = new CWordItem(doc, mfStyle.nLetterDigitsFont, ctx.currentStyle, eacWORD, ctx.fUserScale);
    if (mfStyle.nLetterDigitsFont != FONT_LMM)
       pRet->SetTextA(sWord.c_str());
    else {
       //we may need to map glyphs
       vector<UINT16> vGIdx;
-      _ASSERT_RET(_GetLMMIndexes(mfStyle.szLatexUnicodeCmd, sWord, vGIdx), nullptr);
+      _ASSERT_RET(_GetLMMIndexes(doc, mfStyle.szLatexUnicodeCmd, sWord, vGIdx), nullptr);
       pRet->SetGlyphIndexes(vGIdx);
    }
    return pRet;
 }
 // text mode CWordItem builder
-CMathItem* CWordItemBuilder::BuildText(const string& sFontCmd, const string& sText, const CMathStyle& style,
-                                       float fUserScale) {
+CMathItem* CWordItemBuilder::_BuildText(IDocParams& doc, const string& sText, const SParserContext& ctx) {
    STextFontStyle tfStyle;
-   _ASSERT_RET(g_LMFManager._GetTextFontStyle(sFontCmd, tfStyle), nullptr);
+   _ASSERT_RET(FontStyleHelper::_GetTextFontStyle(ctx.sFontCmd.c_str(), tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont; //TODO!
-   CWordItem* pWord = new CWordItem(nFontIdx, style, eacWORD, fUserScale);
+   CWordItem* pWord = new CWordItem(doc, nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
    pWord->SetTextA(sText.c_str());
    return pWord;
 }
+/*
 // @sSym: escape+special, LMM symbol, MathOperator or Space\Kern
 CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string& sSym, const CMathStyle& style,
                                           float fUserScale) {
@@ -230,3 +228,4 @@ bool CWordItemBuilder::BuildMathText(const string& sFontCmd, const string& sText
    }
    return !hbox.IsEmpty();
 }
+*/

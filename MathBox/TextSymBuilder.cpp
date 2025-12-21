@@ -1,9 +1,7 @@
 #include "stdafx.h"
 #include "TextSymBuilder.h"
-#include "LMFontManager.h"
+#include "FontStyleHelper.h"
 #include "WordItem.h"
-
-extern CLMFontManager g_LMFManager;
 
 //handles:  char{"}###,
 //          textunderscore, textendash, textemdash, textasciitilde, textasciicircum, textellipsis,
@@ -75,13 +73,13 @@ CMathItem* CTextSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    _ASSERT_RET(nUnicode, nullptr);
    const SParserContext& ctx(pParser->GetContext());
    STextFontStyle tfStyle;
-   if (!ctx.sFontCmd.empty() && !g_LMFManager._GetTextFontStyle(ctx.sFontCmd, tfStyle)) {
+   if (!ctx.sFontCmd.empty() && !FontStyleHelper::_GetTextFontStyle(ctx.sFontCmd, tfStyle)) {
       if (!pParser->HasError())
          pParser->SetError("Unknown font '" + ctx.sFontCmd + "'");
       return nullptr;
    }
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont;
-   CWordItem* pWord = new CWordItem(nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
+   CWordItem* pWord = new CWordItem(pParser->Doc(), nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
    pWord->SetText({ nUnicode });
 
    return pWord;

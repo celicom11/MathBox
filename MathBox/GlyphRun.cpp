@@ -61,7 +61,7 @@ void CGlyphRun::Draw(const SDWRenderInfo& dwri, D2D1_POINT_2F ptfBaseOrigin, flo
    glyphRun.glyphCount = (UINT32)m_vGlyphs.size();
    glyphRun.glyphIndices = vGlyphIndices.data();
    glyphRun.glyphAdvances = nullptr; //use font advances
-   glyphRun.glyphOffsets = m_vOffsets.empty() ? nullptr : &m_vOffsets[0];
+   glyphRun.glyphOffsets = nullptr; //offsets, not used
    glyphRun.isSideways = FALSE;
    glyphRun.bidiLevel = 0;
    dwri.pRT->DrawGlyphRun(ptfBaseOrigin, &glyphRun, dwri.pBrush);

@@ -8,5 +8,6 @@ public:
    bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
    //Legacy API!
-   static CMathItem* _BuildFraction(const CMathStyle& style, float fUserScale, CMathItem* pNum, CMathItem* pDenom);
+   static CMathItem* _BuildFraction(IDocParams& doc, const CMathStyle& style, float fUserScale,
+                                    CMathItem* pNum, CMathItem* pDenom);
 };

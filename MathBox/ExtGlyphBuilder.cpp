@@ -1,11 +1,8 @@
 #include "stdafx.h"
 #include "ExtGlyphBuilder.h"
 #include "WordItem.h"
-#include "LMFontManager.h"
 #include "ContainerItem.h"
 #include "FillerItem.h"
-
-extern CLMFontManager g_LMFManager;
 
 namespace //static helpers
 {
@@ -138,14 +135,16 @@ namespace //static helpers
       }
       return -1;
    }
-   CWordItem* _BuildSingleVerticalGlyph(uint16_t nGlyphIdx, const CMathStyle& style, EnumTexAtom eAtom, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style,eacWORD, fUserScale);
+   CWordItem* _BuildSingleVerticalGlyph(IDocParams& doc, uint16_t nGlyphIdx,
+                                       const CMathStyle& style, EnumTexAtom eAtom, float fUserScale) {
+      CWordItem* pRet = new CWordItem(doc, FONT_LMM, style,eacWORD, fUserScale);
       pRet->SetAtom(eAtom);
       pRet->SetGlyphIndexes({ nGlyphIdx });
       return pRet;
    }
-   CWordItem* _BuildSingleHorizontalGlyph(uint16_t nGlyphIdx, const CMathStyle& style, float fUserScale) {
-      CWordItem* pRet = new CWordItem(FONT_LMM, style, eacUNK, fUserScale);
+   CWordItem* _BuildSingleHorizontalGlyph(IDocParams& doc, uint16_t nGlyphIdx, const CMathStyle& style,
+                                          float fUserScale) {
+      CWordItem* pRet = new CWordItem(doc, FONT_LMM, style, eacUNK, fUserScale);
       pRet->SetGlyphIndexes({ nGlyphIdx });
       return pRet;
    }
@@ -203,12 +202,12 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
    _ASSERT_RET(nIdx >= 0, nullptr);
    const SGlyphExtensionInfo& geInfo = _vVerticalExtGlyphs[nIdx];
    _ASSERT_RET(!geInfo.vVariants.empty(), nullptr);
-   const SLMMGlyph* pLMMGlyph = g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, geInfo.vVariants.front().nGlyphIdx);
+   const SLMMGlyph* pLMMGlyph = m_Doc.LMFManager().GetLMMGlyphByIdx(FONT_LMM, geInfo.vVariants.front().nGlyphIdx);
    _ASSERT_RET(pLMMGlyph, nullptr);//snbh!
    EnumTexAtom eAtom = _GetAtom((EnumGlyphClass)pLMMGlyph->eClass);
    //check if variant fits
    float fScale = style.StyleScale() * fUserScale;
-   CContainerItem* pRet = new CContainerItem(eacVDELIM, CMathStyle(), eAtom);
+   CContainerItem* pRet = new CContainerItem(m_Doc, eacVDELIM, CMathStyle(), eAtom);
    for (int nIdx = 0; nIdx< (int)geInfo.vVariants.size(); ++nIdx) {
       const SGlyphVariant* pGvar = &geInfo.vVariants[nIdx];
       if (F2NEAREST(pGvar->nSize * fScale) >= (int32_t)nSize) {
@@ -216,39 +215,39 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
             //use prev. variant in compact styles
          //   pGvar = &geInfo.vVariants[nIdx - 1];
          //}
-         pRet->AddBox(_BuildSingleVerticalGlyph(pGvar->nGlyphIdx, style, eAtom, fUserScale), 0, 0);
+         pRet->AddBox(_BuildSingleVerticalGlyph(m_Doc, pGvar->nGlyphIdx, style, eAtom, fUserScale), 0, 0);
          pRet->SetMathAxis(pRet->Box().Height() / 2);
          return pRet;
       }
    }
    if (geInfo.gvBottomLeftId.nGlyphIdx == 0 && geInfo.gvTopRightId.nGlyphIdx == 0) {
       //no assembly/extension? return the largest
-      pRet->AddBox(_BuildSingleVerticalGlyph(geInfo.vVariants.back().nGlyphIdx, style, eAtom, fUserScale), 0, 0);
+      pRet->AddBox(_BuildSingleVerticalGlyph(m_Doc, geInfo.vVariants.back().nGlyphIdx, style, eAtom, fUserScale), 0, 0);
       pRet->SetMathAxis(pRet->Box().Height() / 2);
       return pRet;
    }
    //else, assembly large vertical bracket
    CMathItem* pTop = nullptr;
    if (geInfo.gvTopRightId.nGlyphIdx) {
-      pTop = _BuildSingleVerticalGlyph(geInfo.gvTopRightId.nGlyphIdx, style, etaORD, fUserScale);
+      pTop = _BuildSingleVerticalGlyph(m_Doc, geInfo.gvTopRightId.nGlyphIdx, style, etaORD, fUserScale);
       _ASSERT_RET(pTop, nullptr);
       pRet->AddBox(pTop, 0, 0);
    }
    CMathItem* pBottom = nullptr;
    if (geInfo.gvBottomLeftId.nGlyphIdx) {
-      pBottom = _BuildSingleVerticalGlyph(geInfo.gvBottomLeftId.nGlyphIdx, style, etaORD, fUserScale);
+      pBottom = _BuildSingleVerticalGlyph(m_Doc, geInfo.gvBottomLeftId.nGlyphIdx, style, etaORD, fUserScale);
       _ASSERT_RET(pBottom, nullptr);
    }
    if (geInfo.gvMiddleId.nGlyphIdx) {
       _ASSERT_RET(pTop && pBottom, nullptr);//need both with the middle!
       //btm-ext-mid-ext-top
-      CMathItem* pMid = _BuildSingleVerticalGlyph(geInfo.gvMiddleId.nGlyphIdx, style, etaORD, fUserScale);
+      CMathItem* pMid = _BuildSingleVerticalGlyph(m_Doc, geInfo.gvMiddleId.nGlyphIdx, style, etaORD, fUserScale);
       const int32_t nExtSize2 = nSize - F2NEAREST((geInfo.gvBottomLeftId.nSize + geInfo.gvMiddleId.nSize +
          geInfo.gvTopRightId.nSize - 4 * otfMinConnectorOverlap) * fScale);
       if (nExtSize2 > 1) {
          //2 fillers
-         CFillerItem* pFiller1 = new CFillerItem(F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft+10) * fScale), nExtSize2/2);
-         CFillerItem* pFiller2 = new CFillerItem(F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft+10) * fScale), nExtSize2/2);
+         CFillerItem* pFiller1 = new CFillerItem(m_Doc, F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft+10) * fScale), nExtSize2/2);
+         CFillerItem* pFiller2 = new CFillerItem(m_Doc, F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft+10) * fScale), nExtSize2/2);
          pRet->AddBox(pFiller1, F2NEAREST(geInfo.nExtenderLeft * fScale),
                                 pTop->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
          pRet->AddBox(pMid, 0, pFiller1->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
@@ -278,17 +277,17 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
             int16_t nFillerSX = geInfo.nExtenderRight - geInfo.nExtenderLeft+20;
             if (geInfo.nExtender2Left) {
                //2 fillers 
-               CFillerItem* pFiller1 = new CFillerItem(F2NEAREST(nFillerSX * fScale), nExtSize);
+               CFillerItem* pFiller1 = new CFillerItem(m_Doc, F2NEAREST(nFillerSX * fScale), nExtSize);
                pRet->AddBox(pFiller1, F2NEAREST(geInfo.nExtenderLeft * fScale),
                   pTop->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
-               CFillerItem* pFiller2 = new CFillerItem(F2NEAREST(nFillerSX * fScale), nExtSize);
+               CFillerItem* pFiller2 = new CFillerItem(m_Doc, F2NEAREST(nFillerSX * fScale), nExtSize);
                pRet->AddBox(pFiller2, F2NEAREST(geInfo.nExtender2Left * fScale),
                   pTop->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
                nTop2 = pFiller1->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale);
             }
             else {
                //1 filler
-               CFillerItem* pFiller = new CFillerItem(F2NEAREST(nFillerSX * fScale), nExtSize);
+               CFillerItem* pFiller = new CFillerItem(m_Doc, F2NEAREST(nFillerSX * fScale), nExtSize);
                pRet->AddBox(pFiller, F2NEAREST(geInfo.nExtenderLeft * fScale),
                   pTop->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
                nTop2 = pFiller->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale);
@@ -311,7 +310,7 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
          if (nExtSize > 0) {
             const int16_t nFillerSX = geInfo.nExtenderRight - geInfo.nExtenderLeft;
             //1 filler
-            CFillerItem* pFiller = new CFillerItem(F2NEAREST((nFillerSX + 10) * fScale), 
+            CFillerItem* pFiller = new CFillerItem(m_Doc, F2NEAREST((nFillerSX + 10) * fScale),
                                                    nExtSize + F2NEAREST(otfMinConnectorOverlap * fScale));
             pRet->AddBox(pFiller, F2NEAREST(geInfo.nExtenderLeft * fScale),
                                  pTop->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale));
@@ -324,7 +323,7 @@ CMathItem* CExtGlyphBuilder::BuildVerticalGlyph(uint32_t nUnicode, const CMathSt
          if (nExtSize > 0) {
             const int16_t nFillerSX = geInfo.nExtenderRight - geInfo.nExtenderLeft ;
             //1 filler
-            CFillerItem* pFiller = new CFillerItem(F2NEAREST((nFillerSX + 10) * fScale), 
+            CFillerItem* pFiller = new CFillerItem(m_Doc, F2NEAREST((nFillerSX + 10) * fScale),
                                                    nExtSize + F2NEAREST(otfMinConnectorOverlap * fScale));
             pRet->AddBox(pFiller, F2NEAREST(geInfo.nExtenderLeft * fScale), 0);
             nTop2 = pFiller->Box().Bottom() - F2NEAREST(otfMinConnectorOverlap * fScale);
@@ -344,26 +343,26 @@ CMathItem* CExtGlyphBuilder::BuildHorizontalGlyph(uint32_t nUnicode, const CMath
    float fScale = style.StyleScale() * fUserScale;
    for (const SGlyphVariant& gvar : geInfo.vVariants) {
       if (F2NEAREST(gvar.nSize * fScale) >= (int32_t)nSize)
-         return _BuildSingleHorizontalGlyph(gvar.nGlyphIdx, style, fUserScale);
+         return _BuildSingleHorizontalGlyph(m_Doc, gvar.nGlyphIdx, style, fUserScale);
    }
    if (geInfo.gvBottomLeftId.nGlyphIdx == 0) //no assembly/extension? return the largest
-      return _BuildSingleHorizontalGlyph(geInfo.vVariants.back().nGlyphIdx, style, fUserScale);
+      return _BuildSingleHorizontalGlyph(m_Doc, geInfo.vVariants.back().nGlyphIdx, style, fUserScale);
    //else, assembly horizontal bracket
-   CContainerItem* pRet = new CContainerItem(eacHDELIM, CMathStyle());
-   CMathItem* pLeft = _BuildSingleHorizontalGlyph(geInfo.gvBottomLeftId.nGlyphIdx, style, fUserScale);
-   CMathItem* pRight = _BuildSingleHorizontalGlyph(geInfo.gvTopRightId.nGlyphIdx, style, fUserScale);
+   CContainerItem* pRet = new CContainerItem(m_Doc, eacHDELIM, CMathStyle());
+   CMathItem* pLeft = _BuildSingleHorizontalGlyph(m_Doc, geInfo.gvBottomLeftId.nGlyphIdx, style, fUserScale);
+   CMathItem* pRight = _BuildSingleHorizontalGlyph(m_Doc, geInfo.gvTopRightId.nGlyphIdx, style, fUserScale);
    _ASSERT_RET(pLeft && pRight, nullptr);
    pRet->AddBox(pLeft, 0, 0);
    int32_t nRight1 = pLeft->Box().Right();
    if (geInfo.gvMiddleId.nGlyphIdx) {
       //left-ext-mid-ext-right
-      CMathItem* pMid = _BuildSingleHorizontalGlyph(geInfo.gvMiddleId.nGlyphIdx, style, fUserScale);
+      CMathItem* pMid = _BuildSingleHorizontalGlyph(m_Doc, geInfo.gvMiddleId.nGlyphIdx, style, fUserScale);
       const int32_t nExtSize2 = nSize - F2NEAREST((geInfo.gvBottomLeftId.nSize + geInfo.gvMiddleId.nSize +
          geInfo.gvTopRightId.nSize - 4 * otfMinConnectorOverlap) * fScale);
       if (nExtSize2 > 1) {
          //2 simmetric fillers
-         CFillerItem* pFiller1 = new CFillerItem(F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft) * fScale), nExtSize2 / 2);
-         CFillerItem* pFiller2 = new CFillerItem(F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft) * fScale), nExtSize2 / 2);
+         CFillerItem* pFiller1 = new CFillerItem(m_Doc, F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft) * fScale), nExtSize2 / 2);
+         CFillerItem* pFiller2 = new CFillerItem(m_Doc, F2NEAREST((geInfo.nExtenderRight - geInfo.nExtenderLeft) * fScale), nExtSize2 / 2);
          pRet->AddBox(pFiller1, F2NEAREST(geInfo.nExtenderLeft * fScale), 
                                 nRight1 - F2NEAREST(otfMinConnectorOverlap * fScale));
          pRet->AddBox(pMid, 0, pFiller1->Box().Right() - F2NEAREST(otfMinConnectorOverlap * fScale));
@@ -393,17 +392,17 @@ CMathItem* CExtGlyphBuilder::BuildHorizontalGlyph(uint32_t nUnicode, const CMath
          _ASSERT(nFillerSY > 0);
          if (geInfo.nExtender2Left) {
             //2 fillers
-            CFillerItem* pFiller1 = new CFillerItem(nExtSize, F2NEAREST(nFillerSY * fScale));
+            CFillerItem* pFiller1 = new CFillerItem(m_Doc, nExtSize, F2NEAREST(nFillerSY * fScale));
             pRet->AddBox(pFiller1, nRight1 - F2NEAREST(otfMinConnectorOverlap * fScale),
                                    pLeft->Box().Ascent() - F2NEAREST((geInfo.nExtenderLeft) * fScale));
-            CFillerItem* pFiller2 = new CFillerItem(nExtSize, F2NEAREST(nFillerSY * fScale));
+            CFillerItem* pFiller2 = new CFillerItem(m_Doc, nExtSize, F2NEAREST(nFillerSY * fScale));
             pRet->AddBox(pFiller2, nRight1 - F2NEAREST(otfMinConnectorOverlap * fScale),
                                    pLeft->Box().Ascent() - F2NEAREST((geInfo.nExtender2Left+ nFillerSY) * fScale));
             nLeft2 = pFiller1->Box().Right() - F2NEAREST(otfMinConnectorOverlap * fScale);
          }
          else {
             //1 filler
-            CFillerItem* pFiller = new CFillerItem(nExtSize, F2NEAREST((nFillerSY) * fScale));
+            CFillerItem* pFiller = new CFillerItem(m_Doc, nExtSize, F2NEAREST((nFillerSY) * fScale));
             pRet->AddBox(pFiller, nRight1 - F2NEAREST(otfMinConnectorOverlap * fScale),
                                   pLeft->Box().Ascent() - F2NEAREST((geInfo.nExtenderRight)*fScale));
             nLeft2 = pFiller->Box().Right() - F2NEAREST(otfMinConnectorOverlap * fScale);

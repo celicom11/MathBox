@@ -43,8 +43,8 @@ class CTableItem : public CMathItem {
 public:
 //CTOR/INIT
    CTableItem() = delete;
-   CTableItem(const CMathStyle& style) :
-      CMathItem(eacTABLE, style) {
+   CTableItem(IDocParams& doc, const CMathStyle& style) :
+      CMathItem(doc, eacTABLE, style) {
       m_eAtom = etaORD;
    }
    ~CTableItem() {
@@ -59,7 +59,7 @@ public:
 //METHODS
    bool Init(const vector<EnumColAlignment>& vColAligns, const vector<char>& vVLines, const SEnvTable& table);
 //CMathItem Implementation
-   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override;
+   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override;
 private:
    void CalcRowGeometry_(int nRowIdx);
    void LayoutRowItems_(int nRowIdx);

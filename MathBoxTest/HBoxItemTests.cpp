@@ -6,6 +6,7 @@
 namespace HBoxItemTests
 {
    TEST_CLASS(HBoxItemTests) {
+      CMockDocParams     m_Doc;
       CMathStyle         m_msD;     //display style
       vector<CMathItem*> m_vItems;  //dnd - HBox takes ownership!
       vector<uint8_t>    m_vGlueTypes;
@@ -29,7 +30,7 @@ namespace HBoxItemTests
             (500 + 75 + 75), (572 + 49 + 25), (278 + 86 + 65), (490 + 29 + 0), (500 + 75 + 75)
          };
          for (int nIdx = 0; nIdx < _countof(_aAtoms); ++nIdx) {
-            CMockMathItem* pMI = new CMockMathItem(_aAtoms[nIdx], m_msD);
+            CMockMathItem* pMI = new CMockMathItem(m_Doc, _aAtoms[nIdx], m_msD);
             pMI->Box().nHeight = otfUnitsPerEm;
             pMI->Box().nAscent = otfAscent;
             pMI->Box().nAdvWidth = _aAtomSX[nIdx];
@@ -50,7 +51,7 @@ namespace HBoxItemTests
          m_fStretch = MU2EM(m_fStretch);
       }
       TEST_METHOD(TestAutoBox_NoInfGlues_RetTrue) {
-         CHBoxItem hbox(m_msD); //auto width
+         CHBoxItem hbox(m_Doc, m_msD); //auto width
          for (CMathItem* pMI : m_vItems) {
             bool bRes = hbox.AddItem(pMI);
             Assert::IsTrue(bRes);
@@ -82,7 +83,7 @@ namespace HBoxItemTests
       TEST_METHOD(TestFixedBox_NoInfGlues_RetFalse) {
          // Add items until possible
          const float fWidth = 10000.0f; //box width
-         CHBoxItem hbox(m_msD, fWidth); 
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
          for (CMathItem* pMI : m_vItems) {
             bool bRes = hbox.AddItem(pMI);
             if (!bRes) {
@@ -99,9 +100,9 @@ namespace HBoxItemTests
       TEST_METHOD(TestFixedBox_NoInfGlues_Stretch) {
          //\hbox to 100pt {A\hskip 2pt plus 2pt{B}\hskip 2pt plus 3pt{B}}
          const float fWidth = 10000.0; //box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
          //A w = 750+32+33 = 
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750;
@@ -109,10 +110,10 @@ namespace HBoxItemTests
          Assert::IsTrue(bRet);
          //\hskip 2pt plus 2pt
          STexGlue glueDef = { 0,0, 200.0f, 0.0f, 200.0f, 200.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
          //B w = 708+36+57
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -120,10 +121,10 @@ namespace HBoxItemTests
          Assert::IsTrue(bRet);
          //\hskip 2pt plus 3pt
          glueDef = { 0,0, 300.0f, 0.0f, 200.0f, 200.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
          //B2 
-         CMockMathItem* pLetterB2 = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB2 = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB2->Box().nHeight = otfUnitsPerEm;
          pLetterB2->Box().nAscent = otfAscent;
          pLetterB2->Box().nAdvWidth = 708;
@@ -140,9 +141,9 @@ namespace HBoxItemTests
       TEST_METHOD(TestFixedBox_InfStretch) {
          //\hbox to 30pt {A\hskip 2pt plus 1fil minus 20pt{B}}
          const float fWidth = 3000.0; //box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
          //A w = 750/+32+33
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750;
@@ -150,10 +151,10 @@ namespace HBoxItemTests
          Assert::IsTrue(bRet);
          //\hskip 2pt plus 1fil minus 20pt
          STexGlue glueDef{ 1,0, 1.0f, 2000.0f, 200.0f, 200.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
          //B w = 708+36+50 = 794
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -174,13 +175,13 @@ namespace HBoxItemTests
       TEST_METHOD(TestFixedBox_InfStretch1) {
          // \hbox to 100pt{\hfil{A}\hskip 2pt plus 1fil minus 20pt{B} }
          const float fWidth = 10000.0; //box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
          //\hfil
          STexGlue glueDef{ 1,0, 1.0f, 0.0f, 0.0f, 0.0f };
-         bool bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bool bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
          //A w = 750+32+33 = 
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750; 
@@ -188,10 +189,10 @@ namespace HBoxItemTests
          Assert::IsTrue(bRet);
          //\hskip 2pt plus 1fil minus 20pt
          glueDef = { 1,0, 1.0f, 2000.0f, 200.0f, 200.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
          //B w = 708+36+57
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -214,9 +215,9 @@ namespace HBoxItemTests
       TEST_METHOD(TestFixedBox_InfShrink) {
          // \hbox to 12pt{A\hskip 100pt minus 1fil{B}}
          const float fWidth = 1200.0; //box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
          // A w = 750
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750;
@@ -224,10 +225,10 @@ namespace HBoxItemTests
          Assert::IsTrue(bRet);
          // \hskip 100pt minus 1fil
          STexGlue glueDef{ 0,1, 0.0f, 1.0f, 10000.0f, 10000.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);// inf shrink order!
          // B w = 708+36+57
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -244,10 +245,10 @@ namespace HBoxItemTests
          // Only the 2fil glue shrinks, 1fil glue must stays at 15pt
 
          const float fWidth = 2300.0f; // 23pt box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
 
          // A w = 750
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750;
@@ -256,11 +257,11 @@ namespace HBoxItemTests
 
          // \hskip 20pt minus 2fil
          STexGlue glueDef{ 0,2, 0.0f, 1.0f, 2000.0f, 2000.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
 
          // B w = 708
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -269,11 +270,11 @@ namespace HBoxItemTests
 
          // \hskip 15pt minus 1fil 
          glueDef = { 0,1, 0.0f, 1.0f, 1500.0f, 1500.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
 
          // C w = 708
-         CMockMathItem* pLetterC = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterC = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterC->Box().nHeight = otfUnitsPerEm;
          pLetterC->Box().nAscent = otfAscent;
          pLetterC->Box().nAdvWidth = 708;
@@ -295,10 +296,10 @@ namespace HBoxItemTests
          // \hbox to 15pt{A\hskip 10pt plus 1fil minus 2fil{B}\hskip 5pt plus 0.5fil minus 0.5fil{C}}
 
          const float fWidth = 1500.0f; // 15pt box width
-         CHBoxItem hbox(m_msD, fWidth);
+         CHBoxItem hbox(m_Doc, m_msD, fWidth);
 
          // A w = 750
-         CMockMathItem* pLetterA = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterA = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterA->Box().nHeight = otfUnitsPerEm;
          pLetterA->Box().nAscent = otfAscent;
          pLetterA->Box().nAdvWidth = 750;
@@ -307,11 +308,11 @@ namespace HBoxItemTests
 
          // \hskip 10pt plus 1fil minus 2fil
          STexGlue glueDef{ 1,2, 1.0f, 1.0f, 1000.0f, 1000.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
 
          // B w = 708
-         CMockMathItem* pLetterB = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterB = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterB->Box().nHeight = otfUnitsPerEm;
          pLetterB->Box().nAscent = otfAscent;
          pLetterB->Box().nAdvWidth = 708;
@@ -320,11 +321,11 @@ namespace HBoxItemTests
 
          // \hskip 5pt plus 0.5fil minus 0.5fil
          glueDef = { 1,1, 0.5f, 0.5f, 500.0f, 500.0f };
-         bRet = hbox.AddItem(new CGlueItem(glueDef, m_msD));
+         bRet = hbox.AddItem(new CGlueItem(m_Doc, glueDef, m_msD));
          Assert::IsTrue(bRet);
 
          // C w = 722
-         CMockMathItem* pLetterC = new CMockMathItem(etaORD, m_msD);
+         CMockMathItem* pLetterC = new CMockMathItem(m_Doc, etaORD, m_msD);
          pLetterC->Box().nHeight = otfUnitsPerEm;
          pLetterC->Box().nAscent = otfAscent;
          pLetterC->Box().nAdvWidth = 722;

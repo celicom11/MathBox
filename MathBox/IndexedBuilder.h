@@ -4,6 +4,6 @@
 //Factory for a Indexed (subscript/superscript) item
 class CIndexedBuilder {
 public:
-   static CMathItem* BuildIndexed(const CMathStyle& style, float fUserScale,
+   static CMathItem* _BuildIndexed(const CMathStyle& style, float fUserScale,
                                  CMathItem* pBase, CMathItem* pSupers, CMathItem* pSubs);
 };

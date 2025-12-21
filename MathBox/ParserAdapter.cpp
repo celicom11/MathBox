@@ -144,7 +144,7 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    if (!sUnit.empty()){
       if (!_IsKnownUnit(sUnit))
          return false; //bad units
-      if (!_ConvertToPts(fPts, sUnit, m_TexParser.DocumentFontSizePts()))
+      if (!_ConvertToPts(fPts, sUnit, m_TexParser.Doc().DefaultFontSizePts()))
          _ASSERT_RET(0, false); //snbh!
       //check we are at closing!
       //++nTkPos; //good units!
@@ -213,7 +213,7 @@ bool CParserAdapter::ConsumeHSkipGlue(OUT STexGlue& glue) {
    }
 
    // Convert to EM units (your glue uses EM)
-   float fFontSizePts = m_TexParser.DocumentFontSizePts();
+   float fFontSizePts = m_TexParser.Doc().DefaultFontSizePts();
    float fSizeEM = otfUnitsPerEm * fSize/fFontSizePts;
    glue.fNorm = fSizeEM;
    glue.fActual = fSizeEM;
@@ -276,7 +276,7 @@ bool CParserAdapter::_ConsumeGlueComponent(OUT float& fValue, OUT uint16_t& nOrd
       }
 
       // Regular dimension (convert to EM)
-      float fFontSizePts = m_TexParser.DocumentFontSizePts();
+      float fFontSizePts = m_TexParser.Doc().DefaultFontSizePts();
       fValue = otfUnitsPerEm*PTS2DIPS(fDim)/fFontSizePts;
       return true;
    }

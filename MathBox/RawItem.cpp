@@ -37,41 +37,28 @@ bool CRawItem::TryAppendWord(CMathItem* pWordItem, int nTkIdxStart, int nTkIdxEn
       return false;
    CWordItem* pBaseWord = static_cast<CWordItem*>(m_pBase);
    CWordItem* pWord2 = static_cast<CWordItem*>(pWordItem);
-   if (pBaseWord->AtomType() != etaORD || pWord2->AtomType() != etaORD)
+   CWordItem* pMerged = CWordItem::_MergeWords(pBaseWord, pWord2);
+   if (!pMerged)
       return false;
-   if (pBaseWord->GlyphRun().GetFontIdx() != pWord2->GlyphRun().GetFontIdx() ||
-         pBaseWord->UserScale() != pWord2->UserScale() ||
-         pBaseWord->GetStyle().Style() != pWord2->GetStyle().Style() )
-      return false;
-   CWordItem* pNewBase = new CWordItem(pBaseWord->GlyphRun().GetFontIdx(),
-      pBaseWord->GetStyle(), eacWORD, pBaseWord->UserScale());
-   vector<UINT16> vGlyphIdx(pBaseWord->GlyphRun().Glyphs().size());
-   for (int nIdx = 0; nIdx < vGlyphIdx.size(); ++nIdx) {
-      vGlyphIdx[nIdx] = pBaseWord->GlyphRun().Glyphs()[nIdx].index;
-   }
-   for (auto& glyph : pWord2->GlyphRun().Glyphs()) {
-      vGlyphIdx.push_back(glyph.index);
-   }
-   pNewBase->SetGlyphIndexes(vGlyphIdx);
    delete m_pBase;
-   m_pBase = pNewBase;
+   m_pBase = pMerged;
    _ASSERT(m_nTkIdxEnd < nTkIdxStart);
    m_nTkIdxEnd = nTkIdxEnd;
    return true;
 }
-bool CRawItem::InitDelimiter(const string& sDelim, EnumDelimType edt) {
+bool CRawItem::InitDelimiter(ILMFManager& lmfm, const string& sDelim, EnumDelimType edt) {
    _ASSERT_RET(!m_pBase && edt != edtAny, false);//snbh!
    SLMMDelimiter lmmDelimiter;
-   if (!COpenCloseBuilder::_GetDelimiter(sDelim.c_str(), etsDisplay, lmmDelimiter))
+   if (!COpenCloseBuilder::_GetDelimiter(lmfm, sDelim.c_str(), etsDisplay, lmmDelimiter))
       return false;
    m_edt = edt;
    m_nUnicode = lmmDelimiter.nUni;
    return IsDelimiter();
 }
-CMathItem* CRawItem::BuildItem(const CMathStyle& style, float fUserScale, int32_t nSize) const {
+CMathItem* CRawItem::BuildItem(IDocParams& doc, const CMathStyle& style, float fUserScale, int32_t nSize) const {
    CMathItem* pRet = m_pBase; //default
    if (IsDelimiter() && m_nUnicode != '.') {
-      pRet = COpenCloseBuilder::_BuildDelimiter(m_nUnicode, m_edt, nSize, style, fUserScale);
+      pRet = COpenCloseBuilder::_BuildDelimiter(doc, m_nUnicode, m_edt, nSize, style, fUserScale);
       //fractions and \left...\right constructions are treated as “inner” subformulas (c)
       if(m_edt == edtOpen || m_edt == edtClose) 
          pRet->SetAtom(etaINNER);
@@ -83,12 +70,12 @@ CMathItem* CRawItem::BuildItem(const CMathStyle& style, float fUserScale, int32_
       if (m_nPrimes) {//build prime's superscript
          CMathStyle styleSuper(style);
          styleSuper.ToSuperscriptStyle();
-         CWordItem* pPrimes = new CWordItem(FONT_LMM, styleSuper, eacUNK, fUserScale);
+         CWordItem* pPrimes = new CWordItem(doc, FONT_LMM, styleSuper, eacUNK, fUserScale);
          vector<UINT32> vUniCodePoints(m_nPrimes, 0x2032);
          pPrimes->SetText(vUniCodePoints);
          if (pSuperScript) {
             //pack together in hbox
-            CHBoxItem* pHBox = new CHBoxItem(styleSuper);
+            CHBoxItem* pHBox = new CHBoxItem(doc, styleSuper);
             pHBox->AddItem(pPrimes);
             pHBox->AddItem(m_pSuperScript);
             pSuperScript = pHBox;
@@ -97,7 +84,7 @@ CMathItem* CRawItem::BuildItem(const CMathStyle& style, float fUserScale, int32_
             pSuperScript = pPrimes;
       }
       if (pRet && (pSuperScript || m_pSubScript))
-         pRet = CIndexedBuilder::BuildIndexed(style, fUserScale, pRet, pSuperScript, m_pSubScript);
+         pRet = CIndexedBuilder::_BuildIndexed(style, fUserScale, pRet, pSuperScript, m_pSubScript);
       else if (!pRet && pSuperScript && m_pSubScript)
          pRet = CVBoxBuilder::_BuildGenFraction(style, fUserScale, pSuperScript, m_pSubScript);
       else { 

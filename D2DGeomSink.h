@@ -1,49 +1,16 @@
 #pragma once
-#include "MathItem.h"
 
-//single glyph in a glyph run
-struct SBoundsF {
-   float fMinX, fMinY, fMaxX, fMaxY;
-};
-struct SBounds {
-   INT32 nMinX, nMinY, nMaxX, nMaxY;
-};
-struct SDWGlyph {
-   UINT16               index{ 0 };       //glyph index in the font
-   UINT32               codepoint{ 0 };   //Unicode codepoint, may be 0!
-   DWRITE_GLYPH_METRICS metrics;          //glyph metrics
-};
-class CGlyphRun : public IDWriteGeometrySink
-{
-   int16_t                       m_nFontIdx{ 0 };        // 0-Math, others are 
-   D2D1_POINT_2F                 m_ptfCur{ 0,0 };        //tmp. outline tracker
-   SBounds                       m_Bounds{ 0,0,0,0 };    //bounds around base_origin in design units
-   SBoundsF                      m_BoundsF{ 0,0,0,0 };   //tmp. outline box
-   vector<SDWGlyph>              m_vGlyphs;              //glyphs in the run
+class CD2DGeomSink : public IDWriteGeometrySink {
+//DATA
+   D2D1_POINT_2F                 m_ptfCur{ 0,0 };
+   SBoundsF                      m_BoundsF{ 0,0,0,0 };
 public:
-   //CTORS
-   CGlyphRun(int nFontIdx):
-      m_nFontIdx(nFontIdx) {};
-   CGlyphRun(CGlyphRun&& other) noexcept :
-      m_Bounds(other.m_Bounds), m_vGlyphs(std::move(other.m_vGlyphs)) {
+//ATTS
+   const SBoundsF& GetBounds() const { return m_BoundsF; }
+   void ResetBounds() {
+      m_BoundsF = { FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX };
    }
-   //ATTS
-   int16_t GetFontIdx() const { return m_nFontIdx; }
-   bool IsEmpty() const { return m_vGlyphs.empty(); }
-   const SBounds& Bounds() const {
-      //convert to int32_t bounds
-      return m_Bounds;
-   }
-   const vector<SDWGlyph>& Glyphs() const { return m_vGlyphs; }
-   //METHODS
-   void Clear() {
-      m_vGlyphs.clear();
-      m_Bounds = { 0,0,0,0 };
-   }
-   HRESULT SetGlyphs(vector<UINT32> vUnicode);
-   HRESULT SetGlyphIndices(vector<UINT16> vIndices, vector<UINT32> vUnicode);
-   void Draw(const SDWRenderInfo& dwri, D2D1_POINT_2F ptfBaseOrigin, float fScale = 1.0f);
-   //IUnknown stub
+//IUnknown stub
    STDMETHOD_(ULONG, AddRef)() override { return 1; }
    STDMETHOD_(ULONG, Release)() override { return 1; }
    STDMETHOD(QueryInterface)(REFIID riid, OUT void __RPC_FAR* __RPC_FAR* ppvObject) override {
@@ -58,7 +25,7 @@ public:
          return E_NOINTERFACE;
       }
    }
-   //IDWriteGeometrySink
+//IDWriteGeometrySink
    STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F startPoint, D2D1_FIGURE_BEGIN) override {
       m_ptfCur = startPoint;
       UpdateInkBox_(startPoint);
@@ -86,6 +53,11 @@ public:
    STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE) override {}
    STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT) override {}
 private:
-   void UpdateInkBox_(const D2D1_POINT_2F& ptf);
+   void UpdateInkBox_(const D2D1_POINT_2F& ptf) {
+      m_BoundsF.fMinX = min(m_BoundsF.fMinX, ptf.x);
+      m_BoundsF.fMinY = min(m_BoundsF.fMinY, ptf.y);
+      m_BoundsF.fMaxX = max(m_BoundsF.fMaxX, ptf.x);
+      m_BoundsF.fMaxY = max(m_BoundsF.fMaxY, ptf.y);
+   }
    void GetCubicBezierMinMax_(float fP0, float fP1, float fP2, float fP3, OUT float& fMin, OUT float& fMax);
 };

@@ -25,11 +25,11 @@ CGlueItem* CGlueItem::_Create(CMathItem* pPrev, CMathItem* pNext, const CMathSty
    MuSkipType eMSType = _GetMuSkipType_(style, pPrev, pNext);
    switch (eMSType) {
    case emstThinMuSkip:
-      return new CGlueItem(_THINMUSKIP, style, fUserScale);
+      return new CGlueItem(pPrev->Doc(), _THINMUSKIP, style, fUserScale);
    case emstMedMuSkip:
-      return new CGlueItem(_MEDMUSKIP, style, fUserScale);
+      return new CGlueItem(pPrev->Doc(), _MEDMUSKIP, style, fUserScale);
    case emstThickMuSkip:
-      return new CGlueItem(_THICKMUSKIP, style, fUserScale);
+      return new CGlueItem(pPrev->Doc(), _THICKMUSKIP, style, fUserScale);
    }
    return nullptr; //no glue needed!
 }

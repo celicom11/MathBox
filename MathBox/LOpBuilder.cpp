@@ -78,7 +78,7 @@ CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    // Get current context
    CMathStyle style = pParser->GetContext().currentStyle;
    float fUserScale = pParser->GetContext().fUserScale;
-   CWordItem* pRet = new CWordItem(FONT_LMM, style, eacBIGOP, fUserScale);
+   CWordItem* pRet = new CWordItem(pParser->Doc(), FONT_LMM, style, eacBIGOP, fUserScale);
    pRet->SetAtom(etaOP);
    pRet->SetGlyphIndexes({ style.Style() == etsDisplay ? pGInfo->nIdxD : pGInfo->nIdx });
    bool bLimits = false, bNoLimits = false;
@@ -94,19 +94,3 @@ CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       pRet->SetIdxPlacement(eipOverUnderscript);
    return pRet;
 }
-
-/*
-CMathItem* CLOpBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-                                    const vector<SLaTexCmdArgValue>& vArgValues) const {
-   bool bOverUnderD;
-   const SLOpGlyphInfo* pGInfo = _FindCmd(szCmd, bOverUnderD);
-   _ASSERT_RET(pGInfo, nullptr); //snbh!
-   //return a syngle glyph of D/non-D size
-   CWordItem* pRet = new CWordItem(FONT_LMM, style, eacBIGOP, fUserScale);
-   pRet->SetGlyphIndexes({ style.Style() == etsDisplay? pGInfo->nIdxD : pGInfo->nIdx });
-   if (vArgValues.size() == 1 && vArgValues[0].eLCAT == elcatLimits) {
-      if (vArgValues[0].uVal.nVal == 1)
-         pRet->SetIdxPlacement(eipOverUnderscript);
-   }
-   return pRet;
-}*/

@@ -10,8 +10,8 @@ class CHBoxItem : public CContainerItem {
 public:
    //CTOR/DTOR
    CHBoxItem() = delete;
-   CHBoxItem(const CMathStyle& style, float fWidth = 0.0f ) :
-      CContainerItem(eacHBOX, style), m_fFixedWidth(fWidth) {
+   CHBoxItem(IDocParams& doc, const CMathStyle& style, float fWidth = 0.0f ) :
+      CContainerItem(doc, eacHBOX, style), m_fFixedWidth(fWidth) {
       m_Glue.fActual = m_Glue.fNorm = fWidth;
       m_Box.nAdvWidth = F2NEAREST(m_fFixedWidth);
    }
@@ -46,5 +46,4 @@ public:
 private:
    //adjusts items both vertically and horizontally to fit in m_fFixedWidth with min Badness
    void UpdateLayout_();
-
 };

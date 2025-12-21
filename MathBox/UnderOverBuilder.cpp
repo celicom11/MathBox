@@ -64,21 +64,18 @@ CMathItem* CUnderOverBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPars
          pParser->SetError("Missing {arg} for accent command");
       return nullptr;
    }
-   return _BuildItem(szCmd, pBase, ctx.currentStyle, ctx.fUserScale);
-
-}
-CMathItem* CUnderOverBuilder::_BuildItem(PCSTR szCmd, CMathItem* pBase, const CMathStyle& style, float fUserScale) {
    if (szCmd[0] == '\\')
       ++szCmd;
    bool bBelow;
    uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
    _ASSERT_RET(nUni, nullptr);//snbh!
    _ASSERT_RET(pBase, nullptr);//snbh!
-   CMathItem* pDecor = CExtGlyphBuilder::BuildHorizontalGlyph(nUni, style, pBase->Box().Width(), fUserScale);
+   CExtGlyphBuilder egBuilder(pParser->Doc());
+   CMathItem* pDecor = egBuilder.BuildHorizontalGlyph(nUni, ctx.currentStyle, pBase->Box().Width(), ctx.fUserScale);
    _ASSERT_RET(pDecor, nullptr);//snbh!
    //build VBox
-   float fScale = fUserScale * style.StyleScale();
-   CContainerItem* pRet = new CContainerItem(eacOVERUNDER, style);
+   float fScale = ctx.EffectiveScale();
+   CContainerItem* pRet = new CContainerItem(pParser->Doc(), eacOVERUNDER, ctx.currentStyle);
    pRet->AddBox(pBase, 0, 0);
    int32_t nDecorLeft = (pBase->Box().Width() - pDecor->Box().Width()) / 2;
    if (bBelow)

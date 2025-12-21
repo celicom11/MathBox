@@ -43,7 +43,8 @@ namespace {
       }
    };*/
    CContainerItem* _BuildVBox(vector<CMathItem*>& vItems, int32_t nVKern) {
-      CContainerItem* pRetBox = new CContainerItem(eacVBOX, CMathStyle(), etaORD);
+      _ASSERT_RET(!vItems.empty(), nullptr);
+      CContainerItem* pRetBox = new CContainerItem(vItems.front()->Doc(), eacVBOX, CMathStyle(), etaORD);
       int32_t nWidth = 0;
       for (const CMathItem* pItem : vItems) {
          nWidth = max(nWidth, pItem->Box().Width());
@@ -129,12 +130,13 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       }
       pRet = BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
       if (sCmd == "binom") {//add brackets
-         CHBoxItem* pHBox = new CHBoxItem(ctx.currentStyle);
+         CHBoxItem* pHBox = new CHBoxItem(pParser->Doc(), ctx.currentStyle);
          int32_t nAxisY = pRet->Box().AxisY();
          int32_t nSize = 2 * max(nAxisY - pRet->Box().Top(), pRet->Box().Bottom() - nAxisY);
-         CMathItem* pOpen = CExtGlyphBuilder::BuildVerticalGlyph('(', ctx.currentStyle, nSize, ctx.fUserScale);
+         CExtGlyphBuilder egBuilder(pParser->Doc());
+         CMathItem* pOpen = egBuilder.BuildVerticalGlyph('(', ctx.currentStyle, nSize, ctx.fUserScale);
          _ASSERT_RET(pOpen, nullptr);
-         CMathItem* pClose = CExtGlyphBuilder::BuildVerticalGlyph(')', ctx.currentStyle, nSize, ctx.fUserScale);
+         CMathItem* pClose = egBuilder.BuildVerticalGlyph(')', ctx.currentStyle, nSize, ctx.fUserScale);
          _ASSERT_RET(pClose, nullptr);
          pHBox->AddItem(pOpen);
          pHBox->AddItem(pRet);
@@ -155,11 +157,17 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
          return nullptr;
       }
       if (pArg->Type() != eacVBOX) {
+         _ASSERT(0); //snbh 
          if (!pParser->HasError())
             pParser->SetError("Unexpected type of the {arg} for command '\\substack'");
-         _ASSERT_RET(0, nullptr); //snbh 
+         delete pArg;
+         return nullptr;
       }
-      CContainerItem* pCnt = static_cast<CContainerItem*>(pArg);
+      CContainerItem* pCnt = static_cast<CContainerItem*>(pArg); 
+      if (pCnt->Items().empty()) {
+         delete pArg;
+         return nullptr;//ntd
+      }
       vector<CMathItem*> vItems;
       for (CMathItem* pItem : pCnt->Items()) {
          vItems.push_back(pItem);
@@ -168,6 +176,7 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       CContainerItem* pVBox = _BuildVBox(vItems, nVKern);
       pVBox->SetMathAxis(pVBox->Box().Height() / 2); // subarray axis?
       pRet = pVBox;
+      delete pArg; //items moved to vItems
    }
    else if (sCmd == "stackunder") {
       //[dim]{arg1}{arg2}
@@ -175,7 +184,7 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       if (!pParser->ConsumeDimension(elcapSquare, fKern))
          nVKern = 290; //default
       else
-         nVKern = F2NEAREST(otfUnitsPerEm * fKern * ctx.fUserScale /pParser->DocFontSizePts());
+         nVKern = F2NEAREST(otfUnitsPerEm * fKern * ctx.fUserScale /pParser->Doc().DefaultFontSizePts());
       pTop = pParser->ConsumeItem(elcapFig, ctx);
       if (!pTop) {
          if (!pParser->HasError())
@@ -205,7 +214,7 @@ CMathItem* CVBoxBuilder::BuildBox_(CMathItem* pTop, CMathItem* pBottom,
    if (pTop->Type() == eacVBOX)
       pRetBox = static_cast<CContainerItem*>(pTop);
    else {
-      pRetBox = new CContainerItem(eacVBOX, CMathStyle(), eAtom);
+      pRetBox = new CContainerItem(pTop->Doc(), eacVBOX, CMathStyle(), eAtom);
       pRetBox->AddBox(pTop, (nWidth - pTop->Box().Width()) / 2, 0);
    }
    int32_t nBottomY = pTop->Box().Height() + nVKern;
@@ -230,85 +239,4 @@ CMathItem* CVBoxBuilder::_BuildGenFraction(const CMathStyle& style, float fUserS
    _ASSERT_RET(pNumerator && pDenominator, nullptr);
    int32_t nVKern = F2NEAREST(5 * otfFractionRuleThickness * style.StyleScale() * fUserScale);
    return BuildBox_(pNumerator, pDenominator, 2, nVKern, etaORD);
-
 }
-/*CMathItem* CVBoxBuilder::BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-                                 const vector<SLaTexCmdArgValue>& vArgValues) const {
-   if (szCmd[0] == '\\')
-      ++szCmd;
-   auto itPair = _mapMathModeCmdInfo.find(szCmd);
-   _ASSERT_RET(itPair != _mapMathModeCmdInfo.end(), nullptr);//snbh!
-   //verify\build arguments for the BuildBox_
-   CMathItem* pTop, * pBottom;
-   int16_t nAnchor;
-   int32_t nVKern = 0; 
-   EnumTexAtom eAtom = etaORD;
-   if (itPair->first == "underset" || itPair->first == "overset") {
-      _ASSERT_RET(vArgValues.size() == 2, nullptr);
-      _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
-      _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
-      if (itPair->first == "underset") {
-         pTop = vArgValues[1].uVal.pMathItem;
-         pBottom = vArgValues[0].uVal.pMathItem;
-         nAnchor = 0; //top is a base
-      }
-      else {
-         pTop = vArgValues[0].uVal.pMathItem;
-         pBottom = vArgValues[1].uVal.pMathItem;
-         nAnchor = 1; //bottom is a base
-      }
-      nVKern = F2NEAREST(5 * otfFractionRuleThickness * style.StyleScale() * fUserScale);
-   }
-   else if (itPair->first == "substack") { 
-      _ASSERT_RET(!vArgValues.empty(), nullptr);
-      if (vArgValues.size() == 1) {
-         _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
-         return vArgValues[0].uVal.pMathItem; //no box needed!
-      }
-      vector<CMathItem*> vItems;
-      for (const SLaTexCmdArgValue& val : vArgValues) {
-         _ASSERT_RET(val.eLCAT == elcatItem && val.uVal.pMathItem, nullptr);
-         vItems.push_back(val.uVal.pMathItem);
-      }
-      nVKern = F2NEAREST((style.Style() == etsDisplay? 180 : otfStackGapMin) * fUserScale);
-      //nVKern = F2NEAREST(180 * fUserScale);
-      CContainerItem* pVBox = _BuildVBox(vItems, nVKern);
-      pVBox->SetMathAxis(pVBox->Box().Height() / 2); //q&d
-      return pVBox;
-   }
-   else if (itPair->first == "stackrel") {
-      _ASSERT_RET(vArgValues.size() == 2, nullptr);
-      _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
-      _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
-      pTop = vArgValues[0].uVal.pMathItem;
-      pBottom = vArgValues[1].uVal.pMathItem;
-      nAnchor = 1;      //bottom is a base
-      eAtom = etaREL;   //relation
-      nVKern = F2NEAREST((style.Style() == etsDisplay ? 180 : otfStackGapMin) * fUserScale);
-   }
-   else if (itPair->first == "stackunder") {
-      _ASSERT_RET(vArgValues.size() == 3, nullptr);
-      _ASSERT_RET(vArgValues[0].eLCAT == elcatDim, nullptr);
-      _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
-      _ASSERT_RET(vArgValues[2].eLCAT == elcatItem, nullptr);
-      pTop = vArgValues[1].uVal.pMathItem;
-      pBottom = vArgValues[2].uVal.pMathItem;
-      nAnchor = 0;      //top is a base
-      nVKern = F2NEAREST(vArgValues[0].uVal.nVal * fUserScale);
-   }
-   else if (itPair->first == "binom") {
-      _ASSERT_RET(vArgValues.size() == 2, nullptr);
-      _ASSERT_RET(vArgValues[0].eLCAT == elcatItem, nullptr);
-      _ASSERT_RET(vArgValues[1].eLCAT == elcatItem, nullptr);
-      pTop = vArgValues[0].uVal.pMathItem;
-      pBottom = vArgValues[1].uVal.pMathItem;
-      nAnchor = 2;      //axis!
-      nVKern = F2NEAREST(6 * otfFractionRuleThickness * style.StyleScale() * fUserScale);//q&d
-      CMathItem* pGenFrac = BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
-      _ASSERT_RET(pGenFrac, nullptr);
-      return COpenCloseBuilder::BuildOpenClose(L'(', L')', pGenFrac, style, fUserScale);
-   }
-   else
-      return nullptr;//snbh!
-   return BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
-}*/

@@ -28,7 +28,7 @@ private:
    //context-modifying commands
    bool ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx);
    //
-   bool OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ctxG, OUT bool& bCanBeEmpty);
+   //bool OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ctxG, OUT bool& bCanBeEmpty);
    //group's output raw item packers
    CMathItem* PackGroupItems_(vector<CRawItem>& vGroupItems, const SParserContext& ctx);
 };

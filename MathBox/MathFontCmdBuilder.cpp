@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "MathFontCmdBuilder.h"
-#include "LMFontManager.h"
+#include "FontStyleHelper.h"
 
 // \fontsize{size pt}{h_skip}\selectfont{arg} 
 // \scalefnt{factor}{arg}
@@ -10,7 +10,7 @@ bool CMathFontCmdBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (*szCmd == '\\')
       ++szCmd;
    SMathFontStyle mfStyle; //dummy
-   return CLMFontManager::_GetMathFontStyle(szCmd, mfStyle);
+   return FontStyleHelper::_GetMathFontStyle(szCmd, mfStyle);
 }
 
 CMathItem* CMathFontCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {

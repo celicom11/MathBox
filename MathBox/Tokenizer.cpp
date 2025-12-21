@@ -55,8 +55,9 @@ namespace { //static helpers
             ++szPos;
          }
       }
-      if(*szPos && _IsSpace(*szPos))
-         ++szPos; //post space must be eaten!
+      //moved to TextProcessor
+      //if(*szPos && _IsSpace(*szPos))
+      //   ++szPos; //post space must be eaten!
       return szPos;
    }
 }
@@ -89,7 +90,7 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
          if (_IsCmdNonAlphaChar(*szPos))
             ++szPos; //skip special 1-non-alpha-cmd-char
          else if (_IsCharCmd(szPos)) {
-            //\char{"}### unicode char command, post space must be eaten!
+            //\char{"}### unicode char command
             szPos = _ConsumeCharCmd(szPos);
          }
          else {

@@ -6,7 +6,8 @@ namespace GlueFactoryTests
 {
    //static CGlueItem* CGlueItem::_Create is tested here
    TEST_CLASS(GlueFactoryTests) {
-      CMathStyle m_ms;//default
+      CMockDocParams m_Doc;
+      CMathStyle     m_ms;//default
       CMockMathItem* m_pMIOrd{ nullptr };
       CMockMathItem* m_pMIOp{ nullptr };
       CMockMathItem* m_pMIBin{ nullptr };
@@ -18,17 +19,17 @@ namespace GlueFactoryTests
       CHBoxItem*     m_pMIHBox{ nullptr };
       CGlueItem*     m_pFinGlue{ nullptr };
       TEST_METHOD_INITIALIZE(Init) {
-         m_pMIOrd = new CMockMathItem(etaORD, m_ms);
-         m_pMIOp = new CMockMathItem(etaOP, m_ms);
-         m_pMIBin = new CMockMathItem(etaBIN, m_ms);
-         m_pMIRel = new CMockMathItem(etaREL, m_ms);
-         m_pMIOpen = new CMockMathItem(etaOPEN, m_ms);
-         m_pMIClose = new CMockMathItem(etaCLOSE, m_ms);
-         m_pMIPunct = new CMockMathItem(etaPUNCT, m_ms);
-         m_pMIInner = new CMockMathItem(etaINNER, m_ms);
-         m_pMIHBox = new CHBoxItem(m_ms);
+         m_pMIOrd = new CMockMathItem(m_Doc, etaORD, m_ms);
+         m_pMIOp = new CMockMathItem(m_Doc, etaOP, m_ms);
+         m_pMIBin = new CMockMathItem(m_Doc, etaBIN, m_ms);
+         m_pMIRel = new CMockMathItem(m_Doc, etaREL, m_ms);
+         m_pMIOpen = new CMockMathItem(m_Doc, etaOPEN, m_ms);
+         m_pMIClose = new CMockMathItem(m_Doc, etaCLOSE, m_ms);
+         m_pMIPunct = new CMockMathItem(m_Doc, etaPUNCT, m_ms);
+         m_pMIInner = new CMockMathItem(m_Doc, etaINNER, m_ms);
+         m_pMIHBox = new CHBoxItem(m_Doc, m_ms);
          STexGlue glueDef{ 0,0, 900.0f, 100.f, 100.f, 100.0f };  //finite glue [0,100,1000]
-         m_pFinGlue = new CGlueItem(glueDef, m_ms);
+         m_pFinGlue = new CGlueItem(m_Doc, glueDef, m_ms);
       }
       TEST_METHOD_CLEANUP(DeInit) {
          delete m_pMIOrd; delete m_pMIOp; delete m_pMIBin; delete m_pMIRel;

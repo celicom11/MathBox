@@ -128,6 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CfgReader.cpp" />
+    <ClCompile Include="D2DFontManager.cpp" />
+    <ClCompile Include="D2DRenderer.cpp" />
+    <ClCompile Include="LMMFont.cpp" />
     <ClCompile Include="Main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -168,16 +172,6 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
-    <ClCompile Include="MathBox\GlyphRun.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
-    </ClCompile>
     <ClCompile Include="MathBox\HBoxItem.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
@@ -194,12 +188,6 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <ClCompile Include="MathBox\LMFontManager.cpp">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="MathBox\LOpBuilder.cpp">
@@ -350,19 +338,24 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CfgReader.h" />
+    <ClInclude Include="D2DFontManager.h" />
+    <ClInclude Include="D2DGeomSink.h" />
+    <ClInclude Include="D2DRenderer.h" />
+    <ClInclude Include="LMMFont.h" />
     <ClInclude Include="MathBox\AccentBuilder.h" />
+    <ClInclude Include="MathBox\AGL.h" />
     <ClInclude Include="MathBox\ContainerItem.h" />
     <ClInclude Include="MathBox\EnvHelper.h" />
     <ClInclude Include="MathBox\ExtGlyphBuilder.h" />
     <ClInclude Include="MathBox\FillerItem.h" />
     <ClInclude Include="MathBox\FractionBuilder.h" />
     <ClInclude Include="MathBox\GlueItem.h" />
-    <ClInclude Include="MathBox\GlyphRun.h" />
     <ClInclude Include="MathBox\HBoxItem.h" />
     <ClInclude Include="MathBox\HSpacingBuilder.h" />
     <ClInclude Include="MathBox\IndexedBuilder.h" />
     <ClInclude Include="MathBox\LMMConsts.h" />
-    <ClInclude Include="MathBox\LMFontManager.h" />
+    <ClInclude Include="MathBox\FontStyleHelper.h" />
     <ClInclude Include="MathBox\LOpBuilder.h" />
     <ClInclude Include="MathBox\MathFontCmdBuilder.h" />
     <ClInclude Include="MathBox\MathItem.h" />
@@ -389,7 +382,10 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Screenshots\Test6.png" />
+    <None Include="MathBoxDemo.cfg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TestDoc.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

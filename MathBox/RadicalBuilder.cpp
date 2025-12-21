@@ -3,9 +3,6 @@
 #include "WordItem.h"
 #include "FillerItem.h"
 #include "ContainerItem.h"
-#include "LMFontManager.h"
-
-extern CLMFontManager g_LMFManager;
 //static helpers
 namespace {
    // LMM radical variant indexes
@@ -77,7 +74,9 @@ CMathItem* CRadicalBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
 
 }
 
-CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree) {
+CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, 
+                                          CMathItem* pRadDegree) {
+   _ASSERT_RET(pRadicand, nullptr);
    float fScale = fUserScale * style.StyleScale();
    const int32_t nRadicandHEm = pRadicand->Box().Height();
    const int32_t nTargetEM = F2NEAREST(nRadicandHEm / fScale) + 2 * otfRadicalRuleThickness +
@@ -89,19 +88,18 @@ CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserSc
    //else
    return AssembleRadical_(style, fUserScale, pRadicand, pRadDegree);
 }
-CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand,
-   UINT16 nRadicalVariant, CMathItem* pRadDegree) {
+CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float fUserScale, 
+                              CMathItem* pRadicand, UINT16 nRadicalVariant, CMathItem* pRadDegree) {
+   _ASSERT_RET(pRadicand, nullptr);
    float fScale = fUserScale * style.StyleScale();
-
    // Build GlyphRun/RadicalSignBox with the lmmRadical
-   CWordItem* pRSign = new CWordItem(0, style, eacWORD, fUserScale);
+   CWordItem* pRSign = new CWordItem(pRadicand->Doc(),0, style, eacWORD, fUserScale);
    pRSign->SetGlyphIndexes({ nRadicalVariant });
    //Build overbar line
-   CFillerItem* pRadicalOverbar =
-      new CFillerItem(pRadicand->Box().InkRight() + F2NEAREST(60 * fScale),
-         F2NEAREST(otfRadicalRuleThickness * fScale));
+   CFillerItem* pRadicalOverbar = new CFillerItem(pRadicand->Doc(), 
+      pRadicand->Box().InkRight() + F2NEAREST(60 * fScale), F2NEAREST(otfRadicalRuleThickness * fScale));
    //4. Build return CContainerItem container with RadicalSignBox,RadicandBox and RadicalOverbar properly positioned
-   CContainerItem* pRetBox = new CContainerItem(eacRADICAL, style);
+   CContainerItem* pRetBox = new CContainerItem(pRadicand->Doc(), eacRADICAL, style);
    pRetBox->AddBox(pRSign, 0, 0);
    if (pRadDegree) {
       //Position Degree box
@@ -120,7 +118,9 @@ CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float f
    pRetBox->NormalizeOrigin(0, 0);
    return pRetBox;//stub
 }
-CMathItem* CRadicalBuilder::AssembleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree) {
+CMathItem* CRadicalBuilder::AssembleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, 
+                                             CMathItem* pRadDegree) {
+   _ASSERT_RET(pRadicand, nullptr);
    const UINT32 nRadicalBottomCode = 0x23B7; // ⎷ bottom piece
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
@@ -131,21 +131,21 @@ CMathItem* CRadicalBuilder::AssembleRadical_(const CMathStyle& style, float fUse
    if (bDisplayStyle)
       nTargetHEM += F2NEAREST(6 * otfRadicalRuleThickness * fScale);//extra gap at the bottom
    //2. Build bottom, and top glyphs
-   CWordItem* pRSignBtm = new CWordItem(0, style, eacWORD, fUserScale);
+   CWordItem* pRSignBtm = new CWordItem(pRadicand->Doc(), FONT_LMM, style, eacWORD, fUserScale);
    pRSignBtm->SetText({ nRadicalBottomCode });
-   CWordItem* pRSignTop = new CWordItem(0, style, eacUNK, fUserScale);
+   CWordItem* pRSignTop = new CWordItem(pRadicand->Doc(), FONT_LMM, style, eacUNK, fUserScale);
    pRSignTop->SetGlyphIndexes({ lmmRadical_tp });
    //3. Build vertical line extender (test: do not use lmmRadical_ex!)
    int32_t nExtenderHEM = nTargetHEM - F2NEAREST(fScale * (lmmRadicalBtmH_Em + lmmRadicalTopH_Em));
    CFillerItem* pVLine = nullptr;
    if (nExtenderHEM > 0)
-      pVLine = new CFillerItem(F2NEAREST(fScale * (lmmRadicalBtmR_Em - lmmRadicalBtmL_Em + 20)),
+      pVLine = new CFillerItem(pRadicand->Doc(), F2NEAREST(fScale * (lmmRadicalBtmR_Em - lmmRadicalBtmL_Em + 20)),
          nExtenderHEM);//+ F2NEAREST(fScale * 60)
    //4. Build overbar line
-   CFillerItem* pRadicalOverbar = new CFillerItem(pRadicand->Box().InkRight() + F2NEAREST(fScale * 60),
-      F2NEAREST(fScale * otfRadicalRuleThickness));
+   CFillerItem* pRadicalOverbar = new CFillerItem(pRadicand->Doc(), 
+      pRadicand->Box().InkRight() + F2NEAREST(fScale * 60), F2NEAREST(fScale * otfRadicalRuleThickness));
    //5. Build return Box
-   CContainerItem* pRetBox = new CContainerItem(eacRADICAL, style);
+   CContainerItem* pRetBox = new CContainerItem(pRadicand->Doc(), eacRADICAL, style);
    pRetBox->AddBox(pRSignTop, 0, 0);
    pRetBox->AddBox(pRadicalOverbar, pRSignTop->Box().Width(), 0);
    int32_t nTop = pRSignTop->Box().Height();

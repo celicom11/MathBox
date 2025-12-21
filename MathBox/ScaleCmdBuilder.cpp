@@ -28,7 +28,7 @@ CMathItem* CScaleCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
       return nullptr;
    }
    if (sCmd == "fontsize") {
-      fScale = fScale / pParser->DocFontSizePts();
+      fScale = fScale / pParser->Doc().DefaultFontSizePts();
       float fInterLine; //not used
       if (!pParser->ConsumeDimension(elcapFig, fInterLine)) {
          if (!pParser->HasError())

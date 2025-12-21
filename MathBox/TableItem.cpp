@@ -1,61 +1,45 @@
 #include "stdafx.h"
 #include "TableItem.h"
 
-void CTableItem::Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) {
-   D2D1_POINT_2F ptMyAnchor{
-     ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
-     ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Top())
+void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
+   float fFontSizePts = m_Doc.DefaultFontSizePts();
+   SPointF ptfMyAnchor{
+      ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Left()),
+      ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Top())
    };
    //
    for (vector<CMathItem*>& vRow: m_vvCells) {
       for (CMathItem* pCell : vRow) {
-         pCell->Draw(ptMyAnchor, dwri);
+         pCell->Draw(ptfMyAnchor, docr);
       }
    }
    //draw vert lines in array environment
    if (!m_vVLines.empty()) {
-      //tmp dashed vert line test
-      static const float _aDashes[] = { 4.0f, 2.0f };
-      ID2D1StrokeStyle* pStrokeStyle = nullptr;
-      dwri.pD2DFactory->CreateStrokeStyle(
-         D2D1::StrokeStyleProperties(
-            D2D1_CAP_STYLE_FLAT,
-            D2D1_CAP_STYLE_FLAT,
-            D2D1_CAP_STYLE_FLAT,
-            D2D1_LINE_JOIN_MITER,
-            10.0f,
-            D2D1_DASH_STYLE_CUSTOM,
-            0.0f),
-         _aDashes,
-         _countof(_aDashes),
-         &pStrokeStyle);
-
       int32_t nX = m_Box.Left();
-      const float fYBottom = ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Bottom());
+      const float fYBottom = ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Bottom());
       for (int nIdx = 0; nIdx < (int)m_vVLines.size(); ++nIdx) {
          if (m_vVLines[nIdx]) {
-            float fX = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, nX);
-            dwri.pRT->DrawLine({ fX, ptMyAnchor.y }, { fX, fYBottom }, dwri.pBrush, 1.0f,
-               (m_vVLines[nIdx] == ':' ? pStrokeStyle : nullptr));
+            float fX = ptfAnchor.fX + EM2DIPS(fFontSizePts, nX);
+            docr.DrawLine({ fX, ptfMyAnchor.fY }, { fX, fYBottom }, 
+               (m_vVLines[nIdx] == ':' ? elsDash : elsSolid));
             if (m_vVLines[nIdx] == 'd') {
-               nX += 200; //double line extra space
-               fX = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, nX);
-               dwri.pRT->DrawLine({ fX, ptMyAnchor.y }, { fX, fYBottom }, dwri.pBrush, 1.0f);
+               nX += 200; //double line extra space, todo: read from config
+               fX = ptfAnchor.fX + EM2DIPS(fFontSizePts, nX);
+               docr.DrawLine({ fX, ptfMyAnchor.fY }, { fX, fYBottom }, elsSolid);
             }
          }
          if(nIdx < (int)m_vColWidths.size()) //go to start of the next column
             nX += m_vColWidths[nIdx] + m_nColSep;
       }
-      pStrokeStyle->Release();
    }
    //draw horz lines
-   const float fXRight = ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Right());
+   const float fXRight = ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Right());
    for (int nIdx = 0; nIdx < (int)m_vHLines.size(); ++nIdx) {
       if (m_vHLines[nIdx]) {
          int32_t nY = nIdx < (int)m_vRowLayouts.size() ? 
             m_vRowLayouts[nIdx].nTop : m_vRowLayouts.back().Bottom();
-         float fY = ptMyAnchor.y + EM2DIPS(dwri.fFontSizePts, nY);
-         dwri.pRT->DrawLine({ ptMyAnchor.x, fY }, { fXRight, fY }, dwri.pBrush, 1.0f);
+         float fY = ptfMyAnchor.fY + EM2DIPS(fFontSizePts, nY);
+         docr.DrawLine({ ptfMyAnchor.fX, fY }, { fXRight, fY }, elsSolid);
       }
    }
    //DrawFrame(ptAnchor, dwri);

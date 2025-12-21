@@ -9,7 +9,7 @@ class CEnvHelper;
 
 class CTexParser {
  //DATA
-   float                m_fDocFontSizePts{ 12.0f };
+   IDocParams&          m_Doc;
    CTokenizer*          m_pTokenizer{ nullptr };   
    CMathModeProcessor*  m_pMathProcessor{nullptr};
    CTextModeProcessor*  m_pTextProcessor{nullptr};
@@ -17,11 +17,10 @@ class CTexParser {
    vector<STexToken>    m_vTokens;                 // tokens of the current parsing
 public:
 //CTOR/DTOR/INIT
-   CTexParser();
+   CTexParser(IDocParams& doc);
    ~CTexParser();
 //ATTS
-   float DocumentFontSizePts() const { return m_fDocFontSizePts; }
-   void  SetDocumentFontSizePts(float fDocFontSizePts) { m_fDocFontSizePts = fDocFontSizePts; }
+   IDocParams& Doc() { return m_Doc; }
    const ParserError& LastError() const { return m_Error; }
    bool HasError() const { return !m_Error.sError.empty(); }
    void SetError(int nTkIdx, const string& sError) { 

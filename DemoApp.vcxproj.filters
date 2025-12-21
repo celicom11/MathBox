@@ -15,9 +15,6 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="MathBox\GlyphRun.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
     <ClCompile Include="MathBox\WordItem.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
@@ -25,9 +22,6 @@
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="MathBox\HBoxItem.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="MathBox\LMFontManager.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="MathBox\WordItemBuilder.cpp">
@@ -111,6 +105,10 @@
     <ClCompile Include="MathBox\TextSymBuilder.cpp">
       <Filter>MathBox\MathItemBuilders</Filter>
     </ClCompile>
+    <ClCompile Include="CfgReader.cpp" />
+    <ClCompile Include="LMMFont.cpp" />
+    <ClCompile Include="D2DFontManager.cpp" />
+    <ClCompile Include="D2DRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -118,9 +116,6 @@
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\FillerItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="MathBox\GlyphRun.h">
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\LMMConsts.h">
@@ -138,7 +133,7 @@
     <ClInclude Include="MathBox\HBoxItem.h">
       <Filter>MathBox</Filter>
     </ClInclude>
-    <ClInclude Include="MathBox\LMFontManager.h">
+    <ClInclude Include="MathBox\FontStyleHelper.h">
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\WordItemBuilder.h">
@@ -222,8 +217,17 @@
     <ClInclude Include="MathBox\TextSymBuilder.h">
       <Filter>MathBox\MathItemBuilders</Filter>
     </ClInclude>
+    <ClInclude Include="CfgReader.h" />
+    <ClInclude Include="MathBox\AGL.h" />
+    <ClInclude Include="D2DFontManager.h" />
+    <ClInclude Include="D2DRenderer.h" />
+    <ClInclude Include="LMMFont.h" />
+    <ClInclude Include="D2DGeomSink.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Screenshots\Test6.png" />
+    <None Include="MathBoxDemo.cfg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TestDoc.txt" />
   </ItemGroup>
 </Project>

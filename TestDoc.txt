@@ -1,0 +1,5 @@
+\Large \text{Environments} \normalsize\\
+$$
+x=\begin{dcases} \frac{1}{1+x^2} & \text{if } x>0\\ \sum_{i=1}^n i^2 &
+\text{if } x\le 0 \end{dcases}
+$$

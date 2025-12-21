@@ -8,7 +8,4 @@ public:
    //IMathItemBuilder implementation
    bool CanTakeCommand(PCSTR szCmd) const override;
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
-   // Legacy API!
-   //CMathItem* BuildItem(PCSTR szCmd, const CMathStyle& style, float fUserScale,
-   //                     const vector<SLaTexCmdArgValue>& vArgValues) const;
 };

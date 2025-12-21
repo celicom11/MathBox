@@ -1,8 +1,7 @@
 #include "stdafx.h"
 #include "TextAccentBuilder.h"
 #include "WordItem.h"
-#include "LMFontManager.h"
-extern CLMFontManager g_LMFManager;
+#include "FontStyleHelper.h"
 
 namespace {
    struct SAccMap {
@@ -220,9 +219,9 @@ CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPar
    if (vUnicode.empty())
       return nullptr;
    STextFontStyle tfStyle;
-   _ASSERT_RET(g_LMFManager._GetTextFontStyle(ctx.sFontCmd, tfStyle), nullptr);
+   _ASSERT_RET(FontStyleHelper::_GetTextFontStyle(ctx.sFontCmd, tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont;
-   CWordItem* pWord = new CWordItem(nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
+   CWordItem* pWord = new CWordItem(pParser->Doc(), nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
    pWord->SetText(vUnicode);
    return pWord;
 }

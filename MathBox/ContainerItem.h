@@ -7,8 +7,8 @@ protected:
    vector<CMathItem*>		m_vItems;		//may be empty!
 public:
  //CTOR/DTOR
-   CContainerItem(EnumMathItemType eType, const CMathStyle& style, EnumTexAtom eAtom = etaORD) :
-      CMathItem(eType, style) {
+   CContainerItem(IDocParams& doc, EnumMathItemType eType, const CMathStyle& style, EnumTexAtom eAtom = etaORD) :
+      CMathItem(doc, eType, style) {
       m_eAtom = eAtom;
    }
    ~CContainerItem() { Clear(); }
@@ -48,14 +48,15 @@ public:
    void SetMathAxis(int32_t nAxisY) { m_Box.SetMathAxis(nAxisY); }
    void AddWidth(int32_t nSX) { m_Box.nAdvWidth += nSX; } //needed for some item on construction
  //VFUNC implementation
-   void Draw(D2D1_POINT_2F ptAnchor, const SDWRenderInfo& dwri) override {
-      D2D1_POINT_2F ptMyAnchor{
-        ptAnchor.x + EM2DIPS(dwri.fFontSizePts, m_Box.Left()),
-        ptAnchor.y + EM2DIPS(dwri.fFontSizePts, m_Box.Top())
+   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {
+      float fFontSizePts = m_Doc.DefaultFontSizePts();
+      SPointF ptfMyAnchor{
+         ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Left()),
+         ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Top())
       };
       for (CMathItem* pTBox : m_vItems) {
-         pTBox->Draw(ptMyAnchor, dwri);
+         pTBox->Draw(ptfMyAnchor, docr);
       }
-      DrawFrame(ptAnchor, dwri);
+      DrawFrame(ptfMyAnchor, docr);
    }
 };

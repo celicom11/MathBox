@@ -2,8 +2,6 @@
 #include "AccentBuilder.h"
 #include "WordItem.h"
 #include "ContainerItem.h"
-#include "LMFontManager.h"
-extern CLMFontManager g_LMFManager;
 
 namespace {
    UINT32 _GetAccentUnicode(PCSTR szCmd,OUT bool& bBelow) {
@@ -76,33 +74,34 @@ CMathItem* CAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser)
          pParser->SetError("Missing {arg} for accent command");
       return nullptr;
    }
-   return _BuildAccented(ctx.currentStyle, ctx.fUserScale, pBase, szCmd);
+   return BuildAccented_(pParser, pBase, szCmd);
 }
 
-CMathItem* CAccentBuilder::_BuildAccented(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
-                                          const string& sLatexAccentCmd) {
+CMathItem* CAccentBuilder::BuildAccented_(IParserAdapter* pParser, CMathItem* pBase,const string& sLatexAccentCmd) {
    _ASSERT_RET(pBase, nullptr);
+   const SParserContext& ctx = pParser->GetContext();
    bool bBelow;
    UINT32 nAccentUni = _GetAccentUnicode(sLatexAccentCmd.c_str(), bBelow);
    _ASSERT_RET(nAccentUni, nullptr);
-   const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyph(FONT_LMM, nAccentUni);
+   const SLMMGlyph* pLmmGlyph = pParser->Doc().LMFManager().GetLMMGlyph(FONT_LMM, nAccentUni);
    _ASSERT_RET(pLmmGlyph, nullptr);
    int32_t nAccentX = pLmmGlyph->nTopAccentX;
-   CContainerItem* pRet = new CContainerItem(eacACCENT, style);
+   CContainerItem* pRet = new CContainerItem(pParser->Doc(), eacACCENT, ctx.currentStyle);
    //Accent vertical position
    CMathItem* pAccentBase = _getParentBase(pBase);
    int32_t nBaseAccentX = pAccentBase->Box().Width()/2; //default
    if (!bBelow && pAccentBase->Type() == eacWORD) {
       CWordItem* pWordItem = static_cast<CWordItem*>(pAccentBase);
-      if (pWordItem->GlyphRun().GetFontIdx() == FONT_LMM && pWordItem->GlyphRun().Glyphs().size() == 1) {
+      if (pWordItem->GetFontIdx() == FONT_LMM && pWordItem->GlyphCount() == 1) {
          //get glyph's info
-         const SLMMGlyph* pLmmGlyph = g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, pWordItem->GlyphRun().Glyphs().front().index);
+         const SLMMGlyph* pLmmGlyph = 
+            pParser->Doc().LMFManager().GetLMMGlyphByIdx(FONT_LMM, pWordItem->GetIndexAt(0));
          if (pLmmGlyph)
             nBaseAccentX = pLmmGlyph->nTopAccentX;
       }
    }
    pRet->AddBox(pBase, 0, 0);
-   CWordItem* pAccent = new CWordItem(0, style, eacUNK, fUserScale);
+   CWordItem* pAccent = new CWordItem(pParser->Doc(), 0, ctx.currentStyle, eacUNK, ctx.fUserScale);
    pAccent->SetText({ nAccentUni });
    //position accent
    int32_t nAccentY = 0;

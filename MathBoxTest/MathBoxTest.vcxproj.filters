@@ -25,9 +25,6 @@
     <ClCompile Include="..\MathBox\IndexedBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="..\MathBox\LMFontManager.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
     <ClCompile Include="..\MathBox\VBoxBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
@@ -38,9 +35,6 @@
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\GlyphRun.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp">

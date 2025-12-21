@@ -1,19 +1,18 @@
 #include "stdafx.h"
 #include "TexParser.h"
-#include "LMFontManager.h"
 #include "ContainerItem.h"
 #include "WordItem.h"
 #include "RawItem.h"
+#include "MockMathItem.h"
 //MathBuiders
 #include "AccentBuilder.h"
 #include "FractionBuilder.h"
 #include "RadicalBuilder.h"
 #include "HSpacingBuilder.h"
 
-CLMFontManager g_LMFManager;
-IDWriteFactory* g_pDWriteFactory = nullptr;
+//IDWriteFactory* g_pDWriteFactory = nullptr;
 struct SMemGuard {
-   CMathItem* pItem;
+   CMathItem*     pItem;
    ~SMemGuard() { delete pItem; }
 };
 
@@ -23,9 +22,9 @@ namespace TexParserTests
    {
       //HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory);
       //_ASSERT(SUCCEEDED(hr));
-      HRESULT hRes = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-         reinterpret_cast<IUnknown**>(&g_pDWriteFactory));
-      _ASSERT(SUCCEEDED(hRes));
+      //HRESULT hRes = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+      //   reinterpret_cast<IUnknown**>(&g_pDWriteFactory));
+      //_ASSERT(SUCCEEDED(hRes));
       WCHAR wszDir[MAX_PATH] = { 0 };
       GetCurrentDirectoryW(_countof(wszDir), wszDir);
       // Remove last two path components from wszDir (e.g. remove "\x64\Debug")
@@ -39,19 +38,15 @@ namespace TexParserTests
          }
          sDir.resize(pos);
       }
-      hRes = g_LMFManager.Init(sDir, g_pDWriteFactory);
-      _ASSERT(SUCCEEDED(hRes));
+      //hRes = g_LMFManager.Init(sDir, g_pDWriteFactory);
+      //_ASSERT(SUCCEEDED(hRes));
    }
    TEST_MODULE_CLEANUP(ModuleCleanup)
    {
-      if (g_pDWriteFactory) {
-         g_pDWriteFactory->Release();
-         g_pDWriteFactory = nullptr;
-      }
-      g_LMFManager.Clear();
    }
    TEST_CLASS(TexParserTests)
    {
+      CMockDocParams m_Doc;
    public:
       // Input: "$$x_a$$"
       // Expected Result:
@@ -67,7 +62,7 @@ namespace TexParserTests
       // - Subscript style is decreased and cramped
       // -  No parse errors
       TEST_METHOD(SimpleIndexed_Subscript_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x_a$$");
          SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
@@ -103,7 +98,7 @@ namespace TexParserTests
       // - Superscript style is decreased (NOT cramped)
       // - No parse errors
       TEST_METHOD(SimpleIndexed_Superscript_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x^2$$");
          SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
@@ -140,7 +135,7 @@ namespace TexParserTests
       // - Superscript is 'b' with decreased (not cramped) style
       // - No parse errors
       TEST_METHOD(Indexed_SubSuperscript_Inline) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$x_a^b$");
          SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
@@ -184,7 +179,7 @@ namespace TexParserTests
       // - No parse errors
       TEST_METHOD(Indexed_GroupedSubscript_Display) {
          // Input: "$$x_{ab}$$"
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x_{ab}$$");
          SMemGuard mg{ pRet };
 
@@ -249,7 +244,7 @@ namespace TexParserTests
       // - Demonstrates TeX chaining: x_a_b = (x_a)_b
       TEST_METHOD(Error_DoubleSubSuperscript) {
          // Input: "$$x_a_b$$" -> parsed as (x_a)_b
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x_a_b$$");
          SMemGuard mg{ pRet };
 
@@ -275,7 +270,7 @@ namespace TexParserTests
       // - Both items have Script style, subscript is cramped
       // - No parse errors
       TEST_METHOD(Indexed_GeneralizedFraction_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$_a^b$$");
          SMemGuard mg{ pRet };
 
@@ -309,7 +304,7 @@ namespace TexParserTests
       // Result: {X_Y^Z}_A (nested indexed)
       TEST_METHOD(Indexed_ComplexChaining_Display) {
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$${X_Y^Z}_A$$");
          SMemGuard mg{ pRet };
 
@@ -364,7 +359,7 @@ namespace TexParserTests
       // - Text parts have text mode
       // - No parse errors
       TEST_METHOD(MathInText_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("Text $E=mc^2$ more");
          SMemGuard mg{ pRet };
          // Parse should succeed
@@ -401,7 +396,7 @@ namespace TexParserTests
       // - All have display style
       // - No parse errors
       TEST_METHOD(MultipleTerms_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$a+b-c$$");
          SMemGuard mg{ pRet };
          // Parse should succeed
@@ -418,7 +413,7 @@ namespace TexParserTests
             Assert::AreEqual((int)eacWORD, (int)pItem->Type(), L"Each item should be CWordItem");
             CWordItem* pWord = dynamic_cast<CWordItem*>(pItem);
             Assert::IsNotNull(pWord, L"Item should be CWordItem");
-            Assert::AreEqual((size_t)1, pWord->GlyphRun().Glyphs().size(), L"Each WordItem should have single glyph");
+            Assert::AreEqual((UINT32)1, pWord->GlyphCount(), L"Each WordItem should have single glyph");
             Assert::AreEqual((int)etsDisplay, (int)pWord->GetStyle().Style(), L"Item should have Display style");
          }
       }
@@ -434,7 +429,7 @@ namespace TexParserTests
       // 6. ProcessGroup optimizes: single item $$a$$ -> unwraps to 'a'
       // Result: CWordItem('a')
       TEST_METHOD(NestedGroups_OptimizedToSingleItem) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$${[a]}$$");
          SMemGuard mg{ pRet };
 
@@ -467,7 +462,7 @@ namespace TexParserTests
       // - LastError().eStage == epsBUILDING
       // - LastError().nPosition == 4
       TEST_METHOD(Error_MissingSubscriptArgument_EndOfInput) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x_$$");
          SMemGuard mg{ pRet };
          // Parse should fail
@@ -489,7 +484,7 @@ namespace TexParserTests
       // - LastError().eStage == epsBUILDING
       // - LastError().nPosition == 4
       TEST_METHOD(Error_MissedSubSuperscript) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x_^y$$");
          SMemGuard mg{ pRet };
          // Parse should fail
@@ -511,7 +506,7 @@ namespace TexParserTests
       // - LastError().eStage == epsBUILDING
       // - LastError().nPosition == 4
       TEST_METHOD(Error_MissedSuperSubscript) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$x^_y$$");
          SMemGuard mg{ pRet };
          // Parse should fail
@@ -531,7 +526,7 @@ namespace TexParserTests
       // - Result is nullptr
       // - LastError().sError == "Empty group is not allowed here!"
       TEST_METHOD(Error_EmptyGroups_NotAllowed) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$ $$");
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
@@ -561,7 +556,7 @@ namespace TexParserTests
       // - LastError().sError == "Unclosed group '{'"
       // - LastError().nPosition == 2
       TEST_METHOD(Error_BuildGroups_Unclosed) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$${ abc$$");
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
@@ -584,7 +579,7 @@ namespace TexParserTests
       // - Result is nullptr
       // - LastError().sError == "Inner $..$/$$...$$ are not allowed in math mode!"
       TEST_METHOD(Error_NestedMathModes) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$a $b$ c$$");
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
@@ -599,9 +594,10 @@ namespace TexParserTests
    };
    TEST_CLASS(MathBuilderTests)
    {
+      CMockDocParams m_Doc;
    public:
       TEST_METHOD(FractionBuilder_Basic_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\frac{a}{b}$$");
          struct SMemGuard {
             CMathItem* pItem;
@@ -641,7 +637,7 @@ namespace TexParserTests
          // Input: "$$\frac{\frac{a}{b}}{c}$$"
          // Tests: Recursive builder calls work
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\frac{\\frac{a}{b}}{c}$$");
          SMemGuard mg{ pRet };
 
@@ -665,7 +661,7 @@ namespace TexParserTests
          // Input: "$$\frac{a}{b}^2$$"
          // Tests: TryAddSubSuperscript_ works on builder result
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\frac{a}{b}^2$$");
          SMemGuard mg{ pRet };
 
@@ -691,7 +687,7 @@ namespace TexParserTests
          // Tests: Optional degree argument not provided
          // Expected: Radical without degree (square root)
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\sqrt{x}$$");
          SMemGuard mg{ pRet };
 
@@ -717,7 +713,7 @@ namespace TexParserTests
          Assert::IsTrue(pRadicand->GetStyle().IsCramped(), L"Radicand should be cramped");
       }
       TEST_METHOD(RadicalBuilder_Degree_Display) {
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\sqrt[3]{A}$$");
          SMemGuard mg{ pRet };
          Assert::IsNotNull(pRet, L"Parser failed!");
@@ -760,7 +756,7 @@ namespace TexParserTests
          // Tests: Nested radical as degree (advanced recursion)
          // Also tests: Inline math mode ($ not $$)
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$\\sqrt[\\sqrt{2}]{x}$");
          SMemGuard mg{ pRet };
 
@@ -812,7 +808,7 @@ namespace TexParserTests
          // Input: "$$\ocirc{a}$$"
          // Expected: accent over 'a'
 
-         CTexParser parser;
+         CTexParser parser(m_Doc);
          CMathItem* pRet = parser.Parse("$$\\ocirc{a}$$");
          SMemGuard mg{ pRet };
 
@@ -841,8 +837,8 @@ namespace TexParserTests
       //GlueBuilder tests
       TEST_METHOD(HSpacingBuilder_HSkip_Fixed) {
          // Input: "$$a\hskip 10pt b$$"
-         CTexParser parser;
-         parser.SetDocumentFontSizePts(10.f);
+         CTexParser parser(m_Doc);
+         //parser.SetDocumentFontSizePts(10.f);
 
          CMathItem* pRet = parser.Parse("$$a\\hskip 10pt b$$");
          SMemGuard mg{ pRet };
@@ -872,8 +868,8 @@ namespace TexParserTests
 
       TEST_METHOD(HSpacingBuilder_HSkip_EmUnit) {
          // Input: "$$\hskip 2em$$" at 10pt font
-         CTexParser parser;
-         parser.SetDocumentFontSizePts(10.f);
+         CTexParser parser(m_Doc);
+         //parser.SetDocumentFontSizePts(10.f);
 
          // Set document font size to 10pt for test
          // (Assuming you have a way to set this)
@@ -894,8 +890,8 @@ namespace TexParserTests
 
       TEST_METHOD(HSpacingBuilder_HSkip_ExUnit) {
          // Input: "$$\hskip 3ex$$" at 10pt font
-         CTexParser parser;
-         parser.SetDocumentFontSizePts(10.f);
+         CTexParser parser(m_Doc);
+         //parser.SetDocumentFontSizePts(10.f);
 
          CMathItem* pRet = parser.Parse("$$\\hskip 3ex$$");
          SMemGuard mg{ pRet };
@@ -912,14 +908,15 @@ namespace TexParserTests
    };
    TEST_CLASS(RawItemTests)
    {
+      CMockDocParams m_Doc;
    public:
       TEST_METHOD(TryAppendWord_ReturnTrue) {
          //emulate a\'{a}b
-         CWordItem* pWordItem1 = new CWordItem(0, CMathStyle());
+         CWordItem* pWordItem1 = new CWordItem(m_Doc, FONT_LMM, CMathStyle());
          pWordItem1->SetText(L"a");
-         CWordItem* pWordItem2 = new CWordItem(0, CMathStyle());
+         CWordItem* pWordItem2 = new CWordItem(m_Doc, FONT_LMM, CMathStyle());
          pWordItem2->SetText({0x00E0});
-         CWordItem* pWordItem3 = new CWordItem(0, CMathStyle());
+         CWordItem* pWordItem3 = new CWordItem(m_Doc, FONT_LMM, CMathStyle());
          pWordItem3->SetText(L"b");
          //SMemGuard mg1{ pWordItem1 };
          CRawItem ritem{ 1, 1, pWordItem1 };

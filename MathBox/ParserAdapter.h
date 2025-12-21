@@ -24,7 +24,7 @@ public:
 
    //context info
    const SParserContext& GetContext() const override { return m_ctx; }
-   float DocFontSizePts() const override { return m_TexParser.DocumentFontSizePts(); }
+   IDocParams& Doc() override { return m_TexParser.Doc(); }
    //error info/setting
    bool HasError() const override { return !m_TexParser.LastError().sError.empty(); }
    void SetError(const string& sMessage) override {

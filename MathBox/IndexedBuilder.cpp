@@ -2,9 +2,7 @@
 #include "IndexedBuilder.h"
 #include "ContainerItem.h"
 #include "WordItem.h"
-#include "LMFontManager.h"
 
-extern CLMFontManager g_LMFManager;
 namespace {
    int32_t _GetSuperscriptShiftUp(CMathItem* pBase, bool bCramped, float fScale, const STexBox& boxSuper) {
       int32_t nSuperShiftUp;
@@ -39,20 +37,20 @@ namespace {
    }
 }
 
-CMathItem* CIndexedBuilder::BuildIndexed(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
+CMathItem* CIndexedBuilder::_BuildIndexed(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
                                           CMathItem* pSupers, CMathItem* pSubs) {
    _ASSERT_RET(pBase && (pSupers || pSubs), nullptr);
    float fScale = fUserScale * style.StyleScale();
-   CContainerItem* pRetBox = new CContainerItem(eacINDEXED, style);
+   CContainerItem* pRetBox = new CContainerItem(pBase->Doc(), eacINDEXED, style);
    pRetBox->AddBox(pBase, 0, 0);
    uint16_t nItalicCorrection = 0;
    //bool bBaseIsSym = false; //not in use?
    if (pBase->Type() == eacWORD || pBase->Type() == eacBIGOP) {
-      const CGlyphRun& glyphRun = static_cast<CWordItem*>(pBase)->GlyphRun();
-      const SDWGlyph& dwgLast = glyphRun.Glyphs().back();
-      const SLMMGlyph* pLMMGlyph = glyphRun.GetFontIdx() == FONT_LMM ?
-         g_LMFManager.GetLMMGlyphByIdx(FONT_LMM, dwgLast.index) :
-         g_LMFManager.GetLMMGlyph(glyphRun.GetFontIdx(), dwgLast.codepoint);
+      CWordItem* pWordItem = static_cast<CWordItem*>(pBase);
+      uint32_t nGCount = pWordItem->GlyphCount();
+      const SLMMGlyph* pLMMGlyph = pWordItem->GetFontIdx() == FONT_LMM ?
+         pBase->Doc().LMFManager().GetLMMGlyphByIdx(FONT_LMM, pWordItem->GetIndexAt(nGCount - 1)) :
+         pBase->Doc().LMFManager().GetLMMGlyph(pWordItem->GetFontIdx(), pWordItem->GetUnicodeAt(nGCount - 1));
       if (pLMMGlyph)
          nItalicCorrection = F2NEAREST(pLMMGlyph->nItalCorrection * fScale*pBase->UserScale());
    }
