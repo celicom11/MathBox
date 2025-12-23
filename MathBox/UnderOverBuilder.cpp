@@ -23,12 +23,15 @@ namespace {
         {"overrightarrow",       0x20D7},  // 
         {"overleftrightarrow",   0x20E1},  // COMBINING LEFT RIGHT ARROW ABOVE
         {"Overrightarrow",       0x21D2},  // arrowdblright, to be manually scaled/positioned in the VBox!
-        //{"overleftharpoon",      0x20D0},  // aka leftharpoonaccent
-        //{"overrightharpoon",     0x20D1},  // aka rightharpoonaccent
+        {"overleftharpoon",      0x20D0},  // aka leftharpoonaccent
+        {"overrightharpoon",     0x20D1},  // aka rightharpoonaccent
       };
       static map<string, uint32_t> _mapCmd2UniBottom = {
          {"utilde",              0x0330},  // Combining Tilde Below
          {"underline",           0x0332},  // lowlinecmb
+         {"underleftarrow",      0x20D6},  //
+         {"underrightarrow",     0x20D7},  // 
+         {"underleftrightarrow",  0x20E1},
          {"underbracket",        0x23B5},  // bottom square bracket
          {"underparen",          0x23DD},  // bottom parenthesis 
          {"underbrace",          0x23DF},  // bottom curly bracket 

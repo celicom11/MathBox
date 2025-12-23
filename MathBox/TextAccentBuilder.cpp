@@ -136,7 +136,7 @@ bool CTextAccentBuilder::CanTakeCommand(PCSTR szCmd) const {
       return true;
    if (sCmd.size() > 1)
       return false;//single accent char is expected
-   constexpr PCSTR _szAccents = "'`^\"H~ckl=b.druvto";
+   constexpr PCSTR _szAccents = "'`.^\"H~ckl=b.druvto";
    return strchr(_szAccents, cCmd) != nullptr;
 }
 CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
@@ -208,8 +208,23 @@ CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPar
             }
          }
          if (vUnicode.empty()) {
-            pParser->SetError("Unknown accent command: '\\" + string(szCmd) + "{" + sTkText + "}'");
-            return nullptr;
+            //use combining glyphs if possible
+            if (*szCmd == 'H') {
+               vUnicode.push_back(sTkText[0]);
+               vUnicode.push_back(0x30B); // COMBINING DOUBLE ACUTE ACCENT
+            }
+            else if (*szCmd == '.') {
+               vUnicode.push_back(sTkText[0]);
+               vUnicode.push_back(0x307); // COMBINING DOT ABOVE
+            }
+            else if (*szCmd == 'v') {
+               vUnicode.push_back(sTkText[0]);
+               vUnicode.push_back(0x30C); // COMBINING CARON
+            }
+            else {
+               pParser->SetError("Unknown accent command: '\\" + string(szCmd) + "{" + sTkText + "}'");
+               return nullptr;
+            }
          }
          pParser->SkipToken(); //arg + }
          pParser->SkipToken();

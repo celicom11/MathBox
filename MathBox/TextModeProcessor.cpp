@@ -145,13 +145,14 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
             }
          }
          else {
-            if (!vGroupItems.empty()) {
-               //prepend spaceGlue
-               const STexToken* pPrevToken = GetToken(vGroupItems.back().TkIdxEnd());
+            if (nCurTokenIdx > 0) {
+               //insert space
+               const int nPrevTokenIdx = vGroupItems.empty() ? nCurTokenIdx - 1 : vGroupItems.back().TkIdxEnd();
+               const STexToken* pPrevToken = GetToken(nPrevTokenIdx);
                int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
                //ignore 1 space after command that ends with ALNUM char
-               if (nSpaces > 0 && pPrevToken->nType == ettCOMMAND){
-                  string sPrevCmd = TokenText(vGroupItems.back().TkIdxEnd());
+               if (nSpaces > 0 && pPrevToken->nType == ettCOMMAND) {
+                  string sPrevCmd = TokenText(nPrevTokenIdx);
                   if (_IsAlNum(sPrevCmd.back()))
                      --nSpaces;
                }
@@ -160,12 +161,13 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
                   glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
                   glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-                  CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle, 
+                  CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle,
                      ctxG.fUserScale);
                   vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx, pSpaceGlue);
                }
-               else if (pCurToken->nType == ettCOMMAND || pCurToken->nType == ettALNUM || 
-                        pCurToken->nType == ettNonALPHA) { 
+               else if (!vGroupItems.empty() && (
+                  pCurToken->nType == ettCOMMAND || pCurToken->nType == ettALNUM ||
+                  pCurToken->nType == ettNonALPHA)) {
                   if (vGroupItems.back().TryAppendWord(pItem, nCurTokenIdx, nIdxG - 1)) {
                      delete pItem;
                      pItem = nullptr;

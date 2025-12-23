@@ -35,8 +35,8 @@ namespace {
       };
       static map<string, UINT32> _mapCmd2UniBottom = {
          {"threeunderdot",    0x20E8},  //
-         {"underleftarrow",   0x20EE},  //
-         {"underrightarrow",  0x20EF},  //
+         //{"underleftarrow",   0x20EE},  // moved to CUnderOverBuilder
+         //{"underrightarrow",  0x20EF},  //
          
       };
       auto itCmdUni = _mapCmd2UniTop.find(szCmd);

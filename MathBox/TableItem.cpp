@@ -10,7 +10,8 @@ void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
    //
    for (vector<CMathItem*>& vRow: m_vvCells) {
       for (CMathItem* pCell : vRow) {
-         pCell->Draw(ptfMyAnchor, docr);
+         if(pCell)
+            pCell->Draw(ptfMyAnchor, docr);
       }
    }
    //draw vert lines in array environment
@@ -71,9 +72,12 @@ bool CTableItem::Init(const vector<EnumColAlignment>& vColAligns, const vector<c
    m_vRowLayouts.resize(table.vRows.size());
    for (int nIdx = 0; nIdx < (int)table.vRows.size(); ++nIdx) {
       const SEnvTableRow& row = table.vRows[nIdx];
+      _ASSERT_RET(row.vCells.size() <= (size_t)table.nCols, false); //snbh!
       m_vHLines[nIdx] = row.cHLine;
       m_vvCells.emplace_back(row.vCells);
-      _ASSERT_RET(row.vCells.size() == (size_t)table.nCols, false); //snbh!
+      while (m_vvCells.back().size() < table.nCols) {
+         m_vvCells.back().emplace_back(nullptr);
+      }
       CalcRowGeometry_(nIdx);
    }
    //update table box

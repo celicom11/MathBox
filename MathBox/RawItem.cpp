@@ -71,8 +71,8 @@ CMathItem* CRawItem::BuildItem(IDocParams& doc, const CMathStyle& style, float f
          CMathStyle styleSuper(style);
          styleSuper.ToSuperscriptStyle();
          CWordItem* pPrimes = new CWordItem(doc, FONT_LMM, styleSuper, eacUNK, fUserScale);
-         vector<UINT32> vUniCodePoints(m_nPrimes, 0x2032);
-         pPrimes->SetText(vUniCodePoints);
+         vector<uint16_t> vIndexes(m_nPrimes, 2981); //minute.st
+         pPrimes->SetGlyphIndexes(vIndexes);
          if (pSuperScript) {
             //pack together in hbox
             CHBoxItem* pHBox = new CHBoxItem(doc, styleSuper);

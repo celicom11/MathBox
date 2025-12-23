@@ -150,8 +150,10 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                else {// superscript!
                   if (!vGroupItems.back().AddPrime(nCurTokenIdx))
                      m_Parser.SetError(nCurTokenIdx, "' is a double superscript");
-                  else
+                  else {
                      pItem = nullptr; // already consumed
+                     ++nIdxG;
+                  }
                }
             }
             break;
@@ -209,6 +211,19 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                else
                   ctxGS.SetInSuperscript();
                nCurTokenIdx = ++nIdxG;
+               if (pCurToken->nType == ettSUPERS && !vGroupItems.empty()) {
+                  const STexToken* pSubSuperToken = GetToken(nIdxG);
+                  if (pSubSuperToken && pSubSuperToken->nType == ettCOMMAND &&
+                     "\\prime" == TokenText(nIdxG)) {
+                     if (!vGroupItems.back().AddPrime(nCurTokenIdx))
+                        m_Parser.SetError(nCurTokenIdx, "\\prime is a double superscript");
+                     else {
+                        ++nIdxG;//skip \\prime
+                        break;
+                     }
+
+                  }
+               }
                pItem = ProcessItemToken(nIdxG, ctxGS);
                if (pItem) {
                   if (vGroupItems.empty())

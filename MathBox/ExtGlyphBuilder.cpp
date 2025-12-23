@@ -13,13 +13,14 @@ namespace //static helpers
    };
    struct SGlyphExtensionInfo {
       uint32_t nUnicode{ 0 };             // base glyph's unicode
-      SGlyphVariant gvBottomLeftId;       // bottom or right part
+      SGlyphVariant gvBottomLeftId;       // 
       SGlyphVariant gvMiddleId;           // optional middle part.If 0, use extender!
-      SGlyphVariant gvTopRightId;         // top or left part
+      SGlyphVariant gvTopRightId;         // 
       int16_t       nMaxOverlap{ 0 };     // max overlap of Top/Middle (or Tob/Bottom if no middle) parts
       // Extender/Filler info, two symmetric fillers if nMiddleId <> 0
-      int16_t nExtenderLeft{ 0 };         //or Bottom (rel. to Baseline!);filler boundaries, overlappi joint parts with otfMinConnectorOverlap
-      int16_t nExtenderRight{ 0 };        //or Top;
+      int16_t nExtenderLeft{ 0 };         //Left or Bottom (rel. to Baseline!);
+                                          // filler boundaries, overlappi joint parts with otfMinConnectorOverlap
+      int16_t nExtenderRight{ 0 };        //Right or Top;
       int16_t nExtender2Left{ 0 };        //2nd extender left/bottom;
       vector< SGlyphVariant> vVariants;   // usually non empty!
    };
@@ -103,6 +104,12 @@ namespace //static helpers
          {{2272, 371},{2282, 653},{2292, 779},{2302, 932},{2312, 1116},{2322, 1336},{2332, 1600},{2342, 1916}}},
       {0x330, {},{},{},0,0,0,0,    // tildebelowcmb
          {{2273, 371},{2283, 653},{2293, 779},{2303, 932},{2313, 1116},{2323, 1336},{2333, 1600},{2343, 1916}}},
+      
+      {0x20D0, {1808,208},{},{1810,208},70,601,631,0, // overleftharpoon
+         {{1804, 423},{1806, 556}}},
+      {0x20D1, {1811,208},{},{1813,208},70,601,631,0, // overleftharpoon
+         {{1805, 423},{1807, 556}}},
+
       {0x20D6, {1820,205},{},{1822,205},69,601,631,0, // overleftarrow
          {{1816, 417},{1818, 548}}},
       {0x20D7, {1823,205},{},{1825,205},69,601,631,0, // overrightarrow (aka vec) 
