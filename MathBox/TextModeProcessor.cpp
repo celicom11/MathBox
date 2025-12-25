@@ -6,6 +6,7 @@
 #include "ParserAdapter.h"
 #include "HBoxItem.h"
 #include "WordItemBuilder.h"
+#include "RuleItem.h"
 // TextMode MathItem Builders
 #include "ScaleCmdBuilder.h"
 #include "HSpacingBuilder.h"
@@ -291,7 +292,8 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
    CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty()) {
-         CStrutItem* pStrut = new CStrutItem(m_Parser.Doc(), ctx.currentStyle, ctx.fUserScale);
+         CMathItem* pStrut = new CRuleItem(m_Parser.Doc(), 0, otfUnitsPerEm, 3*otfUnitsPerEm/4, 
+            ctx.currentStyle, ctx.fUserScale);
          pRet->AddBox(pStrut, 0, pRet->Box().Bottom() + nInterline);
       }
       else if(vLine.size() == 1)

@@ -223,6 +223,9 @@
     <ClInclude Include="D2DRenderer.h" />
     <ClInclude Include="LMMFont.h" />
     <ClInclude Include="D2DGeomSink.h" />
+    <ClInclude Include="MathBox\RuleItem.h">
+      <Filter>MathBox</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="MathBoxDemo.cfg" />

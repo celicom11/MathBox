@@ -23,7 +23,7 @@ bool CWordItem::SetGlyphIndexes(const vector<uint16_t>& vGIndexes) {
                                                m_vGMetrics.data(), m_Bounds))
       return false;
    //set Box
-   float fScale = m_fUserScale * m_Style.StyleScale();
+   float fScale = EffectiveScale();
    m_Box.nHeight = F2NEAREST((m_Bounds.nMaxY - m_Bounds.nMinY) * fScale);
    m_Box.nAscent = -F2NEAREST(m_Bounds.nMinY * fScale);
 
@@ -38,7 +38,6 @@ bool CWordItem::SetGlyphIndexes(const vector<uint16_t>& vGIndexes) {
 }
 //CMathItem Implementation
 void CWordItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
-   float fScale = m_fUserScale * m_Style.StyleScale();
    //draw at the box position, baseline aligned
    float fFontSizePts = m_Doc.DefaultFontSizePts();
    SPointF ptfBaseOrigin = {
@@ -46,7 +45,7 @@ void CWordItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
       ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.BaselineY())
    };
    docr.DrawGlyphRun(m_nFontIdx, (int32_t)m_vGIndexes.size(), m_vGIndexes.data(),
-                     ptfBaseOrigin, fScale);
+                     ptfBaseOrigin, EffectiveScale());
    DrawFrame(ptfAnchor, docr);
 }
 //static helper

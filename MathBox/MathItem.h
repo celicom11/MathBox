@@ -90,7 +90,7 @@ enum EnumMathItemType {
    eacHDELIM,           // Ord: container item with horizontal bracket + parts
    eacTABLE,            // Ord: special container item for matrices and arrays
    //eacOverlay,        // container item with a base + cancel,not, cross, etc. fillers
-   eacSTRUT,
+   eacRULE,             // Filler replacement
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -134,7 +134,6 @@ public:
       else
          m_eTexStyle = etsScript;
    }
-
 };
 //Tex Glue info
 struct STexGlue {
@@ -182,6 +181,9 @@ public:
    EnumMathItemType Type() const { return m_eType; }
    float UserScale() const { return m_fUserScale; }
    IDocParams& Doc() { return m_Doc; }
+   float EffectiveScale() const {
+      return m_fUserScale * m_Style.StyleScale();
+   }
    //METHODS
    void DenominateBinRel() {
       //make it ordinary atom
@@ -213,36 +215,6 @@ public:
    virtual void Select(bool bSelect = true) { m_bSelected = bSelect; } //default
    virtual void Draw(SPointF ptfAnchor, IDocRenderer& docr) = 0; //PURE
 };
-////virtual/empty items
-//// NULL/PHANTOM Item
-//class CNullItem : public CMathItem {
-//public:
-//   //CTOR/DTOR
-//   CNullItem() : CMathItem(eacNull, CMathStyle()) {}
-//   //CMathItem implementation
-//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
-//};
-//class CHLineItem : public CMathItem {
-//public:
-//   //CTOR/DTOR
-//   CHLineItem() : CMathItem(eacHLINE, CMathStyle()) {}
-//   //CMathItem implementation
-//   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
-//};
-// vertical strut item
-class CStrutItem : public CMathItem {
-public:
-   //CTOR/DTOR
-   CStrutItem(IDocParams& doc, const CMathStyle& style, float fUserScale = 1.0f) : 
-      CMathItem(doc, eacSTRUT, style, fUserScale) {
-      float fScale = fUserScale * style.StyleScale();
-      m_Box.nHeight = F2NEAREST(otfUnitsPerEm * fScale);
-      m_Box.nAscent = F2NEAREST(otfUnitsPerEm * 0.75f * fScale); //~average; 75% ascent
-   }
-   //CMathItem implementation
-   void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {}
-};
-//
 
 enum EnumDelimType {
    edtNotDelim = 0,

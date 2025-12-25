@@ -366,6 +366,7 @@
     <ClInclude Include="MathBox\ParserAdapter.h" />
     <ClInclude Include="MathBox\RadicalBuilder.h" />
     <ClInclude Include="MathBox\RawItem.h" />
+    <ClInclude Include="MathBox\RuleItem.h" />
     <ClInclude Include="MathBox\ScaleCmdBuilder.h" />
     <ClInclude Include="MathBox\TableItem.h" />
     <ClInclude Include="MathBox\TexParser.h" />
