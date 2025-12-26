@@ -73,7 +73,7 @@ DECLARE_INTERFACE(IDocParams) {
    virtual uint32_t ColorSelection() = 0;
    //Text color ~= Foreground color!
    virtual uint32_t ColorText() = 0;
-   virtual void SetColorText(uint32_t clrText) = 0;
+   //virtual void SetColorText(uint32_t clrText) = 0;
 };
 //abstract renderer interface
 DECLARE_INTERFACE(IDocRenderer) {

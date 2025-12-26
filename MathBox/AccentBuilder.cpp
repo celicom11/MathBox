@@ -4,11 +4,11 @@
 #include "ContainerItem.h"
 
 namespace {
-   UINT32 _GetAccentUnicode(PCSTR szCmd,OUT bool& bBelow) {
+   uint32_t _GetAccentUnicode(PCSTR szCmd,OUT bool& bBelow) {
       _ASSERT_RET(szCmd && *szCmd, 0);
       if (szCmd[0] == '\\')
          ++szCmd; // skip '\\'
-      static map<string, UINT32> _mapCmd2UniTop = {
+      static map<string, uint32_t> _mapCmd2UniTop = {
         {"grave",             0x0300},  // GRAVE ACCENT
         {"acute",             0x0301},  // ACUTE ACCENT
         {"hat",               0x0302},  // CIRCUMFLEX ACCENT
@@ -33,7 +33,7 @@ namespace {
 
         // ... add more as needed
       };
-      static map<string, UINT32> _mapCmd2UniBottom = {
+      static map<string, uint32_t> _mapCmd2UniBottom = {
          {"threeunderdot",    0x20E8},  //
          //{"underleftarrow",   0x20EE},  // moved to CUnderOverBuilder
          //{"underrightarrow",  0x20EF},  //
@@ -61,7 +61,7 @@ namespace {
 }
 bool CAccentBuilder::CanTakeCommand(PCSTR szCmd) const {
    bool bBelow;
-   UINT32 nAccentUni = _GetAccentUnicode(szCmd, bBelow);
+   uint32_t nAccentUni = _GetAccentUnicode(szCmd, bBelow);
    return nAccentUni != 0;
 }
 CMathItem* CAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
@@ -81,7 +81,7 @@ CMathItem* CAccentBuilder::BuildAccented_(IParserAdapter* pParser, CMathItem* pB
    _ASSERT_RET(pBase, nullptr);
    const SParserContext& ctx = pParser->GetContext();
    bool bBelow;
-   UINT32 nAccentUni = _GetAccentUnicode(sLatexAccentCmd.c_str(), bBelow);
+   uint32_t nAccentUni = _GetAccentUnicode(sLatexAccentCmd.c_str(), bBelow);
    _ASSERT_RET(nAccentUni, nullptr);
    const SLMMGlyph* pLmmGlyph = pParser->Doc().LMFManager().GetLMMGlyph(FONT_LMM, nAccentUni);
    _ASSERT_RET(pLmmGlyph, nullptr);
@@ -94,7 +94,7 @@ CMathItem* CAccentBuilder::BuildAccented_(IParserAdapter* pParser, CMathItem* pB
       CWordItem* pWordItem = static_cast<CWordItem*>(pAccentBase);
       if (pWordItem->GetFontIdx() == FONT_LMM && pWordItem->GlyphCount() == 1) {
          //get glyph's info
-         const SLMMGlyph* pLmmGlyph = 
+         const SLMMGlyph* pLmmGlyph =
             pParser->Doc().LMFManager().GetLMMGlyphByIdx(FONT_LMM, pWordItem->GetIndexAt(0));
          if (pLmmGlyph)
             nBaseAccentX = pLmmGlyph->nTopAccentX;

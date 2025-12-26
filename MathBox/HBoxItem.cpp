@@ -65,7 +65,7 @@ void CHBoxItem::UpdateLayout_() {
       m_Box.Union(pItem->Box());     //only top/bottom are valid now!
    }
    //2. position items horizontally
-   for (UINT nIdx = 1; nIdx < (UINT)m_vItems.size(); ++nIdx) {
+   for (int32_t nIdx = 1; nIdx < (int32_t)m_vItems.size(); ++nIdx) {
       CMathItem* pItem = m_vItems[nIdx];
       CMathItem* pPrevItem = m_vItems[nIdx - 1];
       float fX = (float)pPrevItem->Box().Right();
@@ -85,7 +85,7 @@ void CHBoxItem::ResizeByRatio(uint16_t nOrder, float fRatio) {
       return; //n/a
    //else
    float fWidth = 0; //calc actual width
-   for (UINT nIdx = 1; nIdx < (UINT)m_vItems.size(); ++nIdx) {
+   for (int32_t nIdx = 1; nIdx < (int32_t)m_vItems.size(); ++nIdx) {
       CMathItem* pItem = m_vItems[nIdx];
       CMathItem* pPrevItem = m_vItems[nIdx - 1];
       pPrevItem->ResizeByRatio(nOrder, fRatio);

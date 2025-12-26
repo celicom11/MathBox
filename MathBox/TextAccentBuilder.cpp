@@ -146,7 +146,7 @@ CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPar
    ++szCmd; //skip '\'
    string sCmd(szCmd);
    //build unicode vector
-   vector<UINT32> vUnicode;
+   vector<uint32_t> vUnicode;
    if (sCmd == "i")
       vUnicode.push_back(0x0131); //dotless i
    else if (sCmd == "j")

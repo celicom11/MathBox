@@ -41,7 +41,7 @@ CMathItem* CMathSymBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    }
    if (_IsSpecialChar(*szCmd)) {
       CWordItem* pRet = new CWordItem(m_Doc, mfStyle.nLetterDigitsFont, ctx.currentStyle, eacWORD, ctx.fUserScale);
-      pRet->SetText({ UINT32(*szCmd) });
+      pRet->SetText({ uint32_t(*szCmd) });
    }
    else if (_IsMathOp(szCmd)) 
       pRet = BuildMathOperator_(szCmd, ctx.currentStyle, ctx.fUserScale);

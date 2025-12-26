@@ -49,7 +49,7 @@ namespace {
       pRet->SetAtom(eAtom);
       return pRet;
    }
-   bool _GetLMMIndexes(IDocParams& doc, const string& sLatexUnicodeCmd, const string& sText, OUT vector<UINT16>& vGIdx) {
+   bool _GetLMMIndexes(IDocParams& doc, const string& sLatexUnicodeCmd, const string& sText, OUT vector<uint16_t>& vGIdx) {
       for (char cChar : sText) {
          string sArg = "\\" + sLatexUnicodeCmd + '{' + cChar + '}';
          PCSTR szNextBracket = sLatexUnicodeCmd.c_str();
@@ -64,7 +64,7 @@ namespace {
             pLmmGlyph = doc.LMFManager().GetLMMGlyphByCmd(sArg.c_str());
          }
          if (!pLmmGlyph)
-            pLmmGlyph = doc.LMFManager().GetLMMGlyph(FONT_LMM, UINT32(cChar));
+            pLmmGlyph = doc.LMFManager().GetLMMGlyph(FONT_LMM, uint32_t(cChar));
          _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, false);//unkown character?
          vGIdx.push_back(pLmmGlyph->nIndex);
       }
@@ -100,7 +100,7 @@ CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord
    if (sWord.size() == 1 && !isalnum(sWord[0])) {
       _ASSERT(!_IsSpace(sWord[0]));
       // Check atom type!
-      const SLMMGlyph* pLmmGlyph = doc.LMFManager().GetLMMGlyph(mfStyle.nLetterDigitsFont, UINT32(sWord[0]));
+      const SLMMGlyph* pLmmGlyph = doc.LMFManager().GetLMMGlyph(mfStyle.nLetterDigitsFont, uint32_t(sWord[0]));
       _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//unkown unicode?
       return _BuildLMMSymbol(doc, pLmmGlyph, ctx.currentStyle, ctx.fUserScale);
    }
@@ -109,7 +109,7 @@ CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord
       pRet->SetTextA(sWord.c_str());
    else {
       //we may need to map glyphs
-      vector<UINT16> vGIdx;
+      vector<uint16_t> vGIdx;
       _ASSERT_RET(_GetLMMIndexes(doc, mfStyle.szLatexUnicodeCmd, sWord, vGIdx), nullptr);
       pRet->SetGlyphIndexes(vGIdx);
    }
@@ -133,7 +133,7 @@ CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string
    _ASSERT_RET(g_LMFManager._GetMathFontStyle((sFontCmd.empty()?"mathnormal":sFontCmd), mfStyle), nullptr);
    if (_IsSpecialChar(sSym[1])) {
       CWordItem* pRet = new CWordItem(mfStyle.nLetterDigitsFont, style, eacWORD, fUserScale);
-      pRet->SetText({ UINT32(sSym[1]) });
+      pRet->SetText({ uint32_t(sSym[1]) });
       return pRet;
    }
    //2. MathOp
@@ -167,7 +167,7 @@ CMathItem* CWordItemBuilder::BuildTeXSymbol(const string& sFontCmd, const string
       if (sSym[0] == '\\')  //try sym w/o font decoration
          pLmmGlyph = g_LMFManager.GetLMMGlyphByCmd(sSym.c_str());
       else //single char
-         pLmmGlyph = g_LMFManager.GetLMMGlyph(mfStyle.nLetterDigitsFont, UINT32(sSym[0]));
+         pLmmGlyph = g_LMFManager.GetLMMGlyph(mfStyle.nLetterDigitsFont, uint32_t(sSym[0]));
    }
    _ASSERT_RET(pLmmGlyph && pLmmGlyph->nIndex, nullptr);//unkown symbol/cmd!
    return _BuildLMMSymbol(pLmmGlyph, style, fUserScale);

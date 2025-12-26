@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "LMMFont.h"
-#include "MathBox\LMMConsts.h"
+#include "LMMConsts.h"
 
 namespace {
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }

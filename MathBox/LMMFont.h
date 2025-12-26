@@ -1,5 +1,5 @@
 #pragma once
-#include "MathBox\AGL.h"
+#include "AGL.h"
 
 //LatinModernMath font OpenType data wrapper
 class CLMMFont : public ILMFManager {

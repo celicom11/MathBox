@@ -6,14 +6,14 @@
 //static helpers
 namespace {
    // LMM radical variant indexes
-   const UINT16 lmmRadical    = 3077;     // base glyph, 0x221A
-   const UINT16 lmmRadical_btm =3078;     // radical assembly btm, 0x23b7
-   const UINT16 lmmRadical_ex = 3079;     // vert extender, not used!
-   const UINT16 lmmRadical_tp = 3080;     // extender's top
-   const UINT16 lmmRadical_v1 = 3081;
-   const UINT16 lmmRadical_v2 = 3082;
-   const UINT16 lmmRadical_v3 = 3083;
-   const UINT16 lmmRadical_v4 = 3084;
+   const uint16_t lmmRadical    = 3077;     // base glyph, 0x221A
+   const uint16_t lmmRadical_btm =3078;     // radical assembly btm, 0x23b7
+   const uint16_t lmmRadical_ex = 3079;     // vert extender, not used!
+   const uint16_t lmmRadical_tp = 3080;     // extender's top
+   const uint16_t lmmRadical_v1 = 3081;
+   const uint16_t lmmRadical_v2 = 3082;
+   const uint16_t lmmRadical_v3 = 3083;
+   const uint16_t lmmRadical_v4 = 3084;
    // LMM radical dimensions 
    const int32_t lmmRadicalH_Em = 1000;
    const int32_t lmmRadicalH_v1Em = 1200;
@@ -27,7 +27,7 @@ namespace {
    //
 
    //returns radical's variant glyph index
-   UINT16 _getRadicalVariant(int32_t nTargetHeightEM) {
+   uint16_t _getRadicalVariant(int32_t nTargetHeightEM) {
       if (nTargetHeightEM <= lmmRadicalH_Em)
          return lmmRadical; //default
       if (nTargetHeightEM <= lmmRadicalH_v1Em)
@@ -82,14 +82,14 @@ CMathItem* CRadicalBuilder::_BuildRadical(const CMathStyle& style, float fUserSc
    const int32_t nTargetEM = F2NEAREST(nRadicandHEm / fScale) + 2 * otfRadicalRuleThickness +
       (style.Style() == etsDisplay ? otfRadicalDisplayStyleVerticalGap : otfRadicalVerticalGap);
    //Radical choice
-   UINT16 nRadicalVariant = _getRadicalVariant(nTargetEM);
+   uint16_t nRadicalVariant = _getRadicalVariant(nTargetEM);
    if (nRadicalVariant)
       return BuildSimpleRadical_(style, fUserScale, pRadicand, nRadicalVariant, pRadDegree);
    //else
    return AssembleRadical_(style, fUserScale, pRadicand, pRadDegree);
 }
 CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float fUserScale, 
-                              CMathItem* pRadicand, UINT16 nRadicalVariant, CMathItem* pRadDegree) {
+                              CMathItem* pRadicand, uint16_t nRadicalVariant, CMathItem* pRadDegree) {
    _ASSERT_RET(pRadicand, nullptr);
    float fScale = fUserScale * style.StyleScale();
    // Build GlyphRun/RadicalSignBox with the lmmRadical
@@ -121,7 +121,7 @@ CMathItem* CRadicalBuilder::BuildSimpleRadical_(const CMathStyle& style, float f
 CMathItem* CRadicalBuilder::AssembleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, 
                                              CMathItem* pRadDegree) {
    _ASSERT_RET(pRadicand, nullptr);
-   const UINT32 nRadicalBottomCode = 0x23B7; // ⎷ bottom piece
+   const uint32_t nRadicalBottomCode = 0x23B7; // ⎷ bottom piece
    float fScale = fUserScale * style.StyleScale();
    bool bDisplayStyle = (style.Style() == etsDisplay);
    //1. Deduce optimal glyph variant of DEFFONTPTSIZE font for root sign to be slightly taller than Radicand

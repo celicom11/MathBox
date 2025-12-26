@@ -103,7 +103,7 @@
     <ClCompile Include="..\D2DRenderer.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="..\LMMFont.cpp">
+    <ClCompile Include="..\MathBox\LMMFont.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
   </ItemGroup>

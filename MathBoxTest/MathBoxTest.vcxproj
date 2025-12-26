@@ -162,7 +162,6 @@
   <ItemGroup>
     <ClCompile Include="..\D2DFontManager.cpp" />
     <ClCompile Include="..\D2DRenderer.cpp" />
-    <ClCompile Include="..\LMMFont.cpp" />
     <ClCompile Include="..\MathBox\AccentBuilder.cpp" />
     <ClCompile Include="..\MathBox\EnvHelper.cpp" />
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp" />
@@ -181,6 +180,7 @@
     </ClCompile>
     <ClCompile Include="..\MathBox\HSpacingBuilder.cpp" />
     <ClCompile Include="..\MathBox\IndexedBuilder.cpp" />
+    <ClCompile Include="..\MathBox\LMMFont.cpp" />
     <ClCompile Include="..\MathBox\LOpBuilder.cpp" />
     <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp" />
     <ClCompile Include="..\MathBox\MathModeProcessor.cpp" />

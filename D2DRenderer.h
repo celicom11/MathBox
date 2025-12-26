@@ -9,7 +9,7 @@ struct IFontProvider_ {
    virtual float GetFontSizePts() const = 0;
 };
 
-   class CD2DRenderer : public IDocRenderer {
+class CD2DRenderer {
 //DATA
    uint32_t                   m_argbText{ 0 }; //and lines == foreground color
    ID2D1Factory*              m_pD2DFactory{nullptr};
@@ -53,12 +53,9 @@ public:
          hr = m_pRenderTarget->EndDraw();
       return hr;
    }
-//IDocRenderer
-   void DrawLine(SPointF pt1, SPointF pt2, EnumLineStyles eStyle = elsSolid,
-                 float fWidth = 1.0f, uint32_t nARGB = 0) override;
-   void DrawRect(SRectF rcf, EnumLineStyles eStyle = elsSolid,
-                 float fWidth = 1.0f, uint32_t nARGB = 0) override;
-   void FillRect(SRectF rcf, uint32_t nARGB = 0) override;
+   void DrawLine(SPointF pt1, SPointF pt2, EnumLineStyles eStyle, float fWidth, uint32_t nARGB);
+   void DrawRect(SRectF rcf, EnumLineStyles eStyle,float fWidth, uint32_t nARGB);
+   void FillRect(SRectF rcf, uint32_t nARGB);
    void DrawGlyphRun(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
-                       SPointF ptfBaseOrigin, float fScale, uint32_t nARGB) override;
+                       SPointF ptfBaseOrigin, float fScale, uint32_t nARGB);
 };

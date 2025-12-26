@@ -11,6 +11,6 @@ public:
    static CMathItem* _BuildRadical(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree = nullptr);
 private:
    static CMathItem* BuildSimpleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand,
-                                  UINT16 nRadicalVariant, CMathItem* pRadDegree);
+                                  uint16_t nRadicalVariant, CMathItem* pRadDegree);
    static CMathItem* AssembleRadical_(const CMathStyle& style, float fUserScale, CMathItem* pRadicand, CMathItem* pRadDegree);
 };

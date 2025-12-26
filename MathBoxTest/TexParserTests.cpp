@@ -30,7 +30,6 @@ public:
    uint32_t ColorSelection() override { return 0; }
    //Text color ~= Foreground color!
    uint32_t ColorText() override { return 0; }
-   void SetColorText(uint32_t clrText) override {}
 };
 static CTestDocParams g_Doc;
 
