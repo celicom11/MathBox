@@ -1,8 +1,8 @@
 #pragma once
-#include "MathBoxLib/MathBox_CAPI.h"
+#include "MathBox\AGL.h"
 #include "D2DGeomSink.h"
 
-class CD2DFontManager {
+class CD2DFontManager : public IFontManager {
 //DATA
    CD2DGeomSink               m_GeomSink;
    vector<IDWriteFontFace*>   m_vFontFaces; //11 lm fonts, 0 - LMM!
@@ -17,10 +17,13 @@ public:
       return m_vFontFaces[nIdx];
    }
 //IFontManager
-   uint32_t FontCount() const { return (uint32_t)m_vFontFaces.size(); }
-   bool GetFontIndices(int32_t nFontIdx, uint32_t nCount, const uint32_t* pUnicodes, OUT uint16_t* pIndices);
+   uint32_t FontCount() const override {
+      return (uint32_t)m_vFontFaces.size();
+   }
+   bool GetFontIndices(int32_t nFontIdx, uint32_t nCount, const uint32_t* pUnicodes,
+                        OUT uint16_t* pIndices) override;
    bool GetGlyphRunMetrics(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
-                           OUT MB_GlyphMetrics* pGlyphMetrics, OUT MB_Bounds& bounds);
+                           OUT SGlyphMetrics* pGlyphMetrics, OUT SBounds& bounds) override;
 private:
    static HRESULT LoadLatinModernFont_(const wstring& sFontPath, IDWriteFactory* pDWriteFactory, OUT IDWriteFontFace** ppFontFace);
 };

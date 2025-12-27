@@ -149,6 +149,7 @@
     <ClInclude Include="D2DGeomSink.h" />
     <ClInclude Include="D2DRenderer.h" />
     <ClInclude Include="MathBoxHost.h" />
+    <ClInclude Include="MathBoxHostDefs.h" />
     <ClInclude Include="MathBoxLib\MathBox_CAPI.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

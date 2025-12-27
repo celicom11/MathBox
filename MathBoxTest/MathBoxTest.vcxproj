@@ -160,8 +160,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\D2DFontManager.cpp" />
-    <ClCompile Include="..\D2DRenderer.cpp" />
     <ClCompile Include="..\MathBox\AccentBuilder.cpp" />
     <ClCompile Include="..\MathBox\EnvHelper.cpp" />
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp" />
@@ -206,6 +204,7 @@
     <ClCompile Include="..\MathBox\VBoxBuilder.cpp" />
     <ClCompile Include="..\MathBox\WordItem.cpp" />
     <ClCompile Include="..\MathBox\WordItemBuilder.cpp" />
+    <ClCompile Include="D2DFontManager.cpp" />
     <ClCompile Include="GlueFactoryTests.cpp" />
     <ClCompile Include="GlueItemTests.cpp" />
     <ClCompile Include="HBoxItemTests.cpp" />
@@ -219,6 +218,8 @@
     <ClCompile Include="TokenizerTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D2DFontManager.h" />
+    <ClInclude Include="D2DGeomSink.h" />
     <ClInclude Include="MockMathItem.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

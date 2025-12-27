@@ -4,7 +4,6 @@
 #include "WordItem.h"
 #include "RawItem.h"
 #include "D2DFontManager.h"
-#include "D2DRenderer.h"
 #include "LMMFont.h"
 
 static IDWriteFactory* g_pDWriteFactory = nullptr;

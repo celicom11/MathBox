@@ -1,5 +1,7 @@
 #pragma once
-#include "MathBox\AGL.h"
+#include "MathBoxLib/MathBox_CAPI.h"
+#include "MathBoxHostDefs.h"
+
 
 //internal
 struct IFontProvider_ {
@@ -36,7 +38,8 @@ public:
    void SetTextColor(uint32_t nARGB) { m_argbText = nARGB; }
 //METHODS
    void EraseBkgnd(uint32_t nARGB) {
-      if(m_pRenderTarget)
+      nARGB &= 0x00FFFFFF; //want rgb only
+      if(m_pRenderTarget && nARGB)
          m_pRenderTarget->Clear(D2D1::ColorF(nARGB));
    }
    void OnSize(LPARAM lParam) {
@@ -53,9 +56,11 @@ public:
          hr = m_pRenderTarget->EndDraw();
       return hr;
    }
-   void DrawLine(SPointF pt1, SPointF pt2, EnumLineStyles eStyle, float fWidth, uint32_t nARGB);
-   void DrawRect(SRectF rcf, EnumLineStyles eStyle,float fWidth, uint32_t nARGB);
-   void FillRect(SRectF rcf, uint32_t nARGB);
-   void DrawGlyphRun(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
-                       SPointF ptfBaseOrigin, float fScale, uint32_t nARGB);
+   void DrawLine(float x1, float y1, float x2, float y2, EnumLineStyles style, float width, uint32_t argb);
+   void DrawRect(float left, float top, float right, float bottom, EnumLineStyles style, 
+                  float width, uint32_t argb);
+   void FillRect(float left, float top, float right, float bottom, uint32_t argb);
+   void DrawGlyphRun(int32_t font_idx, uint32_t count, const uint16_t* indices,
+                     float base_x, float base_y, float scale, uint32_t argb);
+
 };

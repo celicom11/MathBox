@@ -97,20 +97,17 @@
     <ClCompile Include="..\MathBox\TextSymBuilder.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
-    <ClCompile Include="..\D2DFontManager.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\D2DRenderer.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
     <ClCompile Include="..\MathBox\LMMFont.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="D2DFontManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">
       <Filter>MathBox</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="D2DFontManager.h" />
+    <ClInclude Include="D2DGeomSink.h" />
   </ItemGroup>
 </Project>

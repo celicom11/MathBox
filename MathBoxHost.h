@@ -1,15 +1,10 @@
 #pragma once
 #include "MathBoxLib/MathBox_CAPI.h"
+#include "MathBoxHostDefs.h"
 
 class CD2DRenderer;
 class CD2DFontManager;
 class CLMMFont;
-struct SMathBoxError {
-   MB_RET     nErrorCode{ MBOK };
-   uint32_t   nErrorStartPos{ 0 };
-   uint32_t   nErrorEndPos{ 0 };
-   string     sError;
-};
 //cpp front-end for MBI_API/parsed MB_MathItem
 class CMathBoxHost {
 //DATA

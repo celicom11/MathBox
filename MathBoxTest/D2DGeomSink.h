@@ -1,7 +1,5 @@
 #pragma once
-struct SBoundsF {
-   float fMinX, fMinY, fMaxX, fMaxY;
-};
+
 class CD2DGeomSink : public IDWriteGeometrySink {
 //DATA
    D2D1_POINT_2F                 m_ptfCur{ 0,0 };

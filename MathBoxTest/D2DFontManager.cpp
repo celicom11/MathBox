@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "D2DFontManager.h"
-#include "MathBoxHostDefs.h"
+#include "MathBox\LMMConsts.h"
 
 CD2DFontManager::~CD2DFontManager() {
    for (IDWriteFontFace* pFontFace : m_vFontFaces) {
@@ -27,7 +27,7 @@ bool CD2DFontManager::GetFontIndices(int32_t nFontIdx, uint32_t nCount, const ui
    return SUCCEEDED(hRes);
 }
 bool CD2DFontManager::GetGlyphRunMetrics(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
-                                          OUT MB_GlyphMetrics* pGlyphMetrics, OUT MB_Bounds& bounds) {
+                                          OUT SGlyphMetrics* pGlyphMetrics, OUT SBounds& bounds) {
    _ASSERT_RET(nFontIdx >= 0 && nFontIdx < m_vFontFaces.size(), false);
    _ASSERT_RET(pGlyphMetrics && pIndices && nCount > 0, false);
    vector< DWRITE_GLYPH_METRICS> vMetrics(nCount);
