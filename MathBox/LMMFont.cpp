@@ -34,10 +34,40 @@ namespace {
    }
 }
 
-bool CLMMFont::Init(const wstring& sAppDir) {
-   return LoadLMMGlyphInfo_(sAppDir + L"\\LMMGlyphInfo\\LatinModernMathGlyphs.csv");
+//nCodePoint,sName,sLaTex,eGlyphClass,nTopAccentX,nItalicCorr
+bool CLMMFont::Init(const wstring& sFontsDir) {
+   ifstream ifile(sFontsDir+L"LatinModernMathGlyphs.csv");
+   string sRow;
+   vector<string> vRow;
+   bool bFirst = true;
+   while (!ifile.eof()) {
+      std::getline(ifile, sRow);
+      if (ifile.bad() || ifile.fail() || sRow.empty())
+         break;
+      _SplitString(sRow.c_str(), vRow);
+      _ASSERT_RET(vRow.size() == 6, false);
+      if (bFirst) {
+         bFirst = false;
+         continue;//skip header
+      }
+      m_vGlyphInfo.push_back(new SLMMGlyph);
+      m_vGlyphInfo.back()->nIndex = (uint16_t)m_vGlyphInfo.size() - 1;
+      PCSTR szUnicode = vRow[0].c_str();
+      _ASSERT_RET(szUnicode && (*szUnicode == '0' || *szUnicode == 'x'), false);
+      if (*szUnicode == 'x') {
+         char* szEnd = nullptr;
+         m_vGlyphInfo.back()->nUnicode = strtol(szUnicode + 1, &szEnd, 16);
+         _ASSERT_RET(*szEnd == 0, false);
+      }
+      m_vGlyphInfo.back()->sName = vRow[1];
+      m_vGlyphInfo.back()->sLaTexCmd = vRow[2];
+      m_vGlyphInfo.back()->eClass = atoi(vRow[3].c_str());
+      m_vGlyphInfo.back()->nTopAccentX = atoi(vRow[4].c_str());
+      m_vGlyphInfo.back()->nItalCorrection = atoi(vRow[5].c_str());
+      _ASSERT_RET(m_vGlyphInfo.back()->nUnicode || !m_vGlyphInfo.back()->sName.empty(), false);
+   }
+   return m_vGlyphInfo.size() >= 4800;//q&d
 }
-
 //symbol glyps \Pi and or operators \mathplus, etc.
 const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
    _ASSERT_RET(szCmd && *szCmd, nullptr);
@@ -54,7 +84,6 @@ const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
    return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
 
 }
-
 //
 const SLMMGlyph* CLMMFont::GetLMMGlyph(int16_t nFontIdx, uint32_t nUnicode)  {
    static SLMMGlyph _LMMG;
@@ -87,40 +116,3 @@ const SLMMGlyph* CLMMFont::GetLMMGlyph(int16_t nFontIdx, uint32_t nUnicode)  {
 
    return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
 }
-
-
-//nCodePoint,sName,sLaTex,eGlyphClass,nTopAccentX,nItalicCorr
-bool CLMMFont::LoadLMMGlyphInfo_(const wstring& sPathCSV) {
-   ifstream ifile(sPathCSV);
-   string sRow;
-   vector<string> vRow;
-   bool bFirst = true;
-   while (!ifile.eof()) {
-      std::getline(ifile, sRow);
-      if (ifile.bad() || ifile.fail() || sRow.empty())
-         break;
-      _SplitString(sRow.c_str(), vRow);
-      _ASSERT_RET(vRow.size() == 6, false);
-      if (bFirst) {
-         bFirst = false;
-         continue;//skip header
-      }
-      m_vGlyphInfo.push_back(new SLMMGlyph);
-      m_vGlyphInfo.back()->nIndex = (uint16_t)m_vGlyphInfo.size() - 1;
-      PCSTR szUnicode = vRow[0].c_str();
-      _ASSERT_RET(szUnicode && (*szUnicode == '0' || *szUnicode == 'x'), false);
-      if (*szUnicode == 'x') {
-         char* szEnd = nullptr;
-         m_vGlyphInfo.back()->nUnicode = strtol(szUnicode + 1, &szEnd, 16);
-         _ASSERT_RET(*szEnd == 0, false);
-      }
-      m_vGlyphInfo.back()->sName = vRow[1];
-      m_vGlyphInfo.back()->sLaTexCmd = vRow[2];
-      m_vGlyphInfo.back()->eClass = atoi(vRow[3].c_str());
-      m_vGlyphInfo.back()->nTopAccentX = atoi(vRow[4].c_str());
-      m_vGlyphInfo.back()->nItalCorrection = atoi(vRow[5].c_str());
-      _ASSERT_RET(m_vGlyphInfo.back()->nUnicode || !m_vGlyphInfo.back()->sName.empty(), false);
-   }
-   return m_vGlyphInfo.size() >= 4800;//q&d
-}
-

@@ -9,11 +9,12 @@ CD2DFontManager::~CD2DFontManager() {
    }
    m_vFontFaces.clear();
 }
-HRESULT CD2DFontManager::Init(const wstring& sAppDir, IDWriteFactory* pDWriteFactory) {
+HRESULT CD2DFontManager::Init(const wstring& sFontDir, IDWriteFactory* pDWriteFactory) {
    HRESULT hRes;
+   m_sFontDir = sFontDir;
    for (PCWSTR szFontFile : _aLMFonts) {
       IDWriteFontFace* pFontFace = nullptr;
-      hRes = LoadLatinModernFont_(sAppDir + L"\\LatinModernFonts\\" + szFontFile, pDWriteFactory, &pFontFace);
+      hRes = LoadLatinModernFont_(sFontDir + szFontFile, pDWriteFactory, &pFontFace);
       CHECK_HR(hRes);
       m_vFontFaces.push_back(pFontFace);
    }

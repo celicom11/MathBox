@@ -4,14 +4,16 @@
 
 class CD2DFontManager : public IFontManager {
 //DATA
+   wstring                    m_sFontDir;
    CD2DGeomSink               m_GeomSink;
    vector<IDWriteFontFace*>   m_vFontFaces; //11 lm fonts, 0 - LMM!
 public:
 //CTOR/DTOR/INIT
    CD2DFontManager() = default;
    ~CD2DFontManager();
-   HRESULT Init(const wstring& sAppDir, IDWriteFactory* pDWriteFactory);
+   HRESULT Init(const wstring& sFontDir, IDWriteFactory* pDWriteFactory);
 //ATTS
+   const wstring& GetFontDir() const { return m_sFontDir; }
    IDWriteFontFace* GetDWFont(int32_t nIdx) const {
       _ASSERT_RET(nIdx >= 0 && nIdx < (int32_t)m_vFontFaces.size(), nullptr);
       return m_vFontFaces[nIdx];

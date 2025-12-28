@@ -47,19 +47,20 @@ namespace TexParserTests
       WCHAR wszDir[MAX_PATH] = { 0 };
       GetCurrentDirectoryW(_countof(wszDir), wszDir);
       // Remove last two path components from wszDir (e.g. remove "\x64\Debug")
-      std::wstring sDir(wszDir);
+      std::wstring wsFontDir(wszDir);
       for (int i = 0; i < 2; ++i) {
-         size_t pos = sDir.find_last_of(L"\\/");
+         size_t pos = wsFontDir.find_last_of(L"\\/");
          if (pos == std::wstring::npos) {
             // nothing more to strip
-            sDir.clear();
+            wsFontDir.clear();
             break;
          }
-         sDir.resize(pos);
+         wsFontDir.resize(pos);
       }
-      hRes = g_D2DFontManager.Init(sDir, g_pDWriteFactory);
+      wsFontDir += L"\\LatinModernFonts\\";
+      hRes = g_D2DFontManager.Init(wsFontDir, g_pDWriteFactory);
       _ASSERT(SUCCEEDED(hRes));
-      bool bOk = g_LMMFont.Init(sDir);
+      bool bOk = g_LMMFont.Init(wsFontDir);
       _ASSERT(bOk);
    }
    TEST_MODULE_CLEANUP(ModuleCleanup)

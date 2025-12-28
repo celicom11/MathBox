@@ -26,7 +26,7 @@ typedef struct {
    uint32_t nAdvanceWidth;
    int32_t  nRSB;                // rightSideBearing
    int32_t  nTSB;                // topSideBearing
-   uint32_t nAdvanceHeight ;
+   uint32_t nAdvanceHeight;
    int32_t  nBSB;                // bottomSideBearing
 } MB_GlyphMetrics;
 
@@ -34,35 +34,36 @@ typedef struct {
 
 // owns LMM fonts, measures and renders glyphs
 typedef struct {
-  uint32_t size_bytes;
+   uint32_t size_bytes;
+   uint32_t fontCount;
 
-  uint32_t (*fontCount)();
-  bool (*getFontIndices)(int32_t font_idx, uint32_t count, const uint32_t* unicodes, /* out */ uint16_t* out_indices);
-  bool (*getGlyphRunMetrics)(int32_t font_idx, uint32_t count, const uint16_t* indices,
-                                 /* out */ MB_GlyphMetrics* out_glyph_metrics, /* out */ MB_Bounds* out_bounds);
+   bool (*getFontsDir)(/*in out*/ uint32_t* buf_len, /*out*/ wchar_t* out_dir); //Unicode!
+   bool (*getFontIndices)(int32_t font_idx, uint32_t count, const uint32_t* unicodes, /*out*/ uint16_t* out_indices);
+   bool (*getGlyphRunMetrics)(int32_t font_idx, uint32_t count, const uint16_t* indices,
+      /*out*/ MB_GlyphMetrics* out_glyph_metrics, /*out*/ MB_Bounds* out_bounds);
 } MBI_FontManager;
 
 //document register/params/resources: DefaultFontSize, clrBackground, clrText, clrSelection
 typedef struct {
-  uint32_t           size_bytes;
+   uint32_t           size_bytes;
 
-  float              default_font_size_pts;
-  int32_t            default_line_skip_em;
-  uint32_t           color_bkg_argb;
-  uint32_t           color_selection_argb;
-  uint32_t           color_text_argb;
-  MBI_FontManager    font_mgr;
+   float              default_font_size_pts;
+   int32_t            default_line_skip_em;
+   uint32_t           color_bkg_argb;
+   uint32_t           color_selection_argb;
+   uint32_t           color_text_argb;
+   MBI_FontManager    font_mgr;
 } MB_DocParams;
 
 //abstract renderer, all units are in DIPs
 typedef struct {
-  uint32_t size_bytes;
+   uint32_t size_bytes;
 
-  void (*drawLine)(float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
-  void (*drawRect)(float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
-  void (*fillRect)(float l, float t, float r, float b, uint32_t argb);
-  void (*drawGlyphRun)(int32_t font_idx, uint32_t count, const uint16_t* indices,
-                       float base_x, float base_y, float scale, uint32_t argb);
+   void (*drawLine)(float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
+   void (*drawRect)(float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
+   void (*fillRect)(float l, float t, float r, float b, uint32_t argb);
+   void (*drawGlyphRun)(int32_t font_idx, uint32_t count, const uint16_t* indices,
+      float base_x, float base_y, float scale, uint32_t argb);
 } MBI_DocRenderer;
 
 //Opaque Handlers
@@ -84,8 +85,8 @@ typedef struct MBI_API {
    //all "float" units are in DIPs
    MB_RET (*mathItemDraw)(MB_MathItem item, float x, float y, const MBI_DocRenderer* renderer);
    MB_RET (*mathItemSelect)(MB_MathItem item, float left, float top, float right, float bottom, uint32_t flags);
-   MB_RET (*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top, 
-                                              /*out*/ float* right, /*out*/ float* bottom);
+   MB_RET (*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top,
+      /*out*/ float* right, /*out*/ float* bottom);
 
 } MBI_API;
 
@@ -104,7 +105,7 @@ extern "C" {
 #define MB_API __attribute__((visibility("default")))
 #endif
 
-MB_API const MBI_API* MB_GetApi();
+   MB_API const MBI_API* MB_GetApi();
 
 #ifdef __cplusplus
 } /* extern "C" */

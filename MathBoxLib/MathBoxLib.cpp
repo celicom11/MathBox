@@ -35,16 +35,26 @@ static MB_RET createEngine_impl(const MB_DocParams* doc, MB_Engine* out_engine) 
       _sGlobalError = "MB_Engine* out_engine already has value";
       return MB_BADPARAM;
    }
+   uint32_t buf_len = 0;
+   if (!doc->font_mgr.getFontsDir(&buf_len, nullptr) || !buf_len) {
+      _sGlobalError = "Failed to get LMM fonts directory size";
+      return MB_ERR;
+   }
+   vector<wchar_t> vBuf(buf_len, 0);
+   if (!doc->font_mgr.getFontsDir(&buf_len, vBuf.data()) || 0 == vBuf[0]) {
+      _sGlobalError = "Failed to get LMM fonts directory";
+      return MB_ERR;
+   }
+   //
    CLMMFont* pLmmFont = new CLMMFont;
-   std::filesystem::path cwd = std::filesystem::current_path();
-   if (!pLmmFont->Init(cwd.wstring())) {
+   if (!pLmmFont->Init(vBuf.data())) {
       delete pLmmFont;
       _sGlobalError = "Failed to initialize LMM font manager";
       return MB_ERR;
    }
    try {
       MB_Engine_t* engine = new MB_Engine_t;
-      engine->pDocWrap = new CDocParamWrap(doc,*pLmmFont);
+      engine->pDocWrap = new CDocParamWrap(doc, *pLmmFont);
       engine->pParser = new CTexParser(*engine->pDocWrap);
       engine->pLmmFont = pLmmFont;
       *out_engine = engine;

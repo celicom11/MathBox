@@ -152,6 +152,7 @@
     <ClInclude Include="MathBoxHostDefs.h" />
     <ClInclude Include="MathBoxLib\MathBox_CAPI.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Utf8Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="MathBoxDemo.cfg" />

@@ -13,7 +13,8 @@ CMathBoxHost::CMathBoxHost(CD2DFontManager& d2dFontManager, CD2DRenderer& d2dr) 
    m_DocParams.size_bytes = sizeof(MB_DocParams);
    //D2DFontManager shim
    m_DocParams.font_mgr.size_bytes = sizeof(MBI_FontManager);
-   m_DocParams.font_mgr.fontCount = _fontCount;
+   m_DocParams.font_mgr.fontCount = 0; //unknown yet
+   m_DocParams.font_mgr.getFontsDir = _getFontsDir;
    m_DocParams.font_mgr.getFontIndices = _getFontIndices;
    m_DocParams.font_mgr.getGlyphRunMetrics = _getGlyphRunMetrics;
    //DocRenderer shim
@@ -24,6 +25,8 @@ CMathBoxHost::CMathBoxHost(CD2DFontManager& d2dFontManager, CD2DRenderer& d2dr) 
    m_DocRenderer.drawGlyphRun = _drawGlyphRun;
 }
 bool CMathBoxHost::LoadMathBoxLib() {
+   //update font counts
+   m_DocParams.font_mgr.fontCount = _pFontManager->FontCount();
    _ASSERT_RET(!m_pMBAPI && !m_hMathBoxLib && !m_engine, false);//snbh!
    m_hMathBoxLib = ::LoadLibraryW(L"MathBoxLib.dll");
    _ASSERT_RET(m_hMathBoxLib, false);
@@ -77,9 +80,21 @@ void CMathBoxHost::Draw(float fX, float fY) {
       m_pMBAPI->mathItemDraw(m_pMBItem, fX, fY, &m_DocRenderer);
 }
 //C-API/callbacks
-uint32_t CMathBoxHost::_fontCount() {
-   return _pFontManager->FontCount();
+bool CMathBoxHost::_getFontsDir(IN OUT uint32_t* buf_len, OUT wchar_t* out_dir) {
+   _ASSERT_RET(buf_len, false);
+   const wstring wsFontDir = _pFontManager->GetFontDir();
+   const uint32_t nLenChars = (uint32_t)wsFontDir.size() + 1;
+   if(out_dir) {
+      if(*buf_len < nLenChars)
+         _ASSERT_RET(0, false); //snbh!
+      *buf_len = nLenChars;
+      memcpy(out_dir, wsFontDir.c_str(), sizeof(wchar_t)*nLenChars);
+   }
+   else
+      *buf_len = nLenChars;
+   return true;
 }
+
 bool CMathBoxHost::_getFontIndices(int32_t font_idx, uint32_t count, const uint32_t* unicodes, 
                                     OUT uint16_t* out_indices) {
    return _pFontManager->GetFontIndices(font_idx, count, unicodes, out_indices);

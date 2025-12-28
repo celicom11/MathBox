@@ -17,7 +17,6 @@ typedef const wchar_t* PCWSTR;
 #include <unordered_map>
 #include <algorithm>
 #include <numeric>
-#include <filesystem>
 using namespace std;
 
 #define _ASSERT_RET(expr,retval) {if(!(expr)){_ASSERT(0);return retval;}}

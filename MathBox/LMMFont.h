@@ -10,7 +10,7 @@ public:
    ~CLMMFont() {
       Clear();
    }
-   bool Init(const wstring& sAppDir);
+   bool Init(const wstring& sFontsDir); //Unicode
  //METHODS
    void Clear() {
       for (SLMMGlyph* pG : m_vGlyphInfo) {
@@ -25,6 +25,4 @@ public:
       return nIndex < m_vGlyphInfo.size() ? m_vGlyphInfo[nIndex] : nullptr;
    }
    const SLMMGlyph* GetLMMGlyphByCmd(PCSTR szCmd) override;
-private:
-   bool LoadLMMGlyphInfo_(const wstring& sAppDir);
 };

@@ -9,7 +9,7 @@ class CDocParamWrap :public IDocParams,
    ILMFManager&         m_lmfMgr; //external ref
 public:
    CDocParamWrap(const MB_DocParams* doc, ILMFManager& lmfMgr) : 
-      m_pDP(doc),m_lmfMgr(lmfMgr) {}
+      m_pDP(doc), m_lmfMgr(lmfMgr) {}
    ~CDocParamWrap() = default;
 //IDocParams impl
    IFontManager& FontManager() override { return *this; }
@@ -32,7 +32,7 @@ public:
    }
 //IFontManager 
    uint32_t FontCount() const override {
-      return m_pDP->font_mgr.fontCount();
+      return m_pDP->font_mgr.fontCount;
    }
    bool GetFontIndices(int32_t nFontIdx, uint32_t nCount, const uint32_t* pUnicodes,
                         OUT uint16_t* pIndices) override {

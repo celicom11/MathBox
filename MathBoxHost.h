@@ -37,7 +37,7 @@ public:
    bool Parse(const string& sTeX);
    void Draw(float fX, float fY);
    //C-API/callbacks
-   static uint32_t _fontCount();
+   static bool _getFontsDir(IN OUT uint32_t* buf_len, OUT wchar_t* out_dir);
    static bool _getFontIndices(int32_t font_idx, uint32_t count, const uint32_t* unicodes, OUT uint16_t* out_indices);
    static bool _getGlyphRunMetrics(int32_t font_idx, uint32_t count, const uint16_t* indices,
                                      OUT MB_GlyphMetrics* out_glyph_metrics, OUT MB_Bounds* out_bounds);
