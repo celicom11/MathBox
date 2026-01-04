@@ -22,6 +22,11 @@ CMathItem* CTextCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
    SParserContext ctxText(ctx);
    ctxText.bTextMode = true; //text mode
    ctxText.sFontCmd = szCmd;
+   if((ctx.sFontCmd == "textit" || ctx.sFontCmd == "emph") && ctxText.sFontCmd == "textbf")
+      ctxText.sFontCmd = "textbfit"; //combined
+   else if ((ctxText.sFontCmd == "textit" || ctxText.sFontCmd == "emph") && ctx.sFontCmd == "textbf")
+      ctxText.sFontCmd = "textbfit"; //combined
+   //todo more replacements
    CMathItem* pItem = pParser->ConsumeItem(elcapFig, ctxText);
    if (!pItem) {
       if (!pParser->HasError())

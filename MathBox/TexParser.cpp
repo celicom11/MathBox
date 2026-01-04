@@ -35,6 +35,7 @@ CTexParser::~CTexParser() {
    delete m_pMathProcessor;
 }
 CMathItem* CTexParser::Parse(const string& sText) {
+   ClearError();
    if (m_pTokenizer)
       delete m_pTokenizer;
    m_pTokenizer = new CTokenizer(sText);

@@ -27,10 +27,15 @@ public:
       if (m_Error.sError.empty()) {//set only if no previous error
          const STexToken* pToken = GetToken(nTkIdx);
          m_Error.nStartPos = pToken ? pToken->nPos : 0;
-         m_Error.nStartPos = pToken ? pToken->nPos + pToken->nLen : 0;
+         m_Error.nEndPos = pToken ? pToken->nPos + pToken->nLen : 0;
          m_Error.sError = sError;
       }
    }
+   void ClearError() {
+      m_Error.nStartPos = m_Error.nEndPos = 0;
+      m_Error.sError.clear();
+   }
+
    //safe token getters
    int TokenCount() const { return (int)m_vTokens.size(); }
    const STexToken* GetToken(int nIdx) const;
