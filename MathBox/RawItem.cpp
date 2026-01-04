@@ -9,16 +9,16 @@
 bool CRawItem::AddSubScript(CMathItem* pSubScript, int nTkIdxStart, int nTkIdxEnd) {
    if (!pSubScript || m_pSubScript)
       return false; //double subscript
+   _ASSERT(m_nTkIdxEnd < nTkIdxStart || (!HasMathItem() && m_nTkIdxEnd == nTkIdxStart));
    m_pSubScript = pSubScript;
-   _ASSERT(m_nTkIdxEnd < nTkIdxStart);
    m_nTkIdxEnd = nTkIdxEnd;
    return true;
 }
 bool CRawItem::AddSuperScript(CMathItem* pSuperScript, int nTkIdxStart, int nTkIdxEnd) {
    if (!pSuperScript || m_pSuperScript)
       return false; //double subscript
+   _ASSERT(m_nTkIdxEnd < nTkIdxStart || (!HasMathItem() && m_nTkIdxEnd == nTkIdxStart));
    m_pSuperScript = pSuperScript;
-   _ASSERT(m_nTkIdxEnd < nTkIdxStart);
    m_nTkIdxEnd = nTkIdxEnd;
    return true;
 }

@@ -42,7 +42,7 @@ namespace {
             }
       }
    };*/
-   CContainerItem* _BuildVBox(vector<CMathItem*>& vItems, int32_t nVKern) {
+   CContainerItem* _BuildVBox(IN OUT vector<CMathItem*>& vItems, int32_t nVKern) {
       _ASSERT_RET(!vItems.empty(), nullptr);
       CContainerItem* pRetBox = new CContainerItem(vItems.front()->Doc(), eacVBOX, CMathStyle(), etaORD);
       int32_t nWidth = 0;
@@ -156,7 +156,7 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
             pParser->SetError("Missing {arg} for command '\\substack'");
          return nullptr;
       }
-      if (pArg->Type() != eacVBOX) {
+      if (pArg->Type() != eacLINES) {
          _ASSERT(0); //snbh 
          if (!pParser->HasError())
             pParser->SetError("Unexpected type of the {arg} for command '\\substack'");
@@ -172,6 +172,7 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       for (CMathItem* pItem : pCnt->Items()) {
          vItems.push_back(pItem);
       }
+      pCnt->Clear(true);//dnd moved items!
       nVKern = F2NEAREST((ctx.currentStyle.Style() == etsDisplay ? 180 : otfStackGapMin) * ctx.fUserScale);
       CContainerItem* pVBox = _BuildVBox(vItems, nVKern);
       pVBox->SetMathAxis(pVBox->Box().Height() / 2); // subarray axis?

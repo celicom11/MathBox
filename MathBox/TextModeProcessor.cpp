@@ -99,7 +99,7 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       pItem = ProcessItemToken(nIdxG, ctxG);
       if(m_Parser.HasError())
          return nullptr; //error in sub-group
-      if(!pItem) { //ProcessItemToken could not create Item
+      if(!pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
          switch (pCurToken->nType) {
          case ettCOMMAND: { // command or symbol!
             string sCmd = TokenText(nIdxG);

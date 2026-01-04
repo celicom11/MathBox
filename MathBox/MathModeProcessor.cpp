@@ -75,28 +75,27 @@ CMathItem* CMathModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
    const STexToken* pCurToken = GetToken(nIdx);
    if (!pCurToken)
       return nullptr;//ntd
+   if (pCurToken->nTkIdxEnd > 0)
+      return m_Parser.ProcessGroup(nIdx, ctx);
+   //else
    STexToken tkItem = *pCurToken;//copy
    CMathItem* pItem = nullptr;
-   if (tkItem.nTkIdxEnd > 0)
-      pItem = m_Parser.ProcessGroup(nIdx, ctx);
-   else {
-      switch (tkItem.nType) {
-      case ettALNUM:     pItem = ProcessAlnum_(nIdx, ctx); break;
-      case ettNonALPHA:
-         if (TokenText(nIdx) != "'")
-            pItem = ProcessNonAlnum_(nIdx, ctx);
-         //else, superscript '= ^\prime, to be processed in the group
-         break;
-      case ettCOMMAND: { // command or symbol!
-            string sCmd = TokenText(nIdx);
-            if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd) || _isNewlineCommand(sCmd))
-               return nullptr; // not an Item Token!
-            if (sCmd == "\\middle" || sCmd == "\\hline")
-               return nullptr; //group should handle this command!
-            pItem = BuildItemCmd_(nIdx, ctx);
-         }
-         break;
+   switch (tkItem.nType) {
+   case ettALNUM:     pItem = ProcessAlnum_(nIdx, ctx); break;
+   case ettNonALPHA:
+      if (TokenText(nIdx) != "'")
+         pItem = ProcessNonAlnum_(nIdx, ctx);
+      //else, superscript '= ^\prime, to be processed in the group
+      break;
+   case ettCOMMAND: { // command or symbol!
+         string sCmd = TokenText(nIdx);
+         if (_isMathStyleCommand(sCmd) || _isFontSizeCommand(sCmd) || _isNewlineCommand(sCmd))
+            return nullptr; // not an Item Token!
+         if (sCmd == "\\middle" || sCmd == "\\hline")
+            return nullptr; //group should handle this command!
+         pItem = BuildItemCmd_(nIdx, ctx);
       }
+      break;
    }
    return pItem;
 }
@@ -141,7 +140,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       pItem = ProcessItemToken(nIdxG, ctxG);
       if (m_Parser.HasError())
          return nullptr;
-      if (!pItem) {
+      if (!pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
          switch (pCurToken->nType) {
          case ettNonALPHA:
             if (TokenText(nIdxG) == "'") {
@@ -226,7 +225,8 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                }
                pItem = ProcessItemToken(nIdxG, ctxGS);
                if (pItem) {
-                  if (vGroupItems.empty())
+                  if (vGroupItems.empty() || 
+                     (!vGroupItems.back().HasMathItem() && !vGroupItems.back().IsDelimiter()))
                      vGroupItems.emplace_back(nCurTokenIdx, nIdxG - 1);//gen fraction base
                   bool bOk = false;
                   if (pCurToken->nType == ettSUBS)

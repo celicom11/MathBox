@@ -130,13 +130,9 @@ bool CTextAccentBuilder::CanTakeCommand(PCSTR szCmd) const {
    char cCmd = *szCmd;
    if (!cCmd)
       return false;
-   string sCmd(szCmd);
-   if (sCmd == "i" || sCmd == "j" || 
-      sCmd == "euro" || sCmd == "$" || sCmd == "yen" || sCmd=="pounds") //currencies
-      return true;
-   if (sCmd.size() > 1)
+   if (szCmd[1])
       return false;//single accent char is expected
-   constexpr PCSTR _szAccents = "'`.^\"H~ckl=b.druvto";
+   constexpr PCSTR _szAccents = "`'^\"~=.uvHckrdt";
    return strchr(_szAccents, cCmd) != nullptr;
 }
 CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
@@ -144,92 +140,63 @@ CMathItem* CTextAccentBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPar
    const SParserContext& ctx = pParser->GetContext();
    _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    ++szCmd; //skip '\'
-   string sCmd(szCmd);
    //build unicode vector
    vector<uint32_t> vUnicode;
-   if (sCmd == "i")
-      vUnicode.push_back(0x0131); //dotless i
-   else if (sCmd == "j")
-      vUnicode.push_back(0x0237); //dotless j
-   else if (sCmd == "$")
-      vUnicode.push_back('$');
-   else if (sCmd == "euro")
-      vUnicode.push_back(0x20AC);
-   else if (sCmd == "yen")
-      vUnicode.push_back(0xA5);
-   else if (sCmd == "pounds")
-      vUnicode.push_back(0xA3);
-   else {
-      string sTkText;
-      EnumTokenType ettNext = pParser->GetTokenData(sTkText);
-      if (ettNext != ettFB_OPEN) {
-         pParser->SetError("Missing {arg} for '\\" + string(szCmd) + "' command");
+   string sTkText;
+   EnumTokenType ettNext = pParser->GetTokenData(sTkText);
+   if (ettNext != ettFB_OPEN) {
+      pParser->SetError("Missing {arg} for '\\" + string(szCmd) + "' command");
+      return nullptr;
+   }
+   pParser->SkipToken();
+   ettNext = pParser->GetTokenData(sTkText);
+
+   if (*szCmd == 't') {
+      //tie after accent
+      if (ettNext != ettALNUM || (sTkText.size() != 1 && sTkText.size() != 2)) {
+         pParser->SetError("Expected one or two ASCII chars as arguments for '\\t{..}' command");
          return nullptr;
       }
+      vUnicode.push_back(sTkText[0]);
+      vUnicode.push_back(0x0311); //NO cmb double inverted breve, 0x0361 in LMR!
+      if(sTkText.size() == 2)
+         vUnicode.push_back(sTkText[1]);
+      pParser->SkipToken(); //arg + }
       pParser->SkipToken();
-      ettNext = pParser->GetTokenData(sTkText);
-
-      if (*szCmd == 'l' || *szCmd == 'o' || *szCmd == 'L' || *szCmd == 'O') {//expect empty group!
-         if (ettNext != ettFB_CLOSE) {
-            pParser->SetError("Expected empty {} after '\\" + string(szCmd) + "' command");
+   }
+   else {
+      if (ettNext != ettALNUM || sTkText.size() != 1) {
+         pParser->SetError("Expected one char as argument for '\\" + string(szCmd) + "{.}' command");
+         return nullptr;
+      }
+      //find accent
+      for (const SAccMap& accmap : _vAccents) {
+         if (accmap.cCmd == *szCmd && accmap.cChar == sTkText[0]) {
+            vUnicode.push_back(accmap.nUnicode);
+            break;//found
+         }
+      }
+      if (vUnicode.empty()) {
+         //use combining glyphs if possible
+         if (*szCmd == 'H') {
+            vUnicode.push_back(sTkText[0]);
+            vUnicode.push_back(0x30B); // COMBINING DOUBLE ACUTE ACCENT
+         }
+         else if (*szCmd == '.') {
+            vUnicode.push_back(sTkText[0]);
+            vUnicode.push_back(0x307); // COMBINING DOT ABOVE
+         }
+         else if (*szCmd == 'v') {
+            vUnicode.push_back(sTkText[0]);
+            vUnicode.push_back(0x30C); // COMBINING CARON
+         }
+         else {
+            pParser->SetError("Unknown accent command: '\\" + string(szCmd) + "{" + sTkText + "}'");
             return nullptr;
          }
-         switch (*szCmd) {
-         case 'l': vUnicode.push_back(0x019A); break;
-         case 'L': vUnicode.push_back(0x023D); break;
-         case 'o': vUnicode.push_back(0x00F8); break;
-         case 'O': vUnicode.push_back(0x00D8); break;
-         }
-         pParser->SkipToken(); // }
       }
-      else if (*szCmd == 't') {
-         //tie after accent
-         if (ettNext != ettALNUM || (sTkText.size() != 1 && sTkText.size() != 2)) {
-            pParser->SetError("Expected one or two ASCII chars as arguments for '\\t{..}' command");
-            return nullptr;
-         }
-         vUnicode.push_back(sTkText[0]);
-         vUnicode.push_back(0x0311); //NO cmb double inverted breve, 0x0361 in LMR!
-         if(sTkText.size() == 2)
-            vUnicode.push_back(sTkText[1]);
-         pParser->SkipToken(); //arg + }
-         pParser->SkipToken();
-      }
-      else {
-         if (ettNext != ettALNUM || sTkText.size() != 1) {
-            pParser->SetError("Expected one char as argument for '\\" + string(szCmd) + "{.}' command");
-            return nullptr;
-         }
-         //find accent
-         for (const SAccMap& accmap : _vAccents) {
-            if (accmap.cCmd == *szCmd && accmap.cChar == sTkText[0]) {
-               vUnicode.push_back(accmap.nUnicode);
-               break;//found
-            }
-         }
-         if (vUnicode.empty()) {
-            //use combining glyphs if possible
-            if (*szCmd == 'H') {
-               vUnicode.push_back(sTkText[0]);
-               vUnicode.push_back(0x30B); // COMBINING DOUBLE ACUTE ACCENT
-            }
-            else if (*szCmd == '.') {
-               vUnicode.push_back(sTkText[0]);
-               vUnicode.push_back(0x307); // COMBINING DOT ABOVE
-            }
-            else if (*szCmd == 'v') {
-               vUnicode.push_back(sTkText[0]);
-               vUnicode.push_back(0x30C); // COMBINING CARON
-            }
-            else {
-               pParser->SetError("Unknown accent command: '\\" + string(szCmd) + "{" + sTkText + "}'");
-               return nullptr;
-            }
-         }
-         pParser->SkipToken(); //arg + }
-         pParser->SkipToken();
-      }
-   
+      pParser->SkipToken(); //arg + }
+      pParser->SkipToken();
    }
    if (vUnicode.empty())
       return nullptr;

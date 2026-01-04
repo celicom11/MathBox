@@ -19,7 +19,7 @@ public:
    void InitAmp() { m_nUnicode = 0x26; }
    void InitNewLine() { m_nUnicode = 0xA; }
    void InitHLine() { m_nUnicode = '-'; }
-   //ATTS
+//ATTS
    bool IsDelimiter() const { return m_edt != edtNotDelim; }
    bool IsNewLine() const { return m_nUnicode == 0xA; }
    bool IsAmp() const { return m_nUnicode == 0x26; }

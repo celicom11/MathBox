@@ -558,18 +558,21 @@ namespace TexParserTests
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          auto err = parser.LastError();
          Assert::AreEqual("Unexpected empty group", err.sError.c_str());
+
          pRet = parser.Parse("$ $");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
          Assert::AreEqual("Unexpected empty group", err.sError.c_str());
+
          pRet = parser.Parse("${}$");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
          Assert::AreEqual("Unexpected empty group", err.sError.c_str());
+
          pRet = parser.Parse("{}");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
-         Assert::AreEqual("Unexpected empty group", err.sError.c_str());
+         Assert::IsTrue(err.sError.empty(), L"{} is valid empty group");
       }
       // ## Test 14: BuildGroups has unclosed opening
       // # Input: "$${ abc$$", "${a^bc$"
@@ -610,11 +613,12 @@ namespace TexParserTests
          // Parse should succeed with empty result
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          auto err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode!");
+         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode");
+
          pRet = parser.Parse("$a $$b$$ c$");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
-         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode!");
+         Assert::AreEqual(err.sError.c_str(), "Inner $..$/$$...$$ are not allowed in math mode");
       }
 #pragma endregion
    };
