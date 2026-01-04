@@ -26,7 +26,8 @@ public:
    void SetError(int nTkIdx, const string& sError) { 
       if (m_Error.sError.empty()) {//set only if no previous error
          const STexToken* pToken = GetToken(nTkIdx);
-         m_Error.nPosition = pToken ? pToken->nPos : -1;
+         m_Error.nStartPos = pToken ? pToken->nPos : 0;
+         m_Error.nStartPos = pToken ? pToken->nPos + pToken->nLen : 0;
          m_Error.sError = sError;
       }
    }

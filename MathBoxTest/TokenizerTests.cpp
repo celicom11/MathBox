@@ -51,7 +51,7 @@ namespace TokenizerTests
          // Assert
          Assert::IsFalse(result, L"Tokenization should fail for orphan backslash");
          Assert::AreEqual((int)epsTOKENIZING, (int)err.eStage, L"Error should be in tokenization stage");
-         Assert::AreEqual((uint32_t)11, err.nPosition, L"Error position should be at backslash");
+         Assert::AreEqual((uint32_t)11, err.nStartPos, L"Error position should be at backslash");
          Assert::IsTrue(err.sError.find("Orphan backslash") != string::npos, L"Error message should mention orphan backslash");
       }
 

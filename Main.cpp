@@ -43,7 +43,14 @@ public:
          return E_FAIL;
       }
       // Apply cfg:
-      //int32_t  nLineSkipFDU{ 200 };
+      int32_t nLineSkipFDU{ 200 };
+      cfgr.GetNVal(L"LineSkipFDU", nLineSkipFDU);
+      m_MathBox.SetLineSkip(nLineSkipFDU);
+
+      int32_t nMaxWidthFDU{ 0 };
+      cfgr.GetNVal(L"MaxWidthFDU", nMaxWidthFDU);
+      m_MathBox.SetMaxWidth(nMaxWidthFDU);
+
       uint32_t clrText{ 0x004F00 };
       cfgr.GetHVal(L"ColorText", clrText);
       m_MathBox.SetClrText(clrText);
@@ -149,7 +156,7 @@ private:
    void OnPaint() {
       m_d2dr.BeginDraw();
       m_d2dr.EraseBkgnd(m_MathBox.ClrBkg());
-      m_MathBox.Draw(10.0f, 30.0f);
+      m_MathBox.Draw(10.0f, 10.0f);
       HRESULT hr = m_d2dr.EndDraw();
       if (FAILED(hr)) {
          wchar_t errorMsg[256];

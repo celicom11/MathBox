@@ -29,6 +29,14 @@ namespace {
             ++szNext;
          }
          string sCmd(szText, szNext - szText);
+         if(sCmd == "\\lvert" || sCmd == "\\rvert") {
+            edtNative = sCmd == "\\lvert"? edtOpen : edtClose;
+            return '|';
+         }
+         if (sCmd == "\\lVert" || sCmd == "\\rVert") {
+            edtNative = sCmd == "\\lVert" ? edtOpen : edtClose;
+            return 0x2016;
+         }
          const SLMMGlyph* pGlyph = lmfManager.GetLMMGlyphByCmd(sCmd.c_str());
          if (!pGlyph)
             return 0;
@@ -69,7 +77,7 @@ bool COpenCloseBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (*szCmd == '\\')
       ++szCmd;
    vector<string> vCmds{
-      "left","right","middle",
+      "left","right","middle","lvert","rvert","lVert","rVert",
       "big","bigl","bigm","bigr",
       "Big","Bigl","Bigm","Bigr",
       "bigg","biggl","biggm","biggr",
@@ -82,21 +90,23 @@ CMathItem* COpenCloseBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPars
    const SParserContext& ctx = pParser->GetContext();
    _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    string sCmd(szCmd),sToken;
-   //check/consume/ next token
-   EnumTokenType ettNext = pParser->GetTokenData(sToken);
-   if (ettNext != ettCOMMAND && ettNext != ettNonALPHA) {
-      if (!pParser->HasError())
-         pParser->SetError("Missing delimiter after '\\" + sCmd + "'");
-      return nullptr;
+   if (sCmd != "\\lvert" && sCmd != "\\rvert" && sCmd != "\\lVert" && sCmd != "\\rVert") {
+      //check/consume/ next token
+      EnumTokenType ettNext = pParser->GetTokenData(sToken);
+      if (ettNext != ettCOMMAND && ettNext != ettNonALPHA) {
+         if (!pParser->HasError())
+            pParser->SetError("Missing delimiter after '\\" + sCmd + "'");
+         return nullptr;
+      }
+      pParser->SkipToken();
+      _ASSERT_RET(sToken != ".", nullptr); //not sure if can be here
    }
-   pParser->SkipToken();
-   _ASSERT_RET(sToken != ".", nullptr); //not sure if can be here
    string sCmdFull = szCmd + sToken;
    SLMMDelimiter lmmDelimiter;
    if (!_GetDelimiter(pParser->Doc().LMFManager(), sCmdFull.c_str(), ctx.currentStyle, lmmDelimiter) ||
       lmmDelimiter.edt == edtNotDelim || 0 == lmmDelimiter.nUni) {
       if (!pParser->HasError())
-         pParser->SetError("Unknown delimiter '" + sToken + "' after '\\" + sCmd + "'");
+         pParser->SetError("Unknown delimiter '" + sToken + "' after '" + sCmd + "'");
       return nullptr;
    }
    CMathItem* pRet = BuildDelimiter_(pParser->Doc(), lmmDelimiter, ctx.currentStyle, ctx.fUserScale);

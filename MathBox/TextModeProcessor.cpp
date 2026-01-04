@@ -288,8 +288,8 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       return pHBox;
    }
    //else //multiline
-   const int32_t nInterline = m_Parser.Doc().DefaultLineSkipEm();
-   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
+   const int32_t nInterline = m_Parser.Doc().LineSkipFDU();
+   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacLINES, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty()) {
          CMathItem* pStrut = new CRuleItem(m_Parser.Doc(), 0, otfUnitsPerEm, 3*otfUnitsPerEm/4, 

@@ -11,6 +11,8 @@ CMathBoxHost::CMathBoxHost(CD2DFontManager& d2dFontManager, CD2DRenderer& d2dr) 
    _pFontManager = &d2dFontManager;
    _pD2DR = &d2dr;
    m_DocParams.size_bytes = sizeof(MB_DocParams);
+   m_DocParams.line_skip_fdu = 200; //default
+   m_DocParams.max_width_fdu = 0;   //no limit
    //D2DFontManager shim
    m_DocParams.font_mgr.size_bytes = sizeof(MBI_FontManager);
    m_DocParams.font_mgr.fontCount = 0; //unknown yet
@@ -66,10 +68,12 @@ bool CMathBoxHost::Parse(const string& sTeX) {
       m_pMBAPI->destroyMathItem(m_pMBItem);
       m_pMBItem = nullptr;
    }
+   m_Error.nErrorCode = MBOK;
+   m_Error.sError.clear();
    MB_RET ret = m_pMBAPI->parseLatex(m_engine, sTeX.c_str(), &m_pMBItem);
    if (ret != MBOK) {
       PCSTR szError = m_pMBAPI->getLastError(m_engine, &m_Error.nErrorStartPos, &m_Error.nErrorEndPos);
-      m_Error.sError = szError ? szError : "Unknown error";
+      m_Error.sError = szError ? szError : "Unknown parsing error";
       m_Error.nErrorCode = ret;
       return false;
    }

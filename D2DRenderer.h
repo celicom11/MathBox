@@ -44,7 +44,8 @@ public:
    }
    void OnSize(LPARAM lParam) {
       D2D1_SIZE_U size = D2D1::SizeU(LOWORD(lParam), HIWORD(lParam));
-      m_pRenderTarget->Resize(size);
+      if (m_pRenderTarget)
+         m_pRenderTarget->Resize(size);
    }
    void BeginDraw() {
       if(m_pRenderTarget)
@@ -55,6 +56,10 @@ public:
       if(m_pRenderTarget)
          hr = m_pRenderTarget->EndDraw();
       return hr;
+   }
+   void SetTransform(const D2D1_MATRIX_3X2_F& mat) {
+      if (m_pRenderTarget)
+         m_pRenderTarget->SetTransform(mat);
    }
    void DrawLine(float x1, float y1, float x2, float y2, EnumLineStyles style, float width, uint32_t argb);
    void DrawRect(float left, float top, float right, float bottom, EnumLineStyles style, 

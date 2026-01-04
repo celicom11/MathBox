@@ -73,9 +73,7 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
       if (*szPos == '\\') {
          ++szPos; //skip '\'
          if (!*szPos) {//lone '\' is not valid!
-            err.eStage = epsTOKENIZING;
-            err.nPosition = token.nPos;
-            err.sError = "Orphan backslash '\\' at end of input.";
+            err.SetError(epsTOKENIZING, token, "Orphan backslash '\\' at end of input.");
             return false;
          }
          if (_IsEscapedChar(*szPos)) {//skip '\\',leave single-non-alpha char token, 

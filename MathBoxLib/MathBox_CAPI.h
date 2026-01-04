@@ -43,12 +43,13 @@ typedef struct {
       /*out*/ MB_GlyphMetrics* out_glyph_metrics, /*out*/ MB_Bounds* out_bounds);
 } MBI_FontManager;
 
-//document register/params/resources: DefaultFontSize, clrBackground, clrText, clrSelection
+//document registers/params and fonts
 typedef struct {
    uint32_t           size_bytes;
 
-   float              default_font_size_pts;
-   int32_t            default_line_skip_em;
+   float              font_size_pts;
+   int32_t            line_skip_fdu;
+   int32_t            max_width_fdu;
    uint32_t           color_bkg_argb;
    uint32_t           color_selection_argb;
    uint32_t           color_text_argb;
@@ -63,7 +64,7 @@ typedef struct {
    void (*drawRect)(float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
    void (*fillRect)(float l, float t, float r, float b, uint32_t argb);
    void (*drawGlyphRun)(int32_t font_idx, uint32_t count, const uint16_t* indices,
-      float base_x, float base_y, float scale, uint32_t argb);
+                        float base_x, float base_y, float scale, uint32_t argb);
 } MBI_DocRenderer;
 
 //Opaque Handlers
@@ -83,11 +84,15 @@ typedef struct MBI_API {
    //Caller must use/destroy returned MB_MathItem NOTE: can be destroyed after engine!
    MB_RET (*parseLatex)(MB_Engine engine, const char* szText, /*out*/ MB_MathItem* out_item);
    //all "float" units are in DIPs
+   uint32_t(*mathItemLineCount)(MB_MathItem item);
    MB_RET (*mathItemDraw)(MB_MathItem item, float x, float y, const MBI_DocRenderer* renderer);
+   MB_RET (*mathItemDrawLines)(MB_MathItem item, float x, float y, int32_t line_start, int32_t line_end, 
+                               const MBI_DocRenderer* renderer);
    MB_RET (*mathItemSelect)(MB_MathItem item, float left, float top, float right, float bottom, uint32_t flags);
-   MB_RET (*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top,
-      /*out*/ float* right, /*out*/ float* bottom);
-
+   MB_RET (*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top, 
+                                              /*out*/ float* right, /*out*/ float* bottom);
+   MB_RET(*mathItemGetLineBox)(MB_MathItem item, int32_t line,
+                              /*out*/ float* left, /*out*/ float* top, /*out*/ float* right, /*out*/ float* bottom);
 } MBI_API;
 
 //MathBox Engine API

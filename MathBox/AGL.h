@@ -68,7 +68,8 @@ DECLARE_INTERFACE(IDocParams) {
    virtual IFontManager& FontManager() = 0;
    virtual ILMFManager& LMFManager() = 0;
    virtual float DefaultFontSizePts() = 0;
-   virtual int32_t DefaultLineSkipEm() = 0;
+   virtual int32_t LineSkipFDU() = 0;
+   virtual int32_t MaxWidthFDU() = 0;
    virtual uint32_t ColorBkg() = 0;
    virtual uint32_t ColorSelection() = 0;
    //Text color ~= Foreground color!

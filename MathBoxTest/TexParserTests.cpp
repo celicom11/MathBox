@@ -22,8 +22,11 @@ public:
    float DefaultFontSizePts() override {
       return m_fFontSizePts;
    }
-   int32_t DefaultLineSkipEm() override {
+   int32_t LineSkipFDU() override {
       return 200;
+   }
+   int32_t MaxWidthFDU() override {
+      return 0;
    }
    uint32_t ColorBkg() override { return 0; }
    uint32_t ColorSelection() override { return 0; }
@@ -276,7 +279,7 @@ namespace TexParserTests
          auto err = parser.LastError();
          Assert::AreEqual("Double subcsript/superscript is not allowed", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
-         Assert::AreEqual(5, (int)err.nPosition, L"Error position should be 5");
+         Assert::AreEqual(5, (int)err.nStartPos, L"Error position should be 5");
       }
       // ## Test 6: GeneralizedFraction
       // # Input: "$$_a^b$$"
@@ -493,7 +496,7 @@ namespace TexParserTests
          auto err = parser.LastError();
          Assert::AreEqual("Missing item after _/^!", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
-         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+         Assert::AreEqual((int)err.nStartPos, 4, L"Error position should be 4");
       }
       // ## Test 10: DoubleSubSuperscript
       // # Input: "$$x_^y$$"
@@ -515,7 +518,7 @@ namespace TexParserTests
          auto err = parser.LastError();
          Assert::AreEqual("Missing item after _/^!", err.sError.c_str());
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
-         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+         Assert::AreEqual((int)err.nStartPos, 4, L"Error position should be 4");
       }
       // ## Test 11: DoubleSuperSubscript
       // # Input: "$$x^_y$$"
@@ -537,7 +540,7 @@ namespace TexParserTests
          auto err = parser.LastError();
          Assert::AreEqual(err.sError.c_str(), "Missing item after _/^!");
          Assert::AreEqual((int)epsBUILDING, (int)err.eStage, L"Error stage should be epsBUILDING");
-         Assert::AreEqual((int)err.nPosition, 4, L"Error position should be 4");
+         Assert::AreEqual((int)err.nStartPos, 4, L"Error position should be 4");
       }
       // ## Test 12: EmptyMathGroup
       // # Input: "$$$$","$ $","${}$","{}"
@@ -585,13 +588,13 @@ namespace TexParserTests
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          auto err = parser.LastError();
          Assert::AreEqual(err.sError.c_str(), "Unclosed group '{'");
-         Assert::AreEqual((int)err.nPosition, 2, L"Error position should be 2");
+         Assert::AreEqual((int)err.nStartPos, 2, L"Error position should be 2");
 
          pRet = parser.Parse("$a{{a^bc$");
          Assert::IsNull(pRet, L"Parse should return nullptr for empty group");
          err = parser.LastError();
          Assert::AreEqual(err.sError.c_str(), "Unclosed group '{'");
-         Assert::AreEqual((int)err.nPosition, 3, L"Error position should be 3");
+         Assert::AreEqual((int)err.nStartPos, 3, L"Error position should be 3");
       }
       // ## Test 15: NestedMathModes are not allowed
       // # Input: "$$a $b$ c$$","$a $$b$$ c$"

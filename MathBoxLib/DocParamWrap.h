@@ -15,10 +15,13 @@ public:
    IFontManager& FontManager() override { return *this; }
    ILMFManager& LMFManager() override { return m_lmfMgr; }
    float DefaultFontSizePts() override { 
-      return m_pDP->default_font_size_pts; 
+      return m_pDP->font_size_pts; 
    }
-   int32_t DefaultLineSkipEm() override {
-      return m_pDP->default_line_skip_em;
+   int32_t LineSkipFDU() override {
+      return m_pDP->line_skip_fdu;
+   }
+   int32_t MaxWidthFDU() override {
+      return m_pDP->max_width_fdu;
    }
    uint32_t ColorBkg() override {
       return m_pDP->color_bkg_argb;

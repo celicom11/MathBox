@@ -89,6 +89,7 @@ enum EnumMathItemType {
    eacVDELIM,           // Ord: container item with vertical delimiter + parts
    eacHDELIM,           // Ord: container item with horizontal bracket + parts
    eacTABLE,            // Ord: special container item for matrices and arrays
+   eacLINES,            // container item with multiple lines/HBOX-es
    //eacOverlay,        // container item with a base + cancel,not, cross, etc. fillers
    eacRULE,             // Filler replacement
 };
@@ -255,8 +256,20 @@ enum EnumParsingStage { epsUnk = 0, epsTOKENIZING, epsGROUPING, epsBUILDING };
 //parser error info
 struct ParserError {
    EnumParsingStage  eStage{ epsUnk };
-   uint32_t          nPosition{ 0 };
+   uint32_t          nStartPos{ 0 }; //in the input text
+   uint32_t          nEndPos{ 0 };
    string            sError;
+   void SetError(EnumParsingStage eStage_, const STexToken& tkn, const string& sErr) {
+      eStage = eStage_;
+      nStartPos = tkn.nPos;
+      nEndPos = tkn.nPos + tkn.nLen;
+      sError = sErr.empty() ? "Unknown error" : sErr;
+   }
+   void SetError(const STexToken& tkn, const string& sErr) {
+      nStartPos = tkn.nPos;
+      nEndPos = tkn.nPos + tkn.nLen;
+      sError = sErr.empty() ? "Unknown error" : sErr;
+   }
 };
 enum EnumLatexCmdArgType {
    elcatNull = -1,// empty, no argument

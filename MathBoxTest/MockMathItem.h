@@ -14,8 +14,11 @@ public:
    float DefaultFontSizePts() override {
       return 12.0f;
    }
-   int32_t DefaultLineSkipEm() override {
+   int32_t LineSkipFDU() override {
       return 200;
+   }
+   int32_t MaxWidthFDU() override {
+      return 0;
    }
    uint32_t ColorBkg() override { return 0; }
    uint32_t ColorSelection() override { return 0; }

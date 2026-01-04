@@ -410,7 +410,7 @@ CMathItem* CMathModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
       return pHBox;
    }
    //else //multiline
-   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacVBOX, ctx.currentStyle);
+   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacLINES, ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty())
          continue; //todo!

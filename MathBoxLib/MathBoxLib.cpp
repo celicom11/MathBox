@@ -3,10 +3,14 @@
 #include "DocParamWrap.h"
 #include "..\MathBox\TexParser.h"
 #include "..\MathBox\LMMFont.h"
+#include "..\MathBox\ContainerItem.h"
 
 #define ABI_VERSION 1
-thread_local static string _sGlobalError;
-thread_local static ParserError _lasterror;
+
+static uint32_t _startPos = 0;
+static uint32_t _endPos = 0;
+static string _sGlobalError;
+static string _sParserError;
 // --- C API Implementations ---
 // Opaque engine struct for ABI
 struct MB_Engine_t {
@@ -83,9 +87,17 @@ static void destroyMathItem_impl(MB_MathItem item) {
 //@ret: do not free! Per-engine pointer to 0-end ASCII string is valid 
 // until next API call (except this one) or until engine destroyed!
 static const char* getLastError_impl(MB_Engine engine, OUT uint32_t* startPos, OUT uint32_t* endPos) {
+   if(startPos)
+      *startPos = 0;
+   if (endPos)
+      *endPos = 0;
    if (!engine)
       return _sGlobalError.c_str();
-   return _lasterror.sError.c_str();
+   if (startPos)
+      *startPos = _startPos;
+   if (endPos)
+      *endPos = _endPos;
+   return _sParserError.c_str();
 }
 //Caller must use/destroy returned MB_MathItem 
 static MB_RET parseLatex_impl(MB_Engine engine, const char* szText, OUT MB_MathItem* out_item) {
@@ -104,10 +116,28 @@ static MB_RET parseLatex_impl(MB_Engine engine, const char* szText, OUT MB_MathI
    CTexParser* pParser = engine->pParser;
    CMathItem* pItem = pParser->Parse(szText);
    *out_item = pItem;
-   _lasterror = pParser->LastError(); //copy
-   if(_lasterror.sError.empty())
+   //copy last error info
+   const ParserError& lasterror = pParser->LastError();
+   _sParserError = lasterror.sError; //copy
+   _startPos = lasterror.nStartPos;
+   _endPos = lasterror.nEndPos;
+
+   if(_sParserError.empty())
       return MBOK;
-   return MB_PARSER + (MB_RET)_lasterror.eStage;
+   return MB_PARSER + (MB_RET)lasterror.eStage;
+}
+static uint32_t mathItemLineCount_impl(MB_MathItem item) {
+   if (!item) {
+      _sGlobalError = "MB_MathItem item is NULL";
+      return 0;
+   }
+   CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
+   uint32_t lines = 1;
+   if (pItem->Type() == eacLINES) {
+      CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
+      lines = (uint32_t)pVBOX->Items().size();
+   }
+   return lines;
 }
 //all "float" units are in DIPs
 static MB_RET mathItemDraw_impl(MB_MathItem item, float x, float y, const MBI_DocRenderer* renderer) {
@@ -128,7 +158,49 @@ static MB_RET mathItemDraw_impl(MB_MathItem item, float x, float y, const MBI_Do
    pItem->Draw({ x,y }, dr);
    return MBOK;
 }
-static MB_RET mathItemSelect_impl(MB_MathItem item, float left, float top, float right, float bottom, uint32_t flags) {
+static MB_RET mathItemDrawLines_impl(MB_MathItem item, float x, float y, 
+                                     int32_t line_start, int32_t line_end, const MBI_DocRenderer* renderer) {
+   if (!item) {
+      _sGlobalError = "MB_MathItem item is NULL";
+      return MB_BADPARAM;
+   }
+   if (line_end < line_start) {
+      _sGlobalError = "line_end is less than item";
+      return MB_BADPARAM;
+   }
+   CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
+   if (line_start >= 0 && pItem->Type() == eacLINES) {
+      CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
+      if (line_end >= (int32_t)pVBOX->Items().size()) {
+         _sGlobalError = "line_end is out of range";
+         return MB_BADPARAM;
+      }
+      if (!renderer) {
+         _sGlobalError = "MBI_DocRenderer* renderer is NULL";
+         return MB_BADPARAM;
+      }
+      if (renderer->size_bytes != sizeof(MBI_DocRenderer)) {
+         _sGlobalError = "Unsupported version of MBI_DocRenderer* renderer";
+         return MB_BADVERSION;
+      }
+      SDocRendererWrap docr(renderer);
+      float fFontSizePts = pItem->Doc().DefaultFontSizePts();
+      //need to translate containerLT so that line_start is at (x,y)
+      const STexBox& boxLineStart = pVBOX->Items()[line_start]->Box();
+      SPointF ptfContainerLT{
+         x - EM2DIPS(fFontSizePts, pVBOX->Box().Left() + boxLineStart.Left()),
+         y - EM2DIPS(fFontSizePts, pVBOX->Box().Top() + boxLineStart.Top())
+      };
+      for (int32_t lineIdx = line_start; lineIdx <= line_end; ++lineIdx) {
+         pVBOX->Items()[lineIdx]->Draw(ptfContainerLT, docr);
+      }
+      return MBOK;
+   }
+   else
+      return mathItemDraw_impl(item, x, y, renderer);
+}
+static MB_RET mathItemSelect_impl(MB_MathItem item, float left, float top, float right, float bottom, 
+                                  uint32_t flags) {
    if (!item ) {
       _sGlobalError = "MB_MathItem item is NULL";
       return MB_BADPARAM;
@@ -158,6 +230,42 @@ static MB_RET mathItemGetBox_impl(MB_MathItem item, OUT float* left, OUT float* 
 
    return MBOK;
 }
+static MB_RET mathItemGetLineBox_impl(MB_MathItem item, int32_t line,
+                                      OUT float* left, OUT float* top, OUT float* right, OUT float* bottom) {
+   if (!item) {
+      _sGlobalError = "MB_MathItem item is NULL";
+      return MB_BADPARAM;
+   }
+   CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
+   STexBox box;
+   if (line >= 0 && pItem->Type() == eacLINES) {
+      CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
+      if (line >= (int32_t)pVBOX->Items().size()) {
+         _sGlobalError = "Line index is out of range";
+         return MB_BADPARAM;
+      }
+      box = pVBOX->Items()[line]->Box();
+   }
+   else {
+      if (line > 0) {
+         _sGlobalError = "Line index is out of range";
+         return MB_BADPARAM;
+      }
+      box = pItem->Box();
+   }
+
+   IDocParams& docp = pItem->Doc();
+   if (left)
+      *left = EM2DIPS(docp.DefaultFontSizePts(), box.Left());
+   if (top)
+      *top = EM2DIPS(docp.DefaultFontSizePts(), box.Top());
+   if (right)
+      *right = EM2DIPS(docp.DefaultFontSizePts(), box.Right());
+   if (bottom)
+      *bottom = EM2DIPS(docp.DefaultFontSizePts(), box.Bottom());
+
+   return MBOK;
+}
 
 //MAIN ENTRY
 static const MBI_API g_Api = {
@@ -168,9 +276,12 @@ static const MBI_API g_Api = {
    destroyMathItem_impl,
    getLastError_impl,
    parseLatex_impl,
+   mathItemLineCount_impl,
    mathItemDraw_impl,
+   mathItemDrawLines_impl,
    mathItemSelect_impl,
-   mathItemGetBox_impl
+   mathItemGetBox_impl,
+   mathItemGetLineBox_impl
 };
 // --- Exported ABI Function ---
 extern "C" MB_API const MBI_API* MB_GetApi() {

@@ -1,7 +1,7 @@
 \text{\huge Supported Functions}\\\\
 \text{\Large Accents}\\\\
 $
-\begin{array}{|l|l|l|}
+\begin{array}{|l|l|c|}
 \hline
 %a'{\small\texttt{ a'}} & \tilde{a}{\small\texttt{ \backslash tilde\{a\}}} & \mathring{g}\small{\texttt{  \backslash mathring\{g\}}}\\
 a' & \tilde{a} & \mathring{g}\\
@@ -42,6 +42,29 @@ $
 \text{\`{a}} & \text{\={a}} & \text{\"{a}} & \text{\v{a}}\\
 \hline
 \text{\^{a}} & \text{\u{a}} & \text{\r{a}}\\
+\hline
+\end{array}
+$
+\\\\\\
+\text{\Large Delimiters}\\\\
+$
+\begin{array}{|l|l|l|c|}
+\hline
+() & \lparen\rparen & \lceil\rceil & \uparrow\\
+\hline
+[ ] & \lbrack\rbrack & \lfloor\rfloor& \downarrow\\
+\hline
+\{ \} & \lbrace\rbrace & \text{\backslash lmoustache missed} & \updownarrow\\
+\hline
+< > & \langle\rangle & \lgroup\rgroup & \Uparrow\\
+\hline
+| & \vert & \ulcorner\urcorner & \Downarrow\\
+\hline
+\| & \Vert & \llcorner\lrcorner & \Updownarrow\\
+\hline
+\lvert\rvert & \lVert\rVert & \text{\backslash left.} & \backslash\\
+\hline
+\lang\rang & \lt \gt & \llbracket\rrbracket & /\\
 \hline
 \end{array}
 $

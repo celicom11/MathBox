@@ -26,7 +26,6 @@ HRESULT CD2DRenderer::Initialize(HWND hwnd) {
    //elsDash,elsDot,elsDashDot
    m_vStrokeStyles.resize(3, nullptr);
    static const float _aDashes[] = { 4.0f, 2.0f };
-   ID2D1StrokeStyle* pStrokeStyle = nullptr;
    D2D1_STROKE_STYLE_PROPERTIES dssp;
    dssp = D2D1::StrokeStyleProperties(
       D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,

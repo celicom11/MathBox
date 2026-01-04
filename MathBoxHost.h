@@ -24,14 +24,15 @@ public:
    bool LoadMathBoxLib();
    void CleanUp();
 //ATTS
-   void SetLineSkip(int32_t nLineSkipFDU) { m_DocParams.default_line_skip_em = nLineSkipFDU; }
+   void SetLineSkip(int32_t nLineSkipFDU) { m_DocParams.line_skip_fdu = nLineSkipFDU; }
+   void SetMaxWidth(int32_t nMaxWidthFDU) { m_DocParams.max_width_fdu = nMaxWidthFDU; }
    void SetClrText(uint32_t clrText) { m_DocParams.color_text_argb = clrText; }
    uint32_t  ClrBkg() const { return m_DocParams.color_bkg_argb; }
    void SetClrBkg(uint32_t clrBkg) { m_DocParams.color_bkg_argb = clrBkg; }
    void SetClrSel(uint32_t clrSel) { m_DocParams.color_selection_argb = clrSel; }
 
-   float FontSizePts() const { return m_DocParams.default_font_size_pts; }
-   void SetFontSizePts(float fFontSizePts) { m_DocParams.default_font_size_pts = fFontSizePts; }
+   float FontSizePts() const { return m_DocParams.font_size_pts; }
+   void SetFontSizePts(float fFontSizePts) { m_DocParams.font_size_pts = fFontSizePts; }
    const SMathBoxError& LastError() const { return m_Error;}
 //METHODS
    bool Parse(const string& sTeX);

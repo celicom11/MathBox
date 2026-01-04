@@ -37,8 +37,9 @@ void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
    const float fXRight = ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Right());
    for (int nIdx = 0; nIdx < (int)m_vHLines.size(); ++nIdx) {
       if (m_vHLines[nIdx]) {
-         int32_t nY = nIdx < (int)m_vRowLayouts.size() ? 
-            m_vRowLayouts[nIdx].nTop : m_vRowLayouts.back().Bottom();
+         int32_t nY = m_vRowLayouts.back().Bottom(); //default
+         if (nIdx < (int)m_vRowLayouts.size())
+            nY = nIdx?m_vRowLayouts[nIdx].nTop : 0;
          float fY = ptfMyAnchor.fY + EM2DIPS(fFontSizePts, nY);
          docr.DrawLine({ ptfMyAnchor.fX, fY }, { fXRight, fY }, elsSolid);
       }
@@ -101,7 +102,8 @@ bool CTableItem::Init(const vector<EnumColAlignment>& vColAligns, const vector<c
 }
 //updates m_vColWidths and m_vRowHeights
 void CTableItem::CalcRowGeometry_(int nRowIdx) {
-   m_vRowLayouts[nRowIdx].nTop = nRowIdx ? m_vRowLayouts[nRowIdx - 1].Bottom(): 0;
+   //insert 3*otfFractionRuleThickness vertical gap/margin for top row
+   m_vRowLayouts[nRowIdx].nTop = nRowIdx ? m_vRowLayouts[nRowIdx - 1].Bottom(): 3*otfFractionRuleThickness;
    //enforce strut
    int32_t nMaxAscent = m_nMinAscent, nMaxDescent = m_nMinDescent;
    const vector<CMathItem*>& vRow = m_vvCells[nRowIdx];
@@ -163,6 +165,5 @@ void CTableItem::LayoutRowItems_(int nRowIdx) {
             nCellX += 200; //double line extra space
       }
    }
-
 }
 

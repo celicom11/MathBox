@@ -57,16 +57,28 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
    SParserContext ctxG;
    ctxG.CopyBasics(ctx);
 
-   const STexToken& tkOpen = m_vTokens[nIdx];
+   STexToken& tkOpen = m_vTokens[nIdx];
    _ASSERT_RET((int)tkOpen.nTkIdxEnd > nIdx && tkOpen.nTkIdxEnd <= m_vTokens.size(), nullptr);//snbh!
    CEnvHelper envh;
+   const int nIdx0 = nIdx;
    if (!OnGroupOpen_(nIdx, ctxG, bCanBeEmpty, envh))
       return nullptr; //error in group open token
    CMathItem* pRet = ctxG.bTextMode ? m_pTextProcessor->ProcessGroup(nIdx, ctxG) :
-      m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
+                                      m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
    if (!pRet && m_Error.sError.empty() && !bCanBeEmpty) {
-      m_Error.nPosition = tkOpen.nPos;
-      m_Error.sError = "Unexpected empty group";
+      if (tkOpen.nType == ettSB_OPEN) {
+         //exceptional: empty [...] is allowed but group is disqualified!
+         STexToken& tkClose = m_vTokens[tkOpen.nTkIdxEnd];
+         tkOpen.nType = tkClose.nType = ettNonALPHA; //convert to normal token
+         tkOpen.nTkIdxEnd = 0;
+         nIdx = nIdx0; //reset index to re-process as normal tokens
+      }
+      else {
+         m_Error.nStartPos = tkOpen.nPos;
+         const STexToken* ptkClose = GetToken(tkOpen.nTkIdxEnd);
+         m_Error.nEndPos = ptkClose ? ptkClose->nPos + ptkClose->nLen : tkOpen.nPos + tkOpen.nLen;
+         m_Error.sError = "Unexpected empty group";
+      }
    }
    return pRet;
 }
@@ -75,8 +87,7 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
                               OUT bool& bCanBeEmpty, IN OUT CEnvHelper& envh) {
    const STexToken& tkOpen = m_vTokens[nTkIdx];
    if (!ctxG.bTextMode && (tkOpen.nType == ett$ || tkOpen.nType == ett$$)) {
-      m_Error.nPosition = tkOpen.nPos;
-      m_Error.sError = "Inner $..$/$$...$$ are not allowed in math mode!";
+      m_Error.SetError(tkOpen ,"Inner $..$/$$...$$ are not allowed in math mode");
       return false;
    }
    // reset external context flags
@@ -98,8 +109,7 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
       string sCmd = m_pTokenizer->TokenText(tkOpen);
       if (sCmd == "\\[") {
          if (!ctxG.bTextMode) {
-            m_Error.nPosition = tkOpen.nPos;
-            m_Error.sError = "Inner \\[...\\] are not allowed in math mode!";
+            m_Error.SetError(tkOpen, "Inner \\[...\\] are not allowed in math mode");
             return false;
          }
          ctxG.currentStyle = etsDisplay;
@@ -109,8 +119,7 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
       }
       else if (sCmd == "\\left") {
          if (ctxG.bTextMode) {
-            m_Error.nPosition = tkOpen.nPos;
-            m_Error.sError = "\\left can only be used in math mode!";
+            m_Error.SetError(tkOpen, "\\left can only be used in math mode");
             return false;
          }
          bCanBeEmpty = true;
@@ -120,8 +129,7 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
          if (!envh.Init(*this, nTkIdx, ctxG)) {
             if (m_Error.sError.empty()) {
                _ASSERT(0);//snbh!
-               m_Error.nPosition = tkOpen.nPos;
-               m_Error.sError = "Failed to init environment!";
+               m_Error.SetError(tkOpen, "Failed to init environment");
             }
             return false;
          }
@@ -156,8 +164,8 @@ bool CTexParser::BuildGroups_() {
             for(int nGSIdx: vGroupStarts) {
                STexToken& tknGS = m_vTokens[nGSIdx];
                if (tknGS.nType == tkn.nType) {
-                  m_Error.nPosition = m_vTokens[vGroupStarts.back()].nPos;
-                  m_Error.sError = "Unclosed group '" + TokenText(vGroupStarts.back()) +"'";
+                  const STexToken& tknOpen = m_vTokens[vGroupStarts.back()];
+                  m_Error.SetError(tknOpen, "Unclosed group '" + TokenText(vGroupStarts.back()) + "'");
                   return false;
                }
             }
@@ -175,8 +183,8 @@ bool CTexParser::BuildGroups_() {
                if (!pTknFBOpen || pTknFBOpen->nType!= ettFB_OPEN || 
                   !pTknEnv || pTknEnv->nType != ettALNUM ||
                   !pTknFBClose || pTknFBClose->nType != ettFB_CLOSE) {
-                  m_Error.nPosition = nIdx;
-                  m_Error.sError = "Missing {environment} argument after \\begin";
+                  const STexToken& tknError = m_vTokens[nIdx];
+                  m_Error.SetError(tknError, "Missing {environment} argument after \\begin");
                   return false;
                }
             }
@@ -184,8 +192,9 @@ bool CTexParser::BuildGroups_() {
          }
          else if (sCmd == "\\right" || sCmd == "\\]" || sCmd == "\\end") {
             if (vGroupStarts.empty() || !_IsOpenClose(TokenText(vGroupStarts.back()), sCmd)) {
-               m_Error.nPosition = tkn.nPos;
-               m_Error.sError = "Unmatched '" + sCmd + "' !";
+               m_Error.nStartPos = tkn.nPos;
+               m_Error.nEndPos = tkn.nPos + tkn.nLen;
+               m_Error.sError = "Unmatched '" + sCmd + "' ";
                return false;
             }
             int nGroupEnd = nIdx;
@@ -196,14 +205,14 @@ bool CTexParser::BuildGroups_() {
                if (!pTknFBOpen || pTknFBOpen->nType != ettFB_OPEN ||
                   !pTknEnv || pTknEnv->nType != ettALNUM ||
                   !pTknFBClose || pTknFBClose->nType != ettFB_CLOSE) {
-                  m_Error.nPosition = nIdx;
-                  m_Error.sError = "Missing {environment} argument after \\end";
+                  const STexToken& tknError = m_vTokens[nIdx];
+                  m_Error.SetError(tknError, "Missing {environment} argument after \\end");
                   return false;
                }
                //const STexToken* pTknOpenEnv = GetToken(vGroupStarts.back() + 2);
                if (TokenText(vGroupStarts.back() + 2) != TokenText(nIdx + 2)) {
-                  m_Error.nPosition = pTknEnv->nPos;
-                  m_Error.sError = "Unmatched environment name'" + TokenText(nIdx + 2) + "' afetr \\end";
+                  m_Error.SetError(*pTknEnv, 
+                     "Unmatched environment name'" + TokenText(nIdx + 2) + "' afetr \\end");
                   return false;
                }
             }
@@ -227,8 +236,7 @@ bool CTexParser::BuildGroups_() {
                   break;
                }
                //else
-               m_Error.nPosition = tkn.nPos;
-               m_Error.sError = "Unmatched closing '}' bracket is not allowed";
+               m_Error.SetError(tkn, "Unmatched closing '}' bracket is not allowed");
                return false;
             }
             m_vTokens[vGroupStarts.back()].nTkIdxEnd = nIdx;
@@ -256,8 +264,7 @@ bool CTexParser::BuildGroups_() {
          continue;
       }
       //else
-      m_Error.nPosition = tkUnmatched.nPos;
-      m_Error.sError = "Unclosed opening token '" + TokenText(vGroupStarts.back()) + "'";
+      m_Error.SetError(tkUnmatched, "Unclosed opening token '" + TokenText(vGroupStarts.back()) + "'");
       return false;
    }
    return true;
