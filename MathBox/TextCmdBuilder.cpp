@@ -26,8 +26,21 @@ CMathItem* CTextCmdBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser
       ctxText.sFontCmd = "textbfit"; //combined
    else if ((ctxText.sFontCmd == "textit" || ctxText.sFontCmd == "emph") && ctx.sFontCmd == "textbf")
       ctxText.sFontCmd = "textbfit"; //combined
-   //todo more replacements
-   CMathItem* pItem = pParser->ConsumeItem(elcapFig, ctxText);
+   //todo: more replacements to combine fonts?
+   CMathItem* pItem = nullptr; 
+   if (ctxText.sFontCmd == "verb") {
+      //verify next token is ettALNUM
+      string sVerbArg;
+      EnumTokenType ettNext = pParser->GetTokenData(sVerbArg);
+      if (ettNext != ettALNUM) {
+         _ASSERT(0);//snbh!
+         pParser->SetError("Unexpected argument for \\verb command");
+      }
+      else
+         pItem = pParser->ConsumeItem(elcapAny, ctxText);
+   }
+   else
+      pItem = pParser->ConsumeItem(elcapFig, ctxText);
    if (!pItem) {
       if (!pParser->HasError())
          pParser->SetError("Missing {arg} for '\\"+ string(szCmd) +"' command");

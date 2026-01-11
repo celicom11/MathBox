@@ -172,7 +172,7 @@ CMathItem* CMathSymBuilder::BuildMathOperatorLim_(PCSTR szOp, IParserAdapter* pP
 
    const CMathStyle& style = ctx.currentStyle;
    float fUserScale = ctx.fUserScale;
-   CWordItem* pRet = new CWordItem(m_Doc, FONT_ROMAN_REGULAR, style, eacMATHOP, fUserScale);
+   CWordItem* pWord = new CWordItem(m_Doc, FONT_ROMAN_REGULAR, style, eacMATHOP, fUserScale);
    string sOpStr(szOp),sUnderOver;
 
    if (sOpStr == "varinjlim")
@@ -200,22 +200,37 @@ CMathItem* CMathSymBuilder::BuildMathOperatorLim_(PCSTR szOp, IParserAdapter* pP
    else if (sOpStr == "projlim")
       sOpStr = "proj lim";
 
-   pRet->SetTextA(sOpStr.c_str());
+   pWord->SetTextA(sOpStr.c_str());
+   CMathItem* pRet = pWord;
    if (!sUnderOver.empty()) {
       //need to build under/overbrace item
-      CMathItem* pUnderOver = CUnderOverBuilder::_BuildUnderOverItem(pRet, sUnderOver.c_str(), ctx);
+      CMathItem* pUnderOver = CUnderOverBuilder::_BuildUnderOverItem(pWord, sUnderOver.c_str(), ctx);
       if(!pUnderOver) {
-         delete pRet;
+         delete pWord;
          if (!pParser->HasError())
             pParser->SetError("Failed to build operator with limits for '" + string(szOp) + "'");
          return nullptr;
       }
-      //correct index placement
-      pUnderOver->SetIdxPlacement(sUnderOver == "overline" ? eipOverscript : eipUnderscript);
-      return pUnderOver;
+      pRet = pUnderOver;
    }
+   //set correct index placement
+   EnumIndexPlacement eip = ctx.currentStyle.IsDisplay() ? eipUnderscript : eipStd;
+   bool bLimits = false, bNoLimits = false;
+   string sToken;
+   EnumTokenType ettNext = pParser->GetTokenData(sToken);
+   if (ettNext == ettCOMMAND && (sToken == "\\nolimits" || sToken == "\\limits")) {
+      bLimits = sToken == "\\limits";
+      bNoLimits = sToken == "\\nolimits";
+      pParser->SkipToken(); //consumed
+   }
+   if (bLimits)
+      eip = eipUnderscript;
+   else if (bNoLimits)
+      eip = eipStd;
+   pRet->SetIdxPlacement(eip);
    return pRet;
 }
+
 CWordItem* CMathSymBuilder::BuildLMMSymbol_(const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale) {
    CWordItem* pRet = new CWordItem(m_Doc, FONT_LMM, style, eacWORD, fUserScale);
    EnumTexAtom eAtom = etaORD;//default

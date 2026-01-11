@@ -59,6 +59,16 @@ namespace { //static helpers
       }
       return szPos;
    }
+   //\verb<delim>...<delim>
+   inline bool _IsVerbCmd(PCSTR szCmd) {
+      if (szCmd[0] != 'v' || szCmd[1] != 'e' || szCmd[2] != 'r' || szCmd[3] != 'b')
+         return false;
+      szCmd += 4;
+      if (_IsAlNum(*szCmd))
+         return false; //delimiter cannot be alnum
+      return true;
+   }
+
 }
 bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) {
    vTokens.clear();
@@ -91,9 +101,37 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
          //newline, glue and isplay mode start/end commands
          else if (_IsCmdNonAlphaChar(*szPos))
             ++szPos; //skip special 1-non-alpha-cmd-char
-         else if (_IsCharCmd(szPos)) {
+         else if (_IsCharCmd(szPos)) 
             //\char{"}### unicode char command
             szPos = _ConsumeCharCmd(szPos);
+         else if (_IsVerbCmd(szPos)) {
+            token.nLen = 5;
+            char cDelim = *(szPos + 4); //delimiter char
+            szPos += 5; //skip 'verb' + delim
+            if (*szPos == cDelim) {
+               //skip empty \verb?? item completely
+               ++szPos; //skip closing delim
+               continue;
+            }
+            while (*szPos && *szPos != cDelim) {
+               if(_IsCRLF(*szPos)) {
+                  err.SetError(epsTOKENIZING, token, "\\verb command cannot span multiple lines.");
+                  return false;
+               }
+               ++szPos;
+            }
+            if(!*szPos) {
+               err.SetError(epsTOKENIZING, token, "\\verb command missing closing delimiter.");
+               return false;
+            }
+            //create two tokens and continue
+            vTokens.push_back(token);
+            token.nType = ettALNUM; //single word token
+            token.nPos += 6;
+            token.nLen = (uint16_t)(szPos - (m_sText.c_str() + token.nPos));
+            vTokens.push_back(token);
+            ++szPos; //skip closing delim
+            continue;
          }
          else {
             //command\sym - sequence of letters\digits

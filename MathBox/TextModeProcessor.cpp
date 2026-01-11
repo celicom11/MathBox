@@ -48,11 +48,10 @@ CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CTextAccentBuilder);
    RegisterBuilder(new CTextSymBuilder);
 }
-void CTextModeProcessor::CleanUp() {
+CTextModeProcessor::~CTextModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
       delete pBuilder;
    }
-   m_vItemBuilders.clear();
 }
 // TEXT MODE PROCESSING
 CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
@@ -72,7 +71,8 @@ CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
       pItem = new CGlueItem(m_Parser.Doc(), glueSpace, ctx.currentStyle, ctx.fUserScale);
       ++nIdx;
    }
-   else if(tkItem.nType == ettALNUM || tkItem.nType == ettSB_OPEN || tkItem.nType == ettSB_CLOSE || tkItem.nType == ettNonALPHA)
+   else if( tkItem.nType == ettALNUM || tkItem.nType == ettNonALPHA || 
+            tkItem.nType == ettSB_OPEN || tkItem.nType == ettSB_CLOSE)
       pItem = BuildItemWordToken_(nIdx, ctx);
    else if (tkItem.nType == ettCOMMAND) { 
       // command or symbol!
@@ -206,11 +206,10 @@ CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SPars
    _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA || 
       pCurToken->nType == ettSB_OPEN || pCurToken->nType == ettSB_CLOSE, nullptr);
    string sText = TokenText(nIdx);
-   if (sText[0] == '\\') {//escape char
-      _ASSERT(pCurToken->nType == ettNonALPHA);
-      _ASSERT(sText.size() == 2);
+   //awkward solution for : single escape char
+   //consider emit single ettNonALPHA char in tokenozer!
+   if (sText[0] == '\\' && pCurToken->nType == ettNonALPHA && sText.size() == 2)
       sText = sText[1];
-   }
    CMathItem* pRet = CWordItemBuilder::_BuildText(m_Parser.Doc(), sText, ctx);
    if(!pRet)
       m_Parser.SetError(nIdx, "Failed to build word item");

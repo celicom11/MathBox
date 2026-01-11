@@ -65,11 +65,10 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CTextCmdBuilder);
    RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
-void CMathModeProcessor::CleanUp() {
+CMathModeProcessor::~CMathModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
       delete pBuilder;
    }
-   m_vItemBuilders.clear();
 }
 // MATH MODE PROCESSING
 CMathItem* CMathModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {

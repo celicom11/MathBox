@@ -12,8 +12,7 @@ public:
 //CTOR/DTOR/INIT
    CTextModeProcessor()  = delete;
    CTextModeProcessor(CTexParser& parser);
-   ~CTextModeProcessor() { CleanUp(); }
-   void CleanUp();
+   ~CTextModeProcessor();
 //ATTS
    const STexToken* GetToken(int nIdx) const;
    string TokenText(int nIdx) const;
@@ -29,7 +28,6 @@ private:
    //context-modifying commands
    bool ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserContext& ctx);
    //
-   //bool OnGroupOpen_(const STexToken& tkOpen, IN OUT SParserContext& ctxG, OUT bool& bCanBeEmpty);
    //group's output raw item packers
    CMathItem* PackGroupItems_(vector<CRawItem>& vGroupItems, const SParserContext& ctx);
 };

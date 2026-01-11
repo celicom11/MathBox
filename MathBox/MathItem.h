@@ -109,6 +109,7 @@ public:
       m_eTexStyle(eTexStyle), m_bCramped(bCramped) {
    }
    //ATTS
+   bool IsDisplay() const { return m_eTexStyle == etsDisplay; }
    bool IsCramped() const { return m_bCramped; }
    void SetCramped(bool bCramped = true) { m_bCramped = bCramped; }
    EnumTexStyle Style() const { return   m_eTexStyle; }

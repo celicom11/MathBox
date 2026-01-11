@@ -51,9 +51,6 @@ CMathItem* CTexParser::Parse(const string& sText) {
    if (!pRet) {
       if (m_Error.sError.empty())
          m_Error.sError = "Unknown parser error";
-      //cleanup!
-      m_pTextProcessor->CleanUp();
-      m_pMathProcessor->CleanUp();
    }
    return pRet;
 }
