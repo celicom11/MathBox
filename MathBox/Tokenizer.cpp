@@ -12,7 +12,7 @@ namespace { //static helpers
    inline bool _IsAlNum(char wc) { return _IsAlpha(wc) || _IsDigit(wc); }
 
    inline bool _IsEscapedChar(char cChar) {
-      static const string _sSpecial{ "$%&_{}" };
+      static const string _sSpecial{ "#$%&_{}" };
       return _sSpecial.find(cChar) != string::npos;
    }
    inline bool _IsCmdNonAlphaChar(char cChar) {

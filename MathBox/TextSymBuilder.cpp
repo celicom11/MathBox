@@ -33,6 +33,10 @@ namespace {
       { "yen",             0xA5 },
       { "pounds",          0xA3 },
 
+      { "textsterling",    0xA3 },
+      { "S",               0xA7 },
+      { "sect",            0xA7 },
+      { "P",               0xB6 },
       { "textunderscore",  0x005F },
       { "textendash",      0x2013 },
       { "textemdash",      0x2014 },
@@ -44,6 +48,7 @@ namespace {
       { "textbraceright",  0x007D },
       { "textdagger",      0x2020 },
       { "textdaggerdbl",   0x2021 },
+      { "textbardbl",      0x2016 },
       { "textquoteleft",   0x2018 },
       { "textquoteright",  0x2019 },
       { "textdegree",      0x00B0 },

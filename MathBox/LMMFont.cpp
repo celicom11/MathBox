@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "LMMFont.h"
-#include "LMMConsts.h"
+#include "MathItem.h"
 
 namespace {
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
@@ -70,19 +70,33 @@ bool CLMMFont::Init(const wstring& sFontsDir) {
 }
 //symbol glyps \Pi and or operators \mathplus, etc.
 const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
+   static SLMMGlyph _lmmg;
    _ASSERT_RET(szCmd && *szCmd, nullptr);
    if (*szCmd == '\\')
       ++szCmd; //skip \\
-      //special aliases/legacy
+   //special aliases/legacy
    szCmd = _ReplaceAlias(szCmd);
+   string sCmd(szCmd);
    // LMM font - search by LaTex cmd!
    const auto itGI = std::find_if(m_vGlyphInfo.begin(), m_vGlyphInfo.end(),
       [szCmd](const SLMMGlyph* pG) {
          return pG->sLaTexCmd == szCmd;
       });
-
-   return itGI == m_vGlyphInfo.end() ? nullptr : (*itGI);
-
+   if (itGI == m_vGlyphInfo.end())
+      return nullptr;
+   const SLMMGlyph* pRet = (*itGI);
+   //atom type adjustments
+   if (sCmd == "dots" || sCmd == "ldots" || sCmd == "dotsc") {//NOTE: dotso->mathord
+      _lmmg = *pRet;
+      _lmmg.eClass = etaPUNCT;
+      return &_lmmg;
+   }
+   if (sCmd == "cdots" || sCmd == "dotsb" || sCmd == "dotsm" || sCmd == "dotsi" ) {
+      _lmmg = *pRet;
+      _lmmg.eClass = etaINNER;
+      return &_lmmg;
+   }
+   return pRet;
 }
 //
 const SLMMGlyph* CLMMFont::GetLMMGlyph(int16_t nFontIdx, uint32_t nUnicode)  {

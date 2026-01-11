@@ -47,12 +47,7 @@ CMathItem* CTexParser::Parse(const string& sText) {
    SParserContext ctx;     // todo: initial context
    ctx.bTextMode = true;   // start in text mode
    int nIdx = -1; //root text group
-   CMathItem* pRet = m_pTextProcessor->ProcessGroup(nIdx, ctx);
-   if (!pRet) {
-      if (m_Error.sError.empty())
-         m_Error.sError = "Unknown parser error";
-   }
-   return pRet;
+   return m_pTextProcessor->ProcessGroup(nIdx, ctx);
 }
 CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
    return ctx.bTextMode ? m_pTextProcessor->ProcessItemToken(nIdx, ctx) :
