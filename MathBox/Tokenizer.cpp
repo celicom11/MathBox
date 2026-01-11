@@ -4,7 +4,6 @@
 namespace { //static helpers
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
    inline bool _IsGAP(char wc) { return wc == ' ' || wc == '\t'; }
-   inline bool _IsSpace(char wc) { return _IsGAP(wc) || _IsCRLF(wc); }
    inline bool _IsDigit(char wc) { return wc >= '0' && wc <= '9'; }
    inline bool _IsHexDigit(char wc) { 
       return _IsDigit(wc) || (wc >= 'a' && wc <= 'f') || (wc >= 'A' && wc <= 'F');
@@ -20,8 +19,11 @@ namespace { //static helpers
       static const string _sSpecial{ " ,:;!>.^'~`=\"[]\\|" };
       return _sSpecial.find(cChar) != string::npos;
    }
-   inline PCSTR _SkipSpaces(PCSTR szText) {
-      while (_IsSpace(*szText)) {
+   inline PCSTR _SkipSpaces(PCSTR szText, OUT int& nSpaces) {
+      nSpaces = 0;
+      while (_IsGAP(*szText) || _IsCRLF(*szText)) {
+         if(*szText != 'r') // sorry OLD-MAC users :/
+            ++nSpaces;
          ++szText;
       }
       return szText;
@@ -55,9 +57,6 @@ namespace { //static helpers
             ++szPos;
          }
       }
-      //moved to TextProcessor
-      //if(*szPos && _IsSpace(*szPos))
-      //   ++szPos; //post space must be eaten!
       return szPos;
    }
 }
@@ -65,39 +64,44 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
    vTokens.clear();
    PCSTR szPos = m_sText.c_str();
    while (1) {
-      szPos = _SkipSpaces(szPos);
-      if(!*szPos)
-         break; //done!
       STexToken token;
       token.nPos = (uint32_t)(szPos - m_sText.c_str());
+      int nSpaces = 0;
+      szPos = _SkipSpaces(szPos, nSpaces);
+      if(!*szPos)
+         break; //done, ignore trailing spaces
+      if(nSpaces) {
+         token.nType = ettSPACE;
+         token.nLen = (uint16_t)nSpaces;
+         vTokens.push_back(token);
+         continue;
+      }
       if (*szPos == '\\') {
+         token.nType = ettCOMMAND;
          ++szPos; //skip '\'
          if (!*szPos) {//lone '\' is not valid!
             err.SetError(epsTOKENIZING, token, "Orphan backslash '\\' at end of input.");
             return false;
          }
-         if (_IsEscapedChar(*szPos)) {//skip '\\',leave single-non-alpha char token, 
-            token.nType = ettNonALPHA;
-            token.nLen = 2;
-            //++token.nPos; // skip '\\'
-            vTokens.push_back(token);
+         if (_IsEscapedChar(*szPos)) {
+            //\{special char}
+            token.nType = ettNonALPHA; //override type
             ++szPos;      // next char
-            continue;
          }
          //newline, glue and isplay mode start/end commands
-         if (_IsCmdNonAlphaChar(*szPos))
+         else if (_IsCmdNonAlphaChar(*szPos))
             ++szPos; //skip special 1-non-alpha-cmd-char
          else if (_IsCharCmd(szPos)) {
             //\char{"}### unicode char command
             szPos = _ConsumeCharCmd(szPos);
          }
          else {
-            //command\sym - sequence of letters
-            while (_IsAlpha(*szPos)) {
+            //command\sym - sequence of letters\digits
+            while (_IsAlNum(*szPos)) {
                ++szPos;
             }
+            //todo: allow adding '*' at the end of the command?
          }
-         token.nType = ettCOMMAND;
       }
       else if (*szPos == '{') {
          token.nType = ettFB_OPEN;
@@ -117,9 +121,11 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
       }
       else if (*szPos == '%') {
          //comment to EOL
-         while (*szPos && !_IsCRLF(*szPos)) {
+         while (*szPos && *szPos != '\n') { // sorry OLD-MAC users 2 :/
             ++szPos;
          }
+         if (szPos && *szPos == '\n')
+            ++szPos;
          token.nType = ettCOMMENT;
       }
       else if (*szPos == '$') {
@@ -153,7 +159,18 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
          token.nType = ettNonALPHA;
          ++szPos;
       }
-      token.nLen = (uint16_t)((szPos - m_sText.c_str()) - token.nPos);
+      //adjust post command spacing if needed
+      if (token.nType == ettALNUM && vTokens.size() >= 2) {
+         STexToken& tkPrev = vTokens.back();
+         const STexToken& tkPrevPrev = vTokens[vTokens.size()-2];
+         if (tkPrev.nType == ettSPACE && tkPrevPrev.nType == ettCOMMAND) {
+            --tkPrev.nLen;
+            if (tkPrev.nLen < 1)
+               vTokens.pop_back(); //remove empty token
+         }
+      }
+      if (!token.nLen) //could be set already, e.g.: for SPACE tokens
+         token.nLen = (uint16_t)((szPos - m_sText.c_str()) - token.nPos);
       vTokens.push_back(token);
    }//while
    return true;

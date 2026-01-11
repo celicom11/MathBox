@@ -12,7 +12,8 @@ public:
    CMathItem* BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) override;
 private:
    // BUILDERS
-   CWordItem* BuildMathOperator_(PCSTR szOp, const CMathStyle& style, float fUserScale);
+   CMathItem* BuildMathOperator_(PCSTR szOp, IParserAdapter* pParser);
+   CMathItem* BuildMathOperatorLim_(PCSTR szOp, IParserAdapter* pParser);
    CWordItem* BuildLMMSymbol_(const SLMMGlyph* pLmmGlyph, const CMathStyle& style, float fUserScale);
 
 };

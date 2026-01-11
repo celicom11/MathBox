@@ -5,113 +5,115 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="MathBox">
+    <Filter Include="Builders">
       <UniqueIdentifier>{721779c7-4059-44da-9abb-d295ffad691e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MathItems">
+      <UniqueIdentifier>{58398a66-a223-4bb0-9bee-d1306a194df7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Processors">
+      <UniqueIdentifier>{df6ca353-891f-4817-8ebd-06c216cf2717}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\MathBox\Tokenizer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MathBoxLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\AccentBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\EnvHelper.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\ExtGlyphBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\FractionBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\GlueItem.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\HBoxItem.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\HSpacingBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\IndexedBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\LMMFont.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\LOpBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\MathModeProcessor.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\MathSymBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\OpenCloseBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\OverlayBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\ParserAdapter.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\RadicalBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\RawItem.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\TableItem.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\TexParser.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\TextAccentBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\TextCmdBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\TextModeProcessor.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\TextSymBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\UnderOverBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\VBoxBuilder.cpp">
-      <Filter>MathBox</Filter>
-    </ClCompile>
-    <ClCompile Include="..\MathBox\WordItem.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\WordItemBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClCompile>
     <ClCompile Include="..\MathBox\XArrowBuilder.cpp">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\WordItem.cpp">
+      <Filter>MathItems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\GlueItem.cpp">
+      <Filter>MathItems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\HBoxItem.cpp">
+      <Filter>MathItems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TableItem.cpp">
+      <Filter>MathItems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\RawItem.cpp">
+      <Filter>MathItems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\EnvHelper.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\LMMFont.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\MathModeProcessor.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\ParserAdapter.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TexParser.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\TextModeProcessor.cpp">
+      <Filter>Processors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\Tokenizer.cpp">
+      <Filter>Processors</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -121,122 +123,122 @@
     <ClInclude Include="..\MathBox\AGL.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\MathBox\Tokenizer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="MathBox_CAPI.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\AccentBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\ContainerItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="DocParamWrap.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\EnvHelper.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\ExtGlyphBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\FillerItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\FontStyleHelper.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\FractionBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\GlueItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\HBoxItem.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\HSpacingBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\IndexedBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\LMMConsts.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\LMMFont.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\LOpBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\MathFontCmdBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\MathItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\MathModeProcessor.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\MathSymBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\OpenCloseBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\OverlayBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\ParserAdapter.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\RadicalBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\RawItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\RuleItem.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\ScaleCmdBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\TableItem.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\TexParser.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\TextAccentBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\TextCmdBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\TextModeProcessor.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\TextSymBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\UnderOverBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\VBoxBuilder.h">
-      <Filter>MathBox</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MathBox\WordItem.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\WordItemBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
     </ClInclude>
     <ClInclude Include="..\MathBox\XArrowBuilder.h">
-      <Filter>MathBox</Filter>
+      <Filter>Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="DocParamWrap.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\WordItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\GlueItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\HBoxItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\FillerItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\ContainerItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\TableItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\RawItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\RuleItem.h">
+      <Filter>MathItems</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\EnvHelper.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\FontStyleHelper.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\LMMConsts.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\LMMFont.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\MathItem.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\MathModeProcessor.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\ParserAdapter.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\TexParser.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\TextModeProcessor.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\Tokenizer.h">
+      <Filter>Processors</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

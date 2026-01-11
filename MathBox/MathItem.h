@@ -232,6 +232,7 @@ struct SLMMDelimiter {
 //PARSER DECLS
 enum EnumTokenType {
    ettUndef = 0,
+   ettSPACE,                           // space, tab, newline
    ettALNUM,                           // sequence of letters/digits
    ettNonALPHA,                        // non-AlphaNum: .,+-/*?:=@#"'<> etc.
    ettCOMMAND,                         // \command or \symbol

@@ -48,10 +48,11 @@ CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CTextAccentBuilder);
    RegisterBuilder(new CTextSymBuilder);
 }
-CTextModeProcessor::~CTextModeProcessor() {
+void CTextModeProcessor::CleanUp() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
       delete pBuilder;
    }
+   m_vItemBuilders.clear();
 }
 // TEXT MODE PROCESSING
 CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
@@ -60,9 +61,18 @@ CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
       return nullptr;//ntd
    STexToken tkItem = *pCurToken;//copy
    CMathItem* pItem = nullptr;
-   if (tkItem.nTkIdxEnd > 0)
+   if (tkItem.nType != ettSB_OPEN && tkItem.nTkIdxEnd > 0)
       pItem = m_Parser.ProcessGroup(nIdx, ctx);
-   else if(tkItem.nType == ettALNUM || tkItem.nType == ettNonALPHA)
+   else if(tkItem.nType == ettSPACE) {
+      _ASSERT_RET(tkItem.nLen, nullptr);//snbh!
+      STexGlue glueSpace;
+      glueSpace.fNorm = glueSpace.fActual = tkItem.nLen * 1000.0f / 3;
+      glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
+      glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
+      pItem = new CGlueItem(m_Parser.Doc(), glueSpace, ctx.currentStyle, ctx.fUserScale);
+      ++nIdx;
+   }
+   else if(tkItem.nType == ettALNUM || tkItem.nType == ettSB_OPEN || tkItem.nType == ettSB_CLOSE || tkItem.nType == ettNonALPHA)
       pItem = BuildItemWordToken_(nIdx, ctx);
    else if (tkItem.nType == ettCOMMAND) { 
       // command or symbol!
@@ -97,9 +107,7 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       _ASSERT_RET(pCurToken,nullptr);//snbh!
       const int nCurTokenIdx = nIdxG;
       pItem = ProcessItemToken(nIdxG, ctxG);
-      if(m_Parser.HasError())
-         return nullptr; //error in sub-group
-      if(!pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
+      if(!m_Parser.HasError() && !pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
          switch (pCurToken->nType) {
          case ettCOMMAND: { // command or symbol!
             string sCmd = TokenText(nIdxG);
@@ -145,55 +153,10 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                vGroupItems.back().InitNewLine();
             }
          }
-         else {
-            if (nCurTokenIdx > 0) {
-               //insert space
-               const int nPrevTokenIdx = vGroupItems.empty() ? nCurTokenIdx - 1 : vGroupItems.back().TkIdxEnd();
-               const STexToken* pPrevToken = GetToken(nPrevTokenIdx);
-               int nSpaces = pCurToken->nPos - (pPrevToken->nPos + pPrevToken->nLen);
-               //ignore 1 space after command that ends with ALNUM char
-               if (nSpaces > 0 && pPrevToken->nType == ettCOMMAND) {
-                  string sPrevCmd = TokenText(nPrevTokenIdx);
-                  if (_IsAlNum(sPrevCmd.back()))
-                     --nSpaces;
-               }
-               if (nSpaces > 0) {
-                  STexGlue glueSpace;
-                  glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
-                  glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
-                  glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-                  CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle,
-                     ctxG.fUserScale);
-                  vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx, pSpaceGlue);
-               }
-               else if (!vGroupItems.empty() && (
-                  pCurToken->nType == ettCOMMAND || pCurToken->nType == ettALNUM ||
-                  pCurToken->nType == ettNonALPHA)) {
-                  if (vGroupItems.back().TryAppendWord(pItem, nCurTokenIdx, nIdxG - 1)) {
-                     delete pItem;
-                     pItem = nullptr;
-                  }
-               }
-            }
-            if(pItem)
-               vGroupItems.emplace_back(nCurTokenIdx, nIdxG - 1, pItem);
-         }
+         else
+            vGroupItems.emplace_back(nCurTokenIdx, nIdxG - 1, pItem);
       }
    } //main for
-   if (!vGroupItems.empty() && !vGroupItems.back().IsNewLine() && GetToken(nIdxEnd)) {
-      //post-pend spaceGlue
-      const STexToken* pClosing = GetToken(nIdxEnd);
-      const STexToken* pPrevToken = GetToken(vGroupItems.back().TkIdxEnd());
-      int nSpaces = pClosing->nPos - (pPrevToken->nPos + pPrevToken->nLen);
-      if (nSpaces > 0) {
-         STexGlue glueSpace;
-         glueSpace.fNorm = glueSpace.fActual = nSpaces * 1000.0f / 3;
-         glueSpace.fStretchCapacity = glueSpace.fNorm / 2;
-         glueSpace.fShrinkCapacity = glueSpace.fNorm / 3;
-         CGlueItem* pSpaceGlue = new CGlueItem(m_Parser.Doc(), glueSpace, ctxG.currentStyle, ctxG.fUserScale);
-         vGroupItems.emplace_back(vGroupItems.back().TkIdxEnd(), vGroupItems.back().TkIdxEnd(), pSpaceGlue);
-      }
-   }
    return PackGroupItems_(vGroupItems, ctxG);
 }
 CMathItem* CTextModeProcessor::BuildItemCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
@@ -240,7 +203,8 @@ bool CTextModeProcessor::ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserCon
 CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SParserContext& ctx) {
    const STexToken* pCurToken = GetToken(nIdx);
    _ASSERT_RET(pCurToken, nullptr);
-   _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA, nullptr);
+   _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA || 
+      pCurToken->nType == ettSB_OPEN || pCurToken->nType == ettSB_CLOSE, nullptr);
    string sText = TokenText(nIdx);
    if (sText[0] == '\\') {//escape char
       _ASSERT(pCurToken->nType == ettNonALPHA);

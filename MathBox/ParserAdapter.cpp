@@ -60,14 +60,18 @@ namespace {
 }
 bool CParserAdapter::_CanConsumeToken(EnumLCATParenthesis eParens) const {
    const STexToken* pTkNext = m_TexParser.GetToken(m_nTkIdx);
+   //ignore space token
+   if (pTkNext && pTkNext->nType == ettSPACE)
+      pTkNext = m_TexParser.GetToken(m_nTkIdx+1);
    if (!pTkNext)
       return false;
    if (eParens == elcapSquare)
-      return (pTkNext->nType == ettSB_OPEN);
+      return (pTkNext->nType == ettSB_OPEN && pTkNext->nTkIdxEnd > (uint32_t)m_nTkIdx); //double check
    if (eParens == elcapFig)
       return (pTkNext->nType == ettFB_OPEN);
    //elcapAny
-   return (pTkNext->nType> ettUndef && pTkNext->nType <= ettFB_OPEN );
+   return (pTkNext->nType > ettUndef && pTkNext->nType != ettFB_CLOSE && 
+      pTkNext->nType != ettCOMMENT && pTkNext->nType != ettAMP);
 }
 bool CParserAdapter::_GetText(int nTkStart, int nTkEnd, OUT string& sText) const {
    sText.clear();
@@ -101,6 +105,9 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    if (!_CanConsumeToken(eParens))
       return false; //caller must set error!
    const STexToken* pTkNext = m_TexParser.GetToken(m_nTkIdx);
+   //skip leading space token
+   if (pTkNext && pTkNext->nType == ettSPACE)
+      pTkNext = m_TexParser.GetToken(++m_nTkIdx);
    int nTkStart = m_nTkIdx;
    if (pTkNext->nTkIdxEnd) {//group
       ++nTkStart; //skip opening

@@ -67,25 +67,28 @@ CMathItem* CUnderOverBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPars
          pParser->SetError("Missing {arg} for accent command");
       return nullptr;
    }
+   return _BuildUnderOverItem(pBase, szCmd, ctx);
+}
+CMathItem* CUnderOverBuilder::_BuildUnderOverItem(IN CMathItem* pBase, PCSTR szCmd, const SParserContext& ctx) {
    if (szCmd[0] == '\\')
       ++szCmd;
    bool bBelow;
    uint32_t nUni = _GetGlyphUnicode(szCmd, bBelow);
    _ASSERT_RET(nUni, nullptr);//snbh!
    _ASSERT_RET(pBase, nullptr);//snbh!
-   CExtGlyphBuilder egBuilder(pParser->Doc());
+   CExtGlyphBuilder egBuilder(pBase->Doc());
    CMathItem* pDecor = egBuilder.BuildHorizontalGlyph(nUni, ctx.currentStyle, pBase->Box().Width(), ctx.fUserScale);
    _ASSERT_RET(pDecor, nullptr);//snbh!
    //build VBox
    float fScale = ctx.EffectiveScale();
-   CContainerItem* pRet = new CContainerItem(pParser->Doc(), eacOVERUNDER, ctx.currentStyle);
+   CContainerItem* pRet = new CContainerItem(pBase->Doc(), eacOVERUNDER, ctx.currentStyle);
    pRet->AddBox(pBase, 0, 0);
    int32_t nDecorLeft = (pBase->Box().Width() - pDecor->Box().Width()) / 2;
    if (bBelow)
-      pRet->AddBox(pDecor, nDecorLeft, pBase->Box().Bottom() + F2NEAREST(fScale*otfUnderbarVerticalGap));
+      pRet->AddBox(pDecor, nDecorLeft, pBase->Box().Bottom() + F2NEAREST(fScale * otfUnderbarVerticalGap));
    else
-      pRet->AddBox(pDecor, nDecorLeft, 
-                           pBase->Box().Top() - pDecor->Box().Height() - F2NEAREST(fScale * otfOverbarVerticalGap));
+      pRet->AddBox(pDecor, nDecorLeft,
+         pBase->Box().Top() - pDecor->Box().Height() - F2NEAREST(fScale * otfOverbarVerticalGap));
    pRet->NormalizeOrigin(0, 0);
    //correct possible index placements
    if (0 == strcmp(szCmd, "overbracket") || 0 == strcmp(szCmd, "overbrace") || 0 == strcmp(szCmd, "overparen"))
@@ -93,4 +96,5 @@ CMathItem* CUnderOverBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPars
    else if (0 == strcmp(szCmd, "underbracket") || 0 == strcmp(szCmd, "underbrace") || 0 == strcmp(szCmd, "underparen"))
       pRet->SetIdxPlacement(eipUnderscript);
    return pRet;
+
 }

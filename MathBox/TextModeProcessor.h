@@ -12,7 +12,8 @@ public:
 //CTOR/DTOR/INIT
    CTextModeProcessor()  = delete;
    CTextModeProcessor(CTexParser& parser);
-   ~CTextModeProcessor();
+   ~CTextModeProcessor() { CleanUp(); }
+   void CleanUp();
 //ATTS
    const STexToken* GetToken(int nIdx) const;
    string TokenText(int nIdx) const;

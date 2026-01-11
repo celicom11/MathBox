@@ -47,7 +47,15 @@ CMathItem* CTexParser::Parse(const string& sText) {
    SParserContext ctx;     // todo: initial context
    ctx.bTextMode = true;   // start in text mode
    int nIdx = -1; //root text group
-   return m_pTextProcessor->ProcessGroup(nIdx, ctx);
+   CMathItem* pRet = m_pTextProcessor->ProcessGroup(nIdx, ctx);
+   if (!pRet) {
+      if (m_Error.sError.empty())
+         m_Error.sError = "Unknown parser error";
+      //cleanup!
+      m_pTextProcessor->CleanUp();
+      m_pMathProcessor->CleanUp();
+   }
+   return pRet;
 }
 CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
    return ctx.bTextMode ? m_pTextProcessor->ProcessItemToken(nIdx, ctx) :
@@ -67,19 +75,10 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
    CMathItem* pRet = ctxG.bTextMode ? m_pTextProcessor->ProcessGroup(nIdx, ctxG) :
                                       m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
    if (!pRet && m_Error.sError.empty() && !bCanBeEmpty) {
-      if (tkOpen.nType == ettSB_OPEN) {
-         //exceptional: empty [...] is allowed but group is disqualified!
-         STexToken& tkClose = m_vTokens[tkOpen.nTkIdxEnd];
-         tkOpen.nType = tkClose.nType = ettNonALPHA; //convert to normal token
-         tkOpen.nTkIdxEnd = 0;
-         nIdx = nIdx0; //reset index to re-process as normal tokens
-      }
-      else {
-         m_Error.nStartPos = tkOpen.nPos;
-         const STexToken* ptkClose = GetToken(tkOpen.nTkIdxEnd);
-         m_Error.nEndPos = ptkClose ? ptkClose->nPos + ptkClose->nLen : tkOpen.nPos + tkOpen.nLen;
-         m_Error.sError = "Unexpected empty group";
-      }
+      m_Error.nStartPos = tkOpen.nPos;
+      const STexToken* ptkClose = GetToken(tkOpen.nTkIdxEnd);
+      m_Error.nEndPos = ptkClose ? ptkClose->nPos + ptkClose->nLen : tkOpen.nPos + tkOpen.nLen;
+      m_Error.sError = "Unexpected empty group";
    }
    return pRet;
 }

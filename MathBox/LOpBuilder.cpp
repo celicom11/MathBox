@@ -89,7 +89,6 @@ CMathItem* CLOpBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       bNoLimits = sToken == "\\nolimits";
       pParser->SkipToken(); //consumed
    }
-
    if (bLimits || (bNoLimits == false && style.Style() == etsDisplay && bOverUnderD))
       pRet->SetIdxPlacement(eipOverUnderscript);
    return pRet;

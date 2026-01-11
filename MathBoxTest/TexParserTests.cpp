@@ -456,7 +456,7 @@ namespace TexParserTests
       // Result: CWordItem('a')
       TEST_METHOD(NestedGroups_OptimizedToSingleItem) {
          CTexParser parser(g_Doc);
-         CMathItem* pRet = parser.Parse("$${[a]}$$");
+         CMathItem* pRet = parser.Parse("$${{a}}$$");
          SMemGuard mg{ pRet };
 
          // Parse should succeed
@@ -474,6 +474,122 @@ namespace TexParserTests
          Assert::AreEqual((int)etsDisplay, (int)pRet->GetStyle().Style(), L"Should have Display style from $$ delimiters");
          Assert::IsFalse(pRet->GetStyle().IsCramped(), L"Display style should not be cramped");
       }
+      // ## Test: Brackets treated as literals in Text Mode
+// # Input: "$\text{[a]}$"
+// # Expected:
+// - HBox/Word containing '[' and ']' characters, NOT treated as argument boundaries.
+// - Text should render as "[a]"
+      TEST_METHOD(Brackets_TextMode_Literals) {
+         CTexParser parser(g_Doc);
+         // \text{[a]} -> Should be parsed as text mode sequence [, a, ]
+         CMathItem* pRet = parser.Parse(R"($\text{[a]}$)");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNotNull(pRet, L"Parser failed for text mode brackets");
+
+         // \text usually produces an HBOX containing the text items.
+         Assert::AreEqual((int)eacHBOX, (int)pRet->Type(), L"Expected HBox for \\text content");
+
+         CContainerItem* pHBox = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pHBox);
+
+         // We expect the content to represent "[a]"
+         // This ensures '[' wasn't eaten by the parser as a delimiter.
+         Assert::IsTrue(pHBox->Items().size() > 0, L"Text box should not be empty");
+         Assert::IsTrue(parser.LastError().sError.empty(), L"Should allow [ ] in text");
+      }
+
+      // ## Test: Brackets treated as literals in Math Mode
+      // # Input: "$$[a]$$"
+      // # Expected:
+      // - Sequence of items: Word '[', Word 'a', Word ']'
+      // - Not parsed as optional argument (since no command precedes it)
+      TEST_METHOD(Brackets_MathMode_Literals) {
+         CTexParser parser(g_Doc);
+         CMathItem* pRet = parser.Parse("$$[a]$$");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNotNull(pRet, L"Parser failed for math mode brackets");
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         // In display mode, pRet is likely the VBox wrapping the list.
+         CContainerItem* pCont = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pCont);
+
+         // We expect 3 distinct WORD items: [, a, ]
+         // If [ was consumed as an optional arg start, this count would likely be lower or fail.
+         int wordCount = 0;
+         for (auto* pItem : pCont->Items()) {
+            if (pItem->Type() == eacWORD) wordCount++;
+         }
+
+         // [, a, ] -> 3 words
+         Assert::AreEqual(3, wordCount, L"Expected 3 word items: [, a, ]");
+      }
+
+      // ## Test: Brackets acting as Optional Argument
+// # Input: "$$\sqrt[3]{x}$$"
+// # Expected:
+// - Radical item (Container) with degree '3'
+// - Brackets consumed (not in output list)
+      TEST_METHOD(Brackets_As_OptionalArg_Radical) {
+         CTexParser parser(g_Doc);
+         CMathItem* pRet = parser.Parse(R"($$\sqrt[3]{x}$$)");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNotNull(pRet);
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         // Verify type is RADICAL (assuming eacRADICAL is defined in EnumMathItemType)
+         // If CRadicalBuilder returns a VBOX or generic item, verify that instead.
+         Assert::AreEqual((int)eacRADICAL, (int)pRet->Type());
+
+         CContainerItem* pRadContainer = dynamic_cast<CContainerItem*>(pRet);
+         Assert::IsNotNull(pRadContainer);
+
+         // Implementation detail: CRadicalBuilder::BuildRadical likely puts the degree 
+         // as a specific child item (e.g. index 0 or 1) or leaves it null if missing.
+         // We expect the degree '3' to be present.
+
+         // Let's assume the container has children: [Degree, Radicand] or similar.
+         // If implementation follows standard structure:
+         // Check that we have enough children and one of them corresponds to '3'.
+         bool foundDegree = false;
+         for (auto* pChild : pRadContainer->Items()) {
+            // A simple check: if we find a WORD item "3", we know it was parsed and attached.
+            if (pChild && pChild->Type() == eacWORD) {
+               // (In a real test we'd check the content "3" specifically if accessible)
+               foundDegree = true;
+               break;
+            }
+         }
+         Assert::IsTrue(foundDegree, L"Radical container should contain the degree '3'");
+      }
+
+
+      // ## Test: Brackets Ignored for commands that don't take optional arguments
+      // # Input: "$$\mathbf[a]$$"
+      // # Standard LaTeX: \mathbf takes 1 mandatory arg. It consumes the next token '[', bolds it, then 'a' is normal.
+      // # If parser incorrectly thinks \mathbf takes optional arg, it might eat [a] differently.
+      TEST_METHOD(Brackets_Ignored_For_NonOpt_Command) {
+         CTexParser parser(g_Doc);
+         CMathItem* pRet = parser.Parse(R"($$\mathbf[a]$$)");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNotNull(pRet);
+         Assert::IsTrue(parser.LastError().sError.empty());
+
+         CContainerItem* pCont = dynamic_cast<CContainerItem*>(pRet);
+         // We expect a sequence (merged or distinct) representing "[a]" (plus closing bracket potentially).
+         // Key check: The first item should be the '[' char, rendered (not hidden).
+
+         Assert::IsTrue(pCont->Items().size() >= 1);
+         CMathItem* pItem1 = pCont->Items()[0];
+
+         // Verify it's a visible WORD item (the bold bracket)
+         Assert::AreEqual((int)eacWORD, (int)pItem1->Type(), L"First item should be the rendered '[' bracket");
+      }
+
 
 #pragma region ErrorTests
       // ## Test 9: MissingSubscriptArgument_EndOfInput

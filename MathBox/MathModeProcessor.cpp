@@ -65,22 +65,28 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CTextCmdBuilder);
    RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
-CMathModeProcessor::~CMathModeProcessor() {
+void CMathModeProcessor::CleanUp() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
       delete pBuilder;
    }
+   m_vItemBuilders.clear();
 }
 // MATH MODE PROCESSING
 CMathItem* CMathModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserContext& ctx) {
    const STexToken* pCurToken = GetToken(nIdx);
+   if(pCurToken && pCurToken->nType == ettSPACE) {
+      pCurToken = GetToken(++nIdx); // ignore space token
+   }
    if (!pCurToken)
       return nullptr;//ntd
-   if (pCurToken->nTkIdxEnd > 0)
+   if (pCurToken->nType != ettSB_OPEN && pCurToken->nTkIdxEnd > 0)
       return m_Parser.ProcessGroup(nIdx, ctx);
    //else
    STexToken tkItem = *pCurToken;//copy
    CMathItem* pItem = nullptr;
    switch (tkItem.nType) {
+   case ettSB_OPEN:
+   case ettSB_CLOSE:
    case ettALNUM:     pItem = ProcessAlnum_(nIdx, ctx); break;
    case ettNonALPHA:
       if (TokenText(nIdx) != "'")
@@ -135,12 +141,14 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
    for (int nIdxG = nIdxStart; nIdxG < nIdxEnd;) {
       CMathItem* pItem = nullptr;
       const STexToken* pCurToken = GetToken(nIdxG);
+      if (pCurToken && pCurToken->nType == ettSPACE) {
+         ++nIdxG;
+         continue; //ignore spaces
+      }
       _ASSERT_RET(pCurToken, nullptr);//snbh!
       int nCurTokenIdx = nIdxG;
       pItem = ProcessItemToken(nIdxG, ctxG);
-      if (m_Parser.HasError())
-         return nullptr;
-      if (!pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
+      if (!m_Parser.HasError() && !pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
          switch (pCurToken->nType) {
          case ettNonALPHA:
             if (TokenText(nIdxG) == "'") {
@@ -243,6 +251,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
             }
                break;
          default:
+            _ASSERT(0);//snbh!
             m_Parser.SetError(nCurTokenIdx, "Unexpected token in ProcessGroup");
          }
       }
@@ -284,7 +293,7 @@ CMathItem* CMathModeProcessor::BuildItemCmd_(IN OUT int& nIdx, const SParserCont
       break;
    }
    if (!pBuilder) {
-      m_Parser.SetError(nIdx, "Unkown command '" + sCmd + "'");
+      m_Parser.SetError(nIdx, "Unknown command '" + sCmd + "'");
       return nullptr;
    }
    CParserAdapter parserAdapter(m_Parser, ++nIdx, ctx);

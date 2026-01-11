@@ -4,44 +4,6 @@
 #include "HBoxItem.h"
 
 namespace {
-   /*static const map<string, vector<SLaTexCmdArgInfo>> _mapMathModeCmdInfo{
-      {"overset",{   {false, false, true,1,elcatItem,elcapFig},
-                     {false, true, false,2,elcatItem,elcapFig}
-            }
-      },
-      {"underset",{  {false, false, true,1,elcatItem,elcapFig},
-                     {false, true, false,2,elcatItem,elcapFig}
-            }
-      },
-      {"substack",{  {false, false, true,1,elcatMultiLine,elcapFig}}},
-      {"stackunder",{
-                     {true, false, false,1,elcatDim,elcapSquare},
-                     {false, true, false,2,elcatItem,elcapFig},
-                     {false, false, false,3,elcatItem,elcapFig},
-            }
-      },
-      {"stackrel",{  
-                     {true, false, true,1,elcatItem,elcapSquare},
-                     {false, false, true,2,elcatItem,elcapFig},
-                     {false, true, false,3,elcatGlyph,elcapFig},
-
-            }
-      },
-      {"binom", { 
-                     {false, false, false,1,elcatItem,elcapFig},
-                     {false, false, false,2,elcatItem,elcapFig},
-            }
-      },
-      {"genfrac",{ // need ParenthesisBuider for delim args!
-                     {false, false, false,1,elcatGlyph,elcapFig},
-                     {false, false, false,2,elcatGlyph,elcapFig},
-                     {false, false, false,3,elcatDim,elcapFig},
-                     {false, false, false,4,elcatTexStyle,elcapFig},
-                     {false, false, false,5,elcatItem,elcapFig},
-                     {false, false, false,6,elcatItem,elcapFig},
-            }
-      }
-   };*/
    CContainerItem* _BuildVBox(IN OUT vector<CMathItem*>& vItems, int32_t nVKern) {
       _ASSERT_RET(!vItems.empty(), nullptr);
       CContainerItem* pRetBox = new CContainerItem(vItems.front()->Doc(), eacVBOX, CMathStyle(), etaORD);
@@ -68,8 +30,9 @@ bool CVBoxBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (!*szCmd)
       return false;
    string sCmd(szCmd);
-   return sCmd == "underset" || sCmd == "overset" || sCmd == "stackrel" || sCmd == "binom" ||
-      sCmd == "substack" || sCmd == "stackunder";
+   const bool bIsBinomCmd = sCmd == "binom" || sCmd == "tbinom" || sCmd == "dbinom";
+   return sCmd == "underset" || sCmd == "overset" || sCmd == "stackrel" ||
+      bIsBinomCmd || sCmd == "substack" || sCmd == "stackunder";
 }
 CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && *szCmd && pParser, nullptr);
@@ -81,21 +44,25 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    int16_t nAnchor;
    int32_t nVKern = 0;
    EnumTexAtom eAtom = etaORD;
-
-   if (sCmd == "underset" || sCmd == "overset" || sCmd == "stackrel" || sCmd == "binom") {
-      SParserContext ctxArg1(ctx);
-      if (sCmd == "binom" && ctxArg1.currentStyle.Style() == etsDisplay)
-         ;//keep D for binom command!
+   const bool bIsBinomCmd = sCmd == "binom" || sCmd == "tbinom" || sCmd == "dbinom";
+   if (sCmd == "underset" || sCmd == "overset" || sCmd == "stackrel" || bIsBinomCmd) {
+      SParserContext ctxArg(ctx);
+      if (sCmd == "dbinom") {
+         ctxArg.currentStyle.SetStyle(etsDisplay);
+      }
+      else if (sCmd == "binom" && ctxArg.currentStyle.Style() == etsDisplay)
+         ; //keep display style
       else
-         ctxArg1.currentStyle.ToSuperscriptStyle();
+         ctxArg.currentStyle.ToSuperscriptStyle();
       //2 arg items : {}{}
-      CMathItem* pArg1 = pParser->ConsumeItem(elcapFig, ctxArg1);
+      CMathItem* pArg1 = pParser->ConsumeItem(elcapFig, ctxArg);
       if (!pArg1) {
          if (!pParser->HasError())
             pParser->SetError("Missing {arg1} for command '" + sCmd + "'");
          return nullptr;
       }
-      CMathItem* pArg2 = pParser->ConsumeItem(elcapFig, (sCmd == "binom"? ctxArg1 : ctx));
+      CMathItem* pArg2 = pParser->ConsumeItem(elcapFig, 
+         ((sCmd == "binom"|| sCmd == "tbinom"|| sCmd == "dbinom") ? ctxArg : ctx));
       if (!pArg2) {
          if (!pParser->HasError())
             pParser->SetError("Missing {arg2} for command '" + sCmd + "'");
@@ -129,7 +96,7 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
          nVKern = F2NEAREST(6 * otfFractionRuleThickness * ctx.currentStyle.StyleScale() * ctx.fUserScale);//q&d
       }
       pRet = BuildBox_(pTop, pBottom, nAnchor, nVKern, eAtom);
-      if (sCmd == "binom") {//add brackets
+      if (bIsBinomCmd) {//add brackets
          CHBoxItem* pHBox = new CHBoxItem(pParser->Doc(), ctx.currentStyle);
          int32_t nAxisY = pRet->Box().AxisY();
          int32_t nSize = 2 * max(nAxisY - pRet->Box().Top(), pRet->Box().Bottom() - nAxisY);

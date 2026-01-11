@@ -11,7 +11,7 @@ namespace TokenizerTests
       TEST_METHOD(Tokenize_BasicTokenTypes_ReturnCorrectTypes)
       {
          // Arrange
-         CTokenizer tokenizer("abc123 + \\alpha { } [ ] %comment whatever");
+         CTokenizer tokenizer("abc123+\\alpha{}[]%comment whatever");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -73,7 +73,7 @@ namespace TokenizerTests
       TEST_METHOD(Tokenize_EscapeSequences_CreateCorrectTokens)
       {
          // Arrange
-         CTokenizer tokenizer("\\{ \\} \\% \\&");
+         CTokenizer tokenizer("\\{\\}\\%\\&");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -100,7 +100,7 @@ namespace TokenizerTests
       TEST_METHOD(Tokenize_Comments_ParseCorrectly)
       {
          // Arrange
-         CTokenizer tokenizer("before % this is a comment\nafter");
+         CTokenizer tokenizer("before% this is a comment\nafter");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -115,7 +115,7 @@ namespace TokenizerTests
          Assert::AreEqual(string("before"), tokenizer.TokenText(tokens[0]), L"First token should be 'before'");
 
          Assert::AreEqual((int)ettCOMMENT, (int)tokens[1].nType, L"Second token should be COMMENT");
-         Assert::AreEqual(string("% this is a comment"), tokenizer.TokenText(tokens[1]), L"Comment should include entire line");
+         Assert::AreEqual(string("% this is a comment\n"), tokenizer.TokenText(tokens[1]), L"Comment should include entire line");
 
          Assert::AreEqual((int)ettALNUM, (int)tokens[2].nType, L"Third token should be ALPHA");
          Assert::AreEqual(string("after"), tokenizer.TokenText(tokens[2]), L"Third token should be 'after'");
@@ -133,17 +133,17 @@ namespace TokenizerTests
 
          // Assert
          Assert::IsTrue(result, L"Position tracking should work");
-         Assert::AreEqual((size_t)3, tokens.size(), L"Should have 3 tokens");
+         Assert::AreEqual((size_t)5, tokens.size(), L"Should have 5 tokens");
 
          // Verify positions account for skipped spaces
          Assert::AreEqual((uint32_t)0, tokens[0].nPos, L"First token should start at position 0");
          Assert::AreEqual((uint16_t)3, tokens[0].nLen, L"First token should have length 3");
 
-         Assert::AreEqual((uint32_t)5, tokens[1].nPos, L"Second token should start at position 5 (after 2 spaces)");
-         Assert::AreEqual((uint16_t)3, tokens[1].nLen, L"Second token should have length 3");
+         Assert::AreEqual((uint32_t)5, tokens[2].nPos, L"Second token should start at position 5 (after 2 spaces)");
+         Assert::AreEqual((uint16_t)3, tokens[2].nLen, L"Second token should have length 3");
 
-         Assert::AreEqual((uint32_t)11, tokens[2].nPos, L"Third token should start at position 11 (after 3 spaces)");
-         Assert::AreEqual((uint16_t)5, tokens[2].nLen, L"Third token should have length 5");
+         Assert::AreEqual((uint32_t)11, tokens[4].nPos, L"Third token should start at position 11 (after 3 spaces)");
+         Assert::AreEqual((uint16_t)5, tokens[4].nLen, L"Third token should have length 5");
       }
 
       TEST_METHOD(Tokenize_MathExpressions_ParseAllOperators)
@@ -175,7 +175,7 @@ namespace TokenizerTests
       TEST_METHOD(Tokenize_SpecialCharacters_HandleAllTypes)
       {
          // Arrange
-         CTokenizer tokenizer("$ & _ ^ { } [ ]");
+         CTokenizer tokenizer("$&_^{}[\t]");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -184,7 +184,7 @@ namespace TokenizerTests
 
          // Assert
          Assert::IsTrue(result, L"Special character parsing should succeed");
-         Assert::AreEqual((size_t)8, tokens.size(), L"Should have 8 special character tokens");
+         Assert::AreEqual((size_t)9, tokens.size(), L"Should have 9 special character tokens");
 
          Assert::AreEqual((int)ett$, (int)tokens[0].nType, L"Should recognize dollar");
          Assert::AreEqual((int)ettAMP, (int)tokens[1].nType, L"Should recognize ampersand");
@@ -193,13 +193,14 @@ namespace TokenizerTests
          Assert::AreEqual((int)ettFB_OPEN, (int)tokens[4].nType, L"Should recognize group open");
          Assert::AreEqual((int)ettFB_CLOSE, (int)tokens[5].nType, L"Should recognize group close");
          Assert::AreEqual((int)ettSB_OPEN, (int)tokens[6].nType, L"Should recognize square bracket open");
-         Assert::AreEqual((int)ettSB_CLOSE, (int)tokens[7].nType, L"Should recognize square bracket close");
+         Assert::AreEqual((int)ettSPACE, (int)tokens[7].nType, L"Should recognize space");
+         Assert::AreEqual((int)ettSB_CLOSE, (int)tokens[8].nType, L"Should recognize square bracket close");
       }
 
       TEST_METHOD(Tokenize_CommandSequences_ParseCorrectly)
       {
          // Arrange
-         CTokenizer tokenizer("\\alpha \\beta \\Gamma \\Delta");
+         CTokenizer tokenizer(" \\alpha\\beta\\Gamma\\Delta");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -208,24 +209,25 @@ namespace TokenizerTests
 
          // Assert
          Assert::IsTrue(result, L"Command sequence parsing should succeed");
-         Assert::AreEqual((size_t)4, tokens.size(), L"Should have 4 command tokens");
+         Assert::AreEqual((size_t)5, tokens.size(), L"Should have 5 tokens");
+         Assert::AreEqual((int)ettSPACE, (int)tokens[0].nType,L"Token 0 should be ettSPACE");
 
-         for (size_t i = 0; i < tokens.size(); i++) {
+         for (size_t i = 1; i < tokens.size(); i++) {
             Assert::AreEqual((int)ettCOMMAND, (int)tokens[i].nType,
                (L"Token " + to_wstring(i) + L" should be COMMAND").c_str());
          }
 
-         Assert::AreEqual(string("\\alpha"), tokenizer.TokenText(tokens[0]), L"First command should be '\\alpha'");
-         Assert::AreEqual(string("\\beta"), tokenizer.TokenText(tokens[1]), L"Second command should be '\\beta'");
-         Assert::AreEqual(string("\\Gamma"), tokenizer.TokenText(tokens[2]), L"Third command should be '\\Gamma'");
-         Assert::AreEqual(string("\\Delta"), tokenizer.TokenText(tokens[3]), L"Fourth command should be '\\Delta'");
+         Assert::AreEqual(string("\\alpha"), tokenizer.TokenText(tokens[1]), L"First command should be '\\alpha'");
+         Assert::AreEqual(string("\\beta"), tokenizer.TokenText(tokens[2]), L"Second command should be '\\beta'");
+         Assert::AreEqual(string("\\Gamma"), tokenizer.TokenText(tokens[3]), L"Third command should be '\\Gamma'");
+         Assert::AreEqual(string("\\Delta"), tokenizer.TokenText(tokens[4]), L"Fourth command should be '\\Delta'");
       }
 
       
-      TEST_METHOD(Tokenize_WhitespaceHandling_SkipCorrectly)
+      TEST_METHOD(Tokenize_WhitespaceHandling_Correctly)
       {
          // Arrange
-         CTokenizer tokenizer("  \t  a   \t\t  b  \t  ");
+         CTokenizer tokenizer("  \t  a   \r\n  b  \t  ");
          vector<STexToken> tokens;
          ParserError err;
 
@@ -234,10 +236,10 @@ namespace TokenizerTests
 
          // Assert
          Assert::IsTrue(result, L"Whitespace handling should succeed");
-         Assert::AreEqual((size_t)2, tokens.size(), L"Should have 2 tokens (whitespace skipped)");
+         Assert::AreEqual((size_t)4, tokens.size(), L"Should have 4 tokens (whitespace skipped)");
 
-         Assert::AreEqual(string("a"), tokenizer.TokenText(tokens[0]), L"First token should be 'a'");
-         Assert::AreEqual(string("b"), tokenizer.TokenText(tokens[1]), L"Second token should be 'b'");
+         Assert::AreEqual(string("a"), tokenizer.TokenText(tokens[1]), L"Second token should be 'a'");
+         Assert::AreEqual(string("b"), tokenizer.TokenText(tokens[3]), L"Fourth token should be 'b'");
       }
    };
 }

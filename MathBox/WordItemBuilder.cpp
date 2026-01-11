@@ -97,7 +97,7 @@ CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord
    _ASSERT_RET(FontStyleHelper::_GetMathFontStyle(szFontCmd, mfStyle), nullptr);
    if(bNumber && (ctx.sFontCmd == "mathbfit" || ctx.sFontCmd == "mathsfit" || ctx.sFontCmd == "mathssit"))
       mfStyle.nLetterDigitsFont = FONT_LMM; //use upright digits with these math fonts!
-   if (sWord.size() == 1 && !isalnum(sWord[0])) {
+   if (sWord.size() == 1 && !isalnum(sWord[0]) && sWord[0] !='[' && sWord[0] != ']') {
       _ASSERT(!_IsSpace(sWord[0]));
       // Check atom type!
       const SLMMGlyph* pLmmGlyph = doc.LMFManager().GetLMMGlyph(mfStyle.nLetterDigitsFont, uint32_t(sWord[0]));

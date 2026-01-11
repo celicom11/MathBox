@@ -13,7 +13,8 @@ public:
 //CTOR/DTOR/INIT
    CMathModeProcessor()  = delete;
    CMathModeProcessor(CTexParser& parser);
-   ~CMathModeProcessor();
+   ~CMathModeProcessor() { CleanUp(); }
+   void CleanUp();
 //ATTS
    const STexToken* GetToken(int nIdx) const;
    string TokenText(int nIdx) const;

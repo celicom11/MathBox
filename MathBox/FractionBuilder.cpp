@@ -6,17 +6,26 @@
 bool CFractionBuilder::CanTakeCommand(PCSTR szCmd) const {
    _ASSERT_RET(szCmd && *szCmd == '\\', false);
    ++szCmd; // Skip backslash
-   return 0 == strcmp(szCmd, "frac");
+   return 0 == strcmp(szCmd, "frac") || 0 == strcmp(szCmd, "tfrac") || 0 == strcmp(szCmd, "dfrac");
 }
 CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
    _ASSERT_RET(szCmd && pParser, nullptr);
-   SParserContext ctx(pParser->GetContext());
    _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
-
+   ++szCmd; //skip '\'
+   SParserContext ctx(pParser->GetContext());
+   SParserContext ctxParts(ctx);
    // Numerator style
-   ctx.currentStyle.Decrease();
+   if (szCmd[0] == 't') {//tfrac
+      ctx.currentStyle = etsText;
+      ctxParts.currentStyle = etsScript;
+   }
+   else if (szCmd[0] == 'd') { //dfrac
+      ctx.currentStyle = ctxParts.currentStyle = etsDisplay;
+   }
+   else //frac
+      ctxParts.currentStyle.Decrease();
    // 1. Consume numerator {expr}
-   CMathItem* pNumerator = pParser->ConsumeItem(elcapFig, ctx);
+   CMathItem* pNumerator = pParser->ConsumeItem(elcapFig, ctxParts);
    if (!pNumerator) {
       if (!pParser->HasError())
          pParser->SetError("Missing numerator for \\frac");
@@ -25,8 +34,8 @@ CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
 
    // 2. Consume denominator {expr}
    // Denominator style: same as numerator but CRAMPED
-   ctx.currentStyle.SetCramped(true);
-   CMathItem* pDenominator = pParser->ConsumeItem(elcapFig, ctx);
+   ctxParts.currentStyle.SetCramped(true);
+   CMathItem* pDenominator = pParser->ConsumeItem(elcapFig, ctxParts);
    if (!pDenominator) {
       delete pNumerator;
       if (!pParser->HasError())
@@ -35,7 +44,6 @@ CMathItem* CFractionBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    }
 
    // 3. Build fraction item
-   ctx = pParser->GetContext(); //reset
    return _BuildFraction(pParser->Doc(), ctx.currentStyle, ctx.fUserScale, pNumerator, pDenominator);
 }
 
