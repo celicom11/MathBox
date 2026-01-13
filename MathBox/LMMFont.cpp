@@ -75,8 +75,13 @@ const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
    if (*szCmd == '\\')
       ++szCmd; //skip \\
    //special aliases/legacy
+   string sCmd(szCmd); //save orig cmd
    szCmd = _ReplaceAlias(szCmd);
-   string sCmd(szCmd);
+   if (*szCmd == '0' && szCmd[1] == 'x') {//search by unicode
+      long lUni = strtol(szCmd, nullptr, 16);
+      _ASSERT_RET(lUni > 0 && lUni < 0xFFFFF, nullptr);
+      return GetLMMGlyph(FONT_LMM, (uint32_t)lUni);
+   }
    // LMM font - search by LaTex cmd!
    const auto itGI = std::find_if(m_vGlyphInfo.begin(), m_vGlyphInfo.end(),
       [szCmd](const SLMMGlyph* pG) {
@@ -86,7 +91,9 @@ const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
       return nullptr;
    const SLMMGlyph* pRet = (*itGI);
    //atom type adjustments
-   if (sCmd == "dots" || sCmd == "ldots" || sCmd == "dotsc") {//NOTE: dotso->mathord
+   //NOTE: dotso stays mathord
+   if (sCmd == "dots" || sCmd == "ldots" || sCmd == "dotsc" ||
+      sCmd == "colon" || sCmd == "ldotp") {
       _lmmg = *pRet;
       _lmmg.eClass = etaPUNCT;
       return &_lmmg;
@@ -94,6 +101,16 @@ const SLMMGlyph* CLMMFont::GetLMMGlyphByCmd(PCSTR szCmd)  {
    if (sCmd == "cdots" || sCmd == "dotsb" || sCmd == "dotsm" || sCmd == "dotsi" ) {
       _lmmg = *pRet;
       _lmmg.eClass = etaINNER;
+      return &_lmmg;
+   }
+   if (sCmd == "centerdot" || sCmd == "sdot") {
+      _lmmg = *pRet;
+      _lmmg.eClass = etaBIN;
+      return &_lmmg;
+   }
+   if (sCmd == "coloncolon" || sCmd == "dblcolon" || sCmd == "ratio" || sCmd == "vcentcolon") {
+      _lmmg = *pRet;
+      _lmmg.eClass = etaREL;
       return &_lmmg;
    }
    return pRet;
