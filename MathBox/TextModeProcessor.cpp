@@ -13,6 +13,7 @@
 #include "TextCmdBuilder.h"
 #include "TextAccentBuilder.h"
 #include "TextSymBuilder.h"
+#include "ShiftBuilder.h"
 //#include "OverlayBuilder.h"
 
 
@@ -43,6 +44,7 @@ namespace { //static helpers
 CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
    //TEXT MODE COMMAND PROCESSORS/BUILDERS
    RegisterBuilder(new CHSpacingBuilder);
+   RegisterBuilder(new CShiftBuilder);
    RegisterBuilder(new CScaleCmdBuilder);
    RegisterBuilder(new CTextCmdBuilder);
    RegisterBuilder(new CTextAccentBuilder);

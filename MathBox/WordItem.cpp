@@ -41,8 +41,8 @@ void CWordItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
    //draw at the box position, baseline aligned
    float fFontSizePts = m_Doc.DefaultFontSizePts();
    SPointF ptfBaseOrigin = {
-      ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Left()),
-      ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.BaselineY())
+      ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.LeftAct()),
+      ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.TopAct() + m_Box.Ascent())
    };
    docr.DrawGlyphRun(m_nFontIdx, (int32_t)m_vGIndexes.size(), m_vGIndexes.data(),
                      ptfBaseOrigin, EffectiveScale());

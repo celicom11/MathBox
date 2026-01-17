@@ -99,6 +99,24 @@ static const char* getLastError_impl(MB_Engine engine, OUT uint32_t* startPos, O
       *endPos = _endPos;
    return _sParserError.c_str();
 }
+static MB_RET addMacros_impl(MB_Engine engine, const char* szMacros, const char* szFileName) {
+   if (!engine || !engine->pDocWrap || !engine->pParser || !engine->pLmmFont) {
+      _sGlobalError = "Corrupted engine";
+      return MB_ERR;
+   }
+   if (!szMacros || !*szMacros) {
+      _sGlobalError = "No input macros";
+      return MB_BADPARAM;
+   }
+   if (!szFileName || !*szFileName) {
+      _sGlobalError = "Macros filename is empty";
+      return MB_BADPARAM;
+   }
+   CTexParser* pParser = engine->pParser;
+   pParser->AddMacros(szMacros, szFileName);
+   return MBOK;
+}
+
 //Caller must use/destroy returned MB_MathItem 
 static MB_RET parseLatex_impl(MB_Engine engine, const char* szText, OUT MB_MathItem* out_item) {
    if (!engine || !engine->pDocWrap || !engine->pParser || !engine->pLmmFont) {
@@ -275,6 +293,7 @@ static const MBI_API g_Api = {
    destroyEngine_impl,
    destroyMathItem_impl,
    getLastError_impl,
+   addMacros_impl,
    parseLatex_impl,
    mathItemLineCount_impl,
    mathItemDraw_impl,

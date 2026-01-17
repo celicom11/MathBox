@@ -68,13 +68,13 @@ void CHBoxItem::UpdateLayout_() {
    for (int32_t nIdx = 1; nIdx < (int32_t)m_vItems.size(); ++nIdx) {
       CMathItem* pItem = m_vItems[nIdx];
       CMathItem* pPrevItem = m_vItems[nIdx - 1];
-      float fX = (float)pPrevItem->Box().Right();
+      float fX = (float)pPrevItem->Box().RightAct();
       CGlueItem* pGlue = m_vGlues[nIdx - 1];
       if (pGlue) 
          fX += pGlue->GetGlue()->fActual;//may be < 0!
       pItem->MoveTo(F2NEAREST(m_Box.Left() + fX), pItem->Box().Top());
    }
-   m_Box.nAdvWidth = m_vItems.back()->Box().Right() - m_Box.Left();
+   m_Box.nAdvWidth = m_vItems.back()->Box().RightAct() - m_Box.Left();
    m_Box.nRBearing = m_vItems.back()->Box().RBearing();
 }
 //adjust resizable glues to fit box with min Badness and UpdateLayout

@@ -4,8 +4,8 @@
 void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
    float fFontSizePts = m_Doc.DefaultFontSizePts();
    SPointF ptfMyAnchor{
-      ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Left()),
-      ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Top())
+      ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.LeftAct()),
+      ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.TopAct())
    };
    //
    for (vector<CMathItem*>& vRow: m_vvCells) {
@@ -16,8 +16,8 @@ void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
    }
    //draw vert lines in array environment
    if (!m_vVLines.empty()) {
-      int32_t nX = m_Box.Left();
-      const float fYBottom = ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Bottom());
+      int32_t nX = m_Box.LeftAct();
+      const float fYBottom = ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.BottomAct());
       for (int nIdx = 0; nIdx < (int)m_vVLines.size(); ++nIdx) {
          if (m_vVLines[nIdx]) {
             float fX = ptfAnchor.fX + EM2DIPS(fFontSizePts, nX);
@@ -34,7 +34,7 @@ void CTableItem::Draw(SPointF ptfAnchor, IDocRenderer& docr) {
       }
    }
    //draw horz lines
-   const float fXRight = ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Right());
+   const float fXRight = ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.RightAct());
    for (int nIdx = 0; nIdx < (int)m_vHLines.size(); ++nIdx) {
       if (m_vHLines[nIdx]) {
          int32_t nY = m_vRowLayouts.back().Bottom(); //default

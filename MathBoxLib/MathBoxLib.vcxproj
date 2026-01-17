@@ -156,6 +156,8 @@
     <ClInclude Include="..\MathBox\LMMConsts.h" />
     <ClInclude Include="..\MathBox\LMMFont.h" />
     <ClInclude Include="..\MathBox\LOpBuilder.h" />
+    <ClInclude Include="..\MathBox\MacrosMgr.h" />
+    <ClInclude Include="..\MathBox\MathClassBuilder.h" />
     <ClInclude Include="..\MathBox\MathFontCmdBuilder.h" />
     <ClInclude Include="..\MathBox\MathItem.h" />
     <ClInclude Include="..\MathBox\MathModeProcessor.h" />
@@ -167,6 +169,7 @@
     <ClInclude Include="..\MathBox\RawItem.h" />
     <ClInclude Include="..\MathBox\RuleItem.h" />
     <ClInclude Include="..\MathBox\ScaleCmdBuilder.h" />
+    <ClInclude Include="..\MathBox\ShiftBuilder.h" />
     <ClInclude Include="..\MathBox\TableItem.h" />
     <ClInclude Include="..\MathBox\TexParser.h" />
     <ClInclude Include="..\MathBox\TextAccentBuilder.h" />
@@ -244,6 +247,12 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="..\MathBox\MathClassBuilder.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
@@ -296,6 +305,12 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\ShiftBuilder.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="..\MathBox\TableItem.cpp">

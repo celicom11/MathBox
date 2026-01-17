@@ -1,2 +1,2 @@
-$\# \verb!  \#!, \ddots \verb! \ddots!, \verb!NO \TeX!\\
+$\# \verb!  \#!, \ddots \verb! \ddots!, \text{T\movebox{-0.1667em}{0.5ex}{E}\kern{-0.125em}X} \verb!\TeX!\\
 $

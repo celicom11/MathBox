@@ -51,8 +51,8 @@ public:
    void Draw(SPointF ptfAnchor, IDocRenderer& docr) override {
       float fFontSizePts = m_Doc.DefaultFontSizePts();
       SPointF ptfMyAnchor{
-         ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.Left()),
-         ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.Top())
+         ptfAnchor.fX + EM2DIPS(fFontSizePts, m_Box.LeftAct()),
+         ptfAnchor.fY + EM2DIPS(fFontSizePts, m_Box.TopAct())
       };
       for (CMathItem* pTBox : m_vItems) {
          pTBox->Draw(ptfMyAnchor, docr);

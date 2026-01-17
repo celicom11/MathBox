@@ -100,7 +100,8 @@ CMathItem* CParserAdapter::ConsumeItem(EnumLCATParenthesis eParens, const SParse
       m_nTkIdx = nTkIdx; //move to next token on success
    return pRet;
 }
-// [ettNonAlNum]ettAlNum[{ettNonAlNum}{ettAlNum}][ettAlNum] = [-]{#...#[.#...#][unit]}. default unit = "pt" 
+// [-]{#...#[.#...#]{unit}} ->
+// [ettNonALPHA]ettAlNum[{ettNonALPHA}{ettAlNum}]{ettAlNum} = 
 bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fPts) {
    if (!_CanConsumeToken(eParens))
       return false; //caller must set error!
@@ -109,10 +110,14 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
    if (pTkNext && pTkNext->nType == ettSPACE)
       pTkNext = m_TexParser.GetToken(++m_nTkIdx);
    int nTkStart = m_nTkIdx;
-   if (pTkNext->nTkIdxEnd) {//group
+   if (pTkNext && pTkNext->nTkIdxEnd) {//group
       ++nTkStart; //skip opening
       pTkNext = m_TexParser.GetToken(nTkStart);
+      if (pTkNext && pTkNext->nType == ettSPACE)
+         pTkNext = m_TexParser.GetToken(++nTkStart);
    }
+   if (!pTkNext)
+      return false; //caller must set error!
    int nTkPos = nTkStart;
    //check for leading '-'
    bool bNegative = false;
@@ -157,8 +162,11 @@ bool CParserAdapter::ConsumeDimension(EnumLCATParenthesis eParens, OUT float& fP
       //++nTkPos; //good units!
    }
    pTkNext = m_TexParser.GetToken(m_nTkIdx);//start
-   if (pTkNext->nTkIdxEnd && nTkPos != pTkNext->nTkIdxEnd)
-      return false; //not at closing, some extra tokens in the group?
+   if (pTkNext->nTkIdxEnd) {
+      if (nTkPos != pTkNext->nTkIdxEnd)
+         return false; //not at closing, some extra tokens in the group?
+      ++nTkPos;
+   }
    m_nTkIdx = nTkPos; //move to next token on success
    if (bNegative)
       fPts = -fPts;

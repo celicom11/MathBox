@@ -101,6 +101,9 @@
       <Filter>MathBox</Filter>
     </ClCompile>
     <ClCompile Include="D2DFontManager.cpp" />
+    <ClCompile Include="..\MathBox\ShiftBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MockMathItem.h">

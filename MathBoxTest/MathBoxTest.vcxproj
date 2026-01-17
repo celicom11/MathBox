@@ -188,6 +188,7 @@
     <ClCompile Include="..\MathBox\RadicalBuilder.cpp" />
     <ClCompile Include="..\MathBox\RawItem.cpp" />
     <ClCompile Include="..\MathBox\ScaleCmdBuilder.cpp" />
+    <ClCompile Include="..\MathBox\ShiftBuilder.cpp" />
     <ClCompile Include="..\MathBox\TableItem.cpp" />
     <ClCompile Include="..\MathBox\TexParser.cpp" />
     <ClCompile Include="..\MathBox\TextAccentBuilder.cpp" />

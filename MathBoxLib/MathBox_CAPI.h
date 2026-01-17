@@ -81,6 +81,8 @@ typedef struct MBI_API {
    //@ret: do not free! Per-engine pointer to 0-end ASCII string is valid 
    // until next API call (except this one) or until engine destroyed!
    const char* (*getLastError)(MB_Engine engine, /*out*/ uint32_t* startPos, /*out*/ uint32_t* endPos);
+   //add more macros; optional
+   MB_RET(*addMacros)(MB_Engine engine, const char* szMacros, const char* szFileName);
    //Caller must use/destroy returned MB_MathItem NOTE: can be destroyed after engine!
    MB_RET (*parseLatex)(MB_Engine engine, const char* szText, /*out*/ MB_MathItem* out_item);
    //all "float" units are in DIPs

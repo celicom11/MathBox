@@ -115,6 +115,12 @@
     <ClCompile Include="..\MathBox\Tokenizer.cpp">
       <Filter>Processors</Filter>
     </ClCompile>
+    <ClCompile Include="..\MathBox\ShiftBuilder.cpp">
+      <Filter>Builders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBox\MathClassBuilder.cpp">
+      <Filter>Builders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -239,6 +245,15 @@
     </ClInclude>
     <ClInclude Include="..\MathBox\Tokenizer.h">
       <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\MacrosMgr.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\ShiftBuilder.h">
+      <Filter>Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MathBox\MathClassBuilder.h">
+      <Filter>Builders</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

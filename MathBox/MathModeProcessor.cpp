@@ -22,6 +22,7 @@
 #include "MathFontCmdBuilder.h"
 #include "MathSymBuilder.h"
 #include "TextCmdBuilder.h"
+#include "ShiftBuilder.h"
 //#include "OverlayBuilder.h"
 
 
@@ -63,6 +64,7 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new COpenCloseBuilder);
    RegisterBuilder(new CScaleCmdBuilder);
    RegisterBuilder(new CTextCmdBuilder);
+   RegisterBuilder(new CShiftBuilder);
    RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
 CMathModeProcessor::~CMathModeProcessor() {

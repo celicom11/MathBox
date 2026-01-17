@@ -5,6 +5,7 @@
 //abstract TexBox. all coordinates are in EM/font design units!!! 
 struct STexBox {
    int32_t nX{ 0 }, nY{ 0 };                 // left,INK-top!
+   int32_t nShiftX{ 0 }, nShiftY{ 0 };       // NEW: shift for rendering!
    int32_t nAdvWidth{ 0 };                   // Ink-Box width = nAdvWidth - side bearings!
    int32_t nHeight{ 0 };                     // nAscent+Descent = BoundsMaxY-BoundsMinY
    int32_t nAscent{ 0 };                     // distance from INKTOP to baseline, may be negative!
@@ -19,9 +20,13 @@ struct STexBox {
    int32_t RBearing() const { return nRBearing; }
    //abs positions
    int32_t Left() const { return nX; }
+   int32_t LeftAct() const { return nX + nShiftX; }
    int32_t Right() const { return nX + nAdvWidth; }
+   int32_t RightAct() const { return nX + nAdvWidth + nShiftX; }
    int32_t Top() const { return nY; }  //==Ink-Top
+   int32_t TopAct() const { return nY + nShiftY; }
    int32_t Bottom() const { return nY + nHeight; }
+   int32_t BottomAct() const { return nY + nHeight + nShiftY; }
    int32_t BaselineY() const { return nY + nAscent; }
    int32_t AxisY() const { return BaselineY() - otfAxisHeight; } //absolute Y of math axis
    int32_t InkLeft() const { return Left() + nLBearing; }
@@ -192,6 +197,12 @@ public:
       if (m_eAtom == etaBIN || m_eAtom == etaREL)
          m_eAtom = etaORD;
    }
+   void ShiftUp(int32_t nShiftY) {
+      m_Box.nShiftY -= nShiftY;
+   }
+   void ShiftLeft(int32_t nShiftX) {
+      m_Box.nShiftX -= nShiftX;
+   }
    void MoveTo(int32_t nX, int32_t nY) {
       m_Box.MoveTo(nX, nY);
    }
@@ -201,8 +212,8 @@ public:
    void DrawFrame(SPointF ptfAnchor, IDocRenderer& docr) {
       if (m_bDrawFrame) {
          SPointF ptfLT{
-            ptfAnchor.fX + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Left()),
-            ptfAnchor.fY + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Top())
+            ptfAnchor.fX + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.LeftAct()),
+            ptfAnchor.fY + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.TopAct())
          };
          SRectF rcf{ ptfLT.fX, ptfLT.fY,
                      ptfLT.fX + EM2DIPS(m_Doc.DefaultFontSizePts(), m_Box.Width()),
