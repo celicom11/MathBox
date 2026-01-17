@@ -2,7 +2,7 @@
 #include "MathItem.h"
 
 
-//Factory for extendable horizontal glyphs with Over/Under items
+//Modify class of the argument item
 class CMathClassBuilder : public IMathItemBuilder {
 public:
    //IMathItemBuilder implementation

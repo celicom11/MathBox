@@ -180,6 +180,7 @@
     <ClCompile Include="..\MathBox\IndexedBuilder.cpp" />
     <ClCompile Include="..\MathBox\LMMFont.cpp" />
     <ClCompile Include="..\MathBox\LOpBuilder.cpp" />
+    <ClCompile Include="..\MathBox\MathClassBuilder.cpp" />
     <ClCompile Include="..\MathBox\MathFontCmdBuilder.cpp" />
     <ClCompile Include="..\MathBox\MathModeProcessor.cpp" />
     <ClCompile Include="..\MathBox\MathSymBuilder.cpp" />
