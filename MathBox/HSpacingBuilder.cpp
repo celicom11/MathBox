@@ -7,7 +7,8 @@ bool CHSpacingBuilder::CanTakeCommand(PCSTR szCmd) const {
    if (*szCmd == '\\')
       ++szCmd;
    if (*szCmd == ' ' || *szCmd == ',' || *szCmd == ':' || *szCmd == ';' || *szCmd == '!' ||
-      0 == strcmp(szCmd, "qquad") || 0 == strcmp(szCmd, "quad") || 0 == strcmp(szCmd, "hskip"))
+      0 == strcmp(szCmd, "qquad") || 0 == strcmp(szCmd, "quad") || 0 == strcmp(szCmd, "kern") ||
+      0 == strcmp(szCmd, "hskip"))
       return true;
    return false;
 }
@@ -17,28 +18,36 @@ CMathItem* CHSpacingBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParse
    _ASSERT_RET(CanTakeCommand(szCmd), nullptr);
    string sCmd(szCmd);
    
-   CMathItem* pRet = nullptr;
+   STexGlue glue;
    if (sCmd[1] == ' ' || sCmd == "\\quad") //1em
-      pRet = new CGlueItem(pParser->Doc(), {0,0,0.0f,0.0f,MU2EM(18),MU2EM(18)}, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(18);
    else if (sCmd[1] == ',')//3mu
-      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(3),MU2EM(3) }, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(3);
    else if (sCmd[1] == ':')//4mu
-      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(4),MU2EM(4) }, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(4);
    else if (sCmd[1] == ';')//5mu
-      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(5),MU2EM(5) }, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(5);
    else if (sCmd[1] == '!')//-3mu
-      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(-3),MU2EM(-3) }, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(-3);
    else if (sCmd == "\\qquad")//2 em
-      pRet = new CGlueItem(pParser->Doc(), { 0,0,0.0f,0.0f,MU2EM(36),MU2EM(36) }, ctx.currentStyle, ctx.fUserScale);
+      glue.fNorm = glue.fActual = MU2EM(36);
+   else if (sCmd == "\\kern") {
+      float fPts = 0.0f;
+      if (!pParser->ConsumeDimension(elcapAny, fPts)) {
+         if (!pParser->HasError())
+            pParser->SetError("Failed to parse \\kern arguments");
+         return nullptr;
+      }
+      //convert to EM/FDU!
+      glue.fNorm = otfUnitsPerEm * fPts / pParser->Doc().DefaultFontSizePts();
+   }
    else if (sCmd == "\\hskip") {
-      STexGlue glue;
       if (!pParser->ConsumeHSkipGlue(glue)) {
          if (!pParser->HasError())
             pParser->SetError("Failed to parse \\hskip arguments");
          return nullptr;
       }
-      pRet = new CGlueItem(pParser->Doc(), glue, ctx.currentStyle, ctx.fUserScale);
    }
-   return pRet;
+   return new CGlueItem(pParser->Doc(), glue, ctx.currentStyle, ctx.fUserScale);
 }
 
