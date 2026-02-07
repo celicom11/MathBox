@@ -24,9 +24,9 @@ The solution consists of three main components:
   - Font management and display
   
 - **[MathBoxTest](MathBoxTests/ReadMeTests.md)** - Unit test suite
-  - ~80+ test methods with ~70% code coverage
-  - MSTest-based automated testing
-  - Parser, tokenizer, builder, and macro tests
+- 156+ test methods with ~75% code coverage
+- MSTest-based automated testing
+- Parser, tokenizer, builder, and macro tests
 
 **See detailed documentation:**
 - [MathBoxLib/ReadMeLib.md](MathBoxLib/ReadMeLib.md) - Library architecture, APIs, and implementation details
@@ -79,7 +79,7 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 - Overlay/decoration commands (`\boxed`, `\underline`, `\cancel`)
 - Tables, matrices, and arrays
 - Multiple fonts (Roman, Bold, Italic, Sans, Typewriter)
-- ~70% test coverage with 80+ unit tests
+- ~75% test coverage with 156+ unit tests
 
 **🚧 In Progress:**
 - Releasing v1.0 with core features and demo application

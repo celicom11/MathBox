@@ -4,7 +4,7 @@ Comprehensive MSTest-based test suite for MathBox library, covering parser, toke
 
 ## Overview
 
-**MathBoxTest** provides comprehensive automated testing for MathBoxLib with approximately **70% code coverage**.
+**MathBoxTest** provides comprehensive automated testing for MathBoxLib with approximately **75% code coverage**.
 
 ### Test Infrastructure
 
@@ -45,20 +45,21 @@ Tests will fail if fonts are not found. The build system should automatically co
 
 ### Test Statistics
 
-- **Total Test Methods**: ~80+
+- **Total Test Methods**: 156+
 - **Test Classes**: 7 major test classes
-- **Lines of Test Code**: ~2,000+
-- **Estimated Code Coverage**: ~70%
+- **Lines of Test Code**: ~5,500+
+- **Estimated Code Coverage**: ~75%
 
 **Coverage by Component:**
 | Component | Coverage | Notes |
 |-----------|----------|-------|
-| Parser pipeline | ~75% | Tokenization, grouping, building |
-| Macro system | ~80% | Definition, expansion, nesting |
-| Builders | ~65% | Fraction, radical, accent, spacing |
-| Tokenizer | ~70% | Token types, position tracking |
-| Dimension parsing | ~90% | Units, spaces, error cases |
-| Error handling | ~60% | All parsing stages |
+| Parser pipeline | ~80% | Tokenization, grouping, building |
+| Macro system | ~85% | Definition, expansion, nesting, error reporting |
+| Builders | ~70% | Fraction, radical, accent, spacing, delimiters |
+| Tokenizer | ~75% | Token types, position tracking, comments |
+| Dimension parsing | ~95% | Units, spaces, variables, error cases |
+| Error handling | ~70% | All parsing stages with macro tracking |
+| HBox/VBox items | ~80% | Glue distribution, alignment, sizing |
 
 ## Test Classes
 
