@@ -1,5 +1,5 @@
 #pragma once
-#include "..\..\MathBoxLib\LibCode\MathBox_CAPI.h"
+#include "MathBox_CAPI.h"
 
 constexpr int32_t otfUnitsPerEm = 1000;
 #define PTS2DIPS(x) ((x)*96.0f/72.0f)

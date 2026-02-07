@@ -147,7 +147,7 @@
     <ClInclude Include="Code\D2DRenderer.h" />
     <ClInclude Include="Code\MathBoxHost.h" />
     <ClInclude Include="Code\MathBoxHostDefs.h" />
-    <ClInclude Include="Code\MathBoxLib\MathBox_CAPI.h" />
+    <ClInclude Include="Code\MathBox_CAPI.h" />
     <ClInclude Include="Code\stdafx.h" />
     <ClInclude Include="Code\Utf8Utils.h" />
   </ItemGroup>

@@ -1,5 +1,5 @@
 #pragma once
-#include "..\..\MathBoxLib\LibCode\MathBox_CAPI.h"
+#include "MathBox_CAPI.h"
 #include "MathBoxHostDefs.h"
 
 class CD2DRenderer;

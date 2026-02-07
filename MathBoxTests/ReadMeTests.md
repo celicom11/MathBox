@@ -4,9 +4,44 @@ Comprehensive MSTest-based test suite for MathBox library, covering parser, toke
 
 ## Overview
 
-**MathBoxTest** provides automated testing for MathBox core functionality with approximately **70% code coverage**.
+**MathBoxTest** provides comprehensive automated testing for MathBoxLib with approximately **70% code coverage**.
+
+### Test Infrastructure
+
+The test suite includes:
+- **Unit tests** for parser, tokenizer, builders, and macro system
+- **Minimal MathBox host implementation** for testing without full Windows UI dependencies
+- **Mock font manager** (`CD2DFontManager`) - simplified DirectWrite-based implementation for tests
+- **Mock document parameters** - test-specific configurations with default values
+- **Memory guards** (`SMemGuard`) - automatic cleanup to prevent leaks in test code
+- **Test fixtures** - Pre-configured parsers and document contexts (`g_Doc`)
+
+**Note:** The test project includes its own implementations of `CD2DFontManager` and helper classes. These are **fully functional but simplified** versions compared to the production code in MathBoxDemo. The test implementations:
+- Load actual Latin Modern fonts from `LatinModernFonts/` directory
+- Use real `LatinModernMathGlyphs.csv` for glyph mappings
+- Provide real font metrics for accurate parser testing
+- Skip rendering/visual validation (tests focus on parser correctness)
 
 ## Test Coverage
+
+### Required Runtime Files
+
+**Important:** Tests require the same font files as the main application:
+
+```
+x64\Debug\               (or x64\Release\)
+    MathBoxTest.dll
+    LatinModernFonts\    (REQUIRED)
+        latinmodern-math.otf
+        lmroman10-regular.otf
+        lmroman10-bold.otf
+        lmroman10-italic.otf
+        lmsans10-regular.otf
+        lmmonolt10-regular.otf
+        LatinModernMathGlyphs.csv (REQUIRED)
+```
+
+Tests will fail if fonts are not found. The build system should automatically copy these files to the test output directory.
 
 ### Test Statistics
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "..\..\MathBoxLib\LibCode\MathBox_CAPI.h"
+#include "MathBox_CAPI.h"
 #include "D2DGeomSink.h"
 
 class CD2DFontManager {

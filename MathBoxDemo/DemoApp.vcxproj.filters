@@ -33,9 +33,6 @@
     <ClInclude Include="Code\D2DRenderer.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Code\MathBoxLib\MathBox_CAPI.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Code\MathBoxHost.h">
       <Filter>Code</Filter>
     </ClInclude>
@@ -46,6 +43,9 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\stdafx.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\MathBox_CAPI.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
