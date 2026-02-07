@@ -1,0 +1,49 @@
+% Macros.mth - MathBox v1.0 Standard Macros
+%--- Default Lengths/Ratios ---
+\setlength{\arraycolsep}{1em}            % half-width between columns
+\setlength{\extrarowheight}{0.2em}       % extra row height  
+\setlength{\arraystrutheight}{0.7em}     % min row ascent
+\setlength{\arraystrutdepth}{0.3em}      % min row descent
+\setlength{\doublerulesep}{0.2em}        % spacing for || vertical lines
+\setlength{\LineskipRatio}{1.2}          % baseline-to-baseline ratio
+\setlength{\MinLineskipRatio}{0.1}       % minimum lineskip ratio
+\setlength{\stackundergap}{290}          % gap for \stackunder
+%--- Logos ---
+\newcommand{\TeX}{T\kern{-0.1667em}\lower{0.5ex}{E}\kern{-0.125em}X}
+\newcommand{\LaTeX}{
+L\kern{-0.36em}\raisebox{0.42ex}{\scriptsize A}%
+\kern{-0.15em}T\kern{-0.2em}\lower{0.4ex}{E}\kern{-0.15em}X%
+}
+\newcommand{\KaTeX}{
+K\kern{-0.16em}\raisebox{0.42ex}{\scriptsize A}%
+\kern{-0.15em}T\kern{-0.2em}\lower{0.4ex}{E}\kern{-0.15em}X%
+}
+%--- unimath aliases- ---
+\let\thetasym=\vartheta
+\let\hbar=\hslash
+\newcommand{\approxcolon}{\mathrel{\approx\mathord{\mathratio}}}
+\newcommand{\approxcoloncolon}{\mathrel{\approx\mathord{\Colon}}}
+\newcommand{\Eqcolon}{\mathrel{\mathord{\minus}\mathord{\Colon}}}
+\newcommand{\Eqqcolon}{\mathrel{\mathord{=}\mathord{\Colon}}}
+\newcommand{\colonapprox}{\mathrel{\mathratio\mathord{\approx}}}
+\newcommand{\Colonapprox}{\mathrel{\Colon\mathord{\approx}}}
+\newcommand{\coloneq}{\mathrel{\mathratio\mathord{\minus}}}
+\newcommand{\Coloneq}{\mathrel{\Colon\mathord{\minus}}}
+\newcommand{\coloneqq}{\mathrel{\mathratio\mathord{=}}}
+\newcommand{\Coloneqq}{\mathrel{\Colon\mathord{=}}}
+\newcommand{\colonsim}{\mathrel{\mathratio\mathord{\sim}}}
+\newcommand{\Colonsim}{\mathrel{\Colon\mathord{\sim}}}
+\newcommand{\simcolon}{\mathrel{\sim\mathord{\mathratio}}}
+\newcommand{\simcoloncolon}{\mathrel{\sim\mathord{\Colon}}}
+\newcommand{\pitchfork}{\mathrel{\cap\kern{-0.975ex}\char"23d0}}
+
+%--- Negated Relations (Group 1: Simple \not overlays) ---
+\newcommand{\ngeqslant}{\not\geqslant}
+\newcommand{\nleqslant}{\not\leqslant}
+\newcommand{\ngeqq}{\not\geqq}
+\newcommand{\nleqq}{\not\leqq}
+\newcommand{\nsucceq}{\not\succeq}
+\newcommand{\npreceq}{\not\preceq}
+\newcommand{\nshortmid}{\not\shortmid}
+\newcommand{\nshortparallel}{\not\shortparallel}
+\newcommand{\notni}{\not\ni}

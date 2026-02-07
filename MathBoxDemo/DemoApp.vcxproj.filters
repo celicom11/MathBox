@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Code\CfgReader.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\D2DFontManager.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\D2DRenderer.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Main.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\MathBoxHost.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\stdafx.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Code\CfgReader.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\D2DFontManager.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\D2DGeomSink.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\D2DRenderer.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\MathBoxLib\MathBox_CAPI.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\MathBoxHost.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\MathBoxHostDefs.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Utf8Utils.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\stdafx.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MathBoxDemo.cfg" />
+    <None Include="Macros.mth" />
+    <None Include="ReadMeDemo.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TestDoc.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Code">
+      <UniqueIdentifier>{4f570b03-47e1-4ef4-9496-b3bbd6a99396}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

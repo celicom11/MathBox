@@ -1,0 +1,2 @@
+$\text{T\kern{-0.1667em}\lower{0.5ex}{E}\kern{-0.125em}X} \verb!\TeX!$\\
+$\sout{abc}=\textit{def}$
