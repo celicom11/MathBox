@@ -12,26 +12,26 @@ This project provides a **MathBox** library with C-ABI interface for cross-platf
 
 The solution consists of three main components:
 
-- **[MathBoxLib](ReadMeLib.md)** - Platform-independent C++ library
+- **[MathBoxLib](MathBoxLib/ReadMeLib.md)** - Platform-independent C++ library
   - Core LaTeX parser and typesetting engine
   - Macro system with parameter substitution
   - C-ABI interface for cross-language integration
   - Platform-agnostic rendering interfaces
   
-- **[MathBoxDemo](ReadMeDemo.md)** - Windows demo application
+- **[MathBoxDemo](MathBoxDemo/ReadMeDemo.md)** - Windows demo application
   - DirectWrite rendering implementation
   - Configuration-based document loading
   - Font management and display
   
-- **[MathBoxTest](ReadMeTests.md)** - Unit test suite
+- **[MathBoxTest](MathBoxTests/ReadMeTests.md)** - Unit test suite
   - ~80+ test methods with ~70% code coverage
   - MSTest-based automated testing
   - Parser, tokenizer, builder, and macro tests
 
 **See detailed documentation:**
-- [ReadMeLib.md](ReadMeLib.md) - Library architecture, APIs, and implementation details
-- [ReadMeDemo.md](ReadMeDemo.md) - Demo app usage, configuration, and integration guide
-- [ReadMeTests.md](ReadMeTests.md) - Test suite description and coverage analysis
+- [MathBoxLib/ReadMeLib.md](MathBoxLib/ReadMeLib.md) - Library architecture, APIs, and implementation details
+- [MathBoxDemo/ReadMeDemo.md](MathBoxDemo/ReadMeDemo.md) - Demo app usage, configuration, and integration guide
+- [MathBoxTests/ReadMeTests.md](MathBoxTests/ReadMeTests.md) - Test suite description and coverage analysis
 
 ## Concepts and References
 
@@ -76,18 +76,21 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 - Math mode (`$...$`, `$$...$$`) and text mode
 - Fractions, radicals, superscripts/subscripts
 - Accents, delimiters, operators
+- Overlay/decoration commands (`\boxed`, `\underline`, `\cancel`)
 - Tables, matrices, and arrays
 - Multiple fonts (Roman, Bold, Italic, Sans, Typewriter)
 - ~70% test coverage with 80+ unit tests
 
 **🚧 In Progress:**
-- Overlay/decoration commands (`\boxed`, `\underline`, `\cancel`)
+- Releasing v1.0 with core features and demo application
 
 **📋 Planned:**
-- Selection and clipboard support
 - Multi-line environments (`equation`, `align`)
-- Color support
-- Additional symbols and fonts
+- Color text support
+- Bra-ket Notation (handling middle | is tricky)
+- Extensible Arrows (with or w/o macros)
+- siunitx package support (units and spacing)
+- Additional fonts (LMM missing some glyphs)
 
 ## How to Build
 
@@ -98,29 +101,28 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 
 **Quick Start:**
 1. Clone the repository
-2. Open `DemoApp.vcxproj` in Visual Studio 2022
-3. Build Solution (Ctrl+Shift+B) - builds all three projects
+2. Open `MathBoxDemo.sln` in Visual Studio 2022
+3. Build Solution (Ctrl+Shift+B) - builds all three projects in Debug or Release x64 configuration
 4. Run **MathBoxDemo** (F5) to see the demo application
 5. Run **MathBoxTest** via Test Explorer to verify functionality
 
 **Required Runtime Files:**
-- `LatinModernFonts/` - Font files (.otf)
-- `LatinModernMathGlyphs.csv` - Glyph mapping table
+- `LatinModernFonts/` - Font files (.otf) and `LatinModernMathGlyphs.csv` (Glyph mapping table).
 - `MathBoxDemo.cfg` - Configuration file
 - `TestDoc.txt` - Sample LaTeX document
-- `Macros.mth` - Macro definitions (required)
+- `Macros.mth` - Default lengths and macro definitions (required!)
 
 **Detailed Instructions:**
-- **Library**: See [ReadMeLib.md](ReadMeLib.md) for platform-independent build and integration
-- **Demo App**: See [ReadMeDemo.md](ReadMeDemo.md) for configuration and usage
-- **Testing**: See [ReadMeTests.md](ReadMeTests.md) for running and writing tests
+- **Library**: See [MathBoxLib/ReadMeLib.md](MathBoxLib/ReadMeLib.md) for platform-independent build and integration
+- **Demo App**: See [MathBoxDemo/ReadMeDemo.md](MathBoxDemo/ReadMeDemo.md) for configuration and usage
+- **Testing**: See [MathBoxTests/ReadMeTests.md](MathBoxTests/ReadMeTests.md) for running and writing tests
 
 ## Contributing
 
 Contributions are welcome! Please ensure changes maintain compatibility with:
-- TeXbook specifications [[1]](#references)
-- OpenType MATH table requirements [[3]](#references), [[4]](#references)
-- MathML Core recommendations [[5]](#references)
+- TeXbook specifications [[1]](#concepts-and-references)
+- OpenType MATH table requirements [[3]](#concepts-and-references), [[4]](#concepts-and-references)
+- MathML Core recommendations [[5]](#concepts-and-references)
 
 **Coding Standards:**
 - Hungarian notation (no exceptions)
@@ -145,10 +147,3 @@ Contributions are welcome! Please ensure changes maintain compatibility with:
 ## License
 
 MIT License (under consideration)
-
----
-
-**For detailed documentation, see:**
-- [ReadMeLib.md](ReadMeLib.md) - Library architecture and APIs
-- [ReadMeDemo.md](ReadMeDemo.md) - Demo application usage
-- [ReadMeTests.md](ReadMeTests.md) - Unit testing guide
