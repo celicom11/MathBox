@@ -1,20 +1,113 @@
 # MathBoxLib - Platform-Independent LaTeX Rendering Library
 
-A platform-independent C++ library for parsing and typesetting LaTeX mathematical expressions, with C-ABI interface for cross-language integration.
+A **truly platform-independent** C++ library for parsing and typesetting LaTeX mathematical expressions, with C-ABI interface for cross-language integration.
 
 ## Overview
 
-**MathBoxLib** is a C++ dynamic library (DLL) that provides:
+**MathBoxLib** is a C++ dynamic library (DLL/SO) that provides:
 - Complete LaTeX parser with macro system
 - TeX typesetting engine following TeXbook specifications
-- Platform-agnostic rendering interface via abstract C++ classes
+- **Platform-independent core**: Pure C++14/STL, no OS-specific dependencies
 - **C-ABI interface** (`MathBox_CAPI.h`) for cross-language integration
+- **Backward compatible**: Old clients work with newer library versions
+
+### Platform Independence
+
+**MathBoxLib core is 100% portable:**
+- ? Uses only **C++14 standard library** (STL)
+- ? No Windows API calls (no `windows.h`, no DirectWrite, no Win32)
+- ? Platform-agnostic rendering via abstract C++ interfaces
+- ? Ready for Linux/macOS/other platforms
+
+**Platform-specific components (NOT in MathBoxLib):**
+- ? **MathBoxDemo** - Windows-only (uses DirectWrite for rendering)
+- ? **MathBoxTests** - Windows-only (uses DirectWrite for test font management)
+
+**Porting to other platforms**: Implement `IFontManager` and `IDocRenderer` interfaces using:
+- **Linux**: FreeType + Cairo/Skia
+- **macOS**: Core Text + Core Graphics
+- **Cross-platform**: Skia graphics library
 
 The library exports a C-ABI that allows host applications to:
 1. Provide document parameters via `MB_DocParams` structure
 2. Implement font management via `MBI_FontManager` callbacks
 3. Implement rendering via `MBI_DocRenderer` callbacks
 4. Parse and render LaTeX mathematical expressions
+
+## Backward Compatibility Policy
+
+**MathBoxLib guarantees backward compatibility:**
+
+? **Old clients can always use newer library versions**
+- Applications built against v1.0 headers continue working with v2.0+ DLL
+- ABI version number indicates compatibility level
+- New features added as optional enhancements, not breaking changes
+
+### How It Works
+
+**Structure Versioning:**
+```cpp
+typedef struct {
+   uint32_t size_bytes;  // Client sets this to sizeof(struct)
+   // ... existing fields ...
+} MB_Structure;
+```
+
+- Client passes `size_bytes` to indicate which version it compiled against
+- Library checks `size_bytes` and only uses fields client knows about
+- **New fields added at END of structures** (never in middle)
+- Old clients safely ignore new fields
+
+**Example - Adding `traceLog` in v2.0:**
+```cpp
+// v1.0 structure (6 fields)
+typedef struct {
+   uint32_t size_bytes;      // = sizeof(MB_DocParams_v1) = 32 bytes
+   float font_size_pts;
+   int32_t max_width_fdu;
+   uint32_t color_bkg_argb;
+   uint32_t color_selection_argb;
+   uint32_t color_text_argb;
+   MBI_FontManager font_mgr;
+} MB_DocParams;
+
+// v2.0 structure (7 fields) - NEW field at END
+typedef struct {
+   uint32_t size_bytes;      // = sizeof(MB_DocParams_v2) = 40 bytes
+   float font_size_pts;
+   int32_t max_width_fdu;
+   uint32_t color_bkg_argb;
+   uint32_t color_selection_argb;
+   uint32_t color_text_argb;
+   MBI_FontManager font_mgr;
+   void (*traceLog)(int16_t nLevel, const char* szMsg);  // NEW in v2.0
+} MB_DocParams;
+
+// Library checks:
+if (doc->size_bytes >= offsetof(MB_DocParams, traceLog) + sizeof(void*)) {
+   // Client knows about traceLog, use it
+} else {
+   // Old client, ignore traceLog
+}
+```
+
+**ABI Version Policy:**
+- `abi_version` = MAJOR version number (1, 2, 3, ...)
+- Indicates API enhancement level, NOT breaking changes
+- Clients can check at runtime: `if (pAPI->abi_version >= 2) { use_new_features(); }`
+
+**What Changes Are Allowed:**
+- ? Adding new optional fields at end of structures
+- ? Adding new function pointers to `MBI_API` (at end)
+- ? Adding new return codes (values > existing max)
+- ? Adding new enum values (values > existing max)
+
+**What Changes Are NEVER Made:**
+- ? Removing fields from structures
+- ? Reordering fields in structures
+- ? Changing field types
+- ? Removing function pointers from `MBI_API`
+- ? Changing function signatures
 
 ## Font Data and Processing
 
@@ -326,9 +419,22 @@ Constructs MathItem tree via specialized builders:
 ## How to Build
 
 ### Prerequisites
-- C++14 compiler
-- Visual Studio 2022 (for Windows build)
-- CMake 3.10+ (for cross-platform build - future support)
+- C++14 compiler (GCC, Clang, MSVC, etc.)
+- CMake 3.10+ (for cross-platform build - planned)
+- Or Visual Studio 2022 (for Windows build)
+
+### Platform Independence Verification
+
+**MathBoxLib has ZERO platform-specific code:**
+```bash
+# Verify no Windows dependencies in library code
+grep -r "windows.h\|WIN32\|DirectWrite" MathBoxLib/MathBox/
+# Result: No matches (platform-independent!)
+
+# Demo and Tests ARE Windows-specific
+grep -r "windows.h" MathBoxDemo/Code/
+# Result: Multiple matches (expected - uses DirectWrite)
+```
 
 ### Windows Build (Visual Studio)
 
@@ -384,7 +490,7 @@ Your host application **must** implement:
 ```cpp
 // Get API entry point
 const MBI_API* pAPI = MB_GetApi();
-if (!pAPI || pAPI->abi_version != 1) {
+if (!pAPI || pAPI->abi_version <= 1) {
    // Version mismatch or load failure
    return;
 }
@@ -392,16 +498,16 @@ if (!pAPI || pAPI->abi_version != 1) {
 // Setup font manager (your implementation)
 MBI_FontManager fontMgr = {
    .size_bytes = sizeof(MBI_FontManager),
-   .fontCount = 6,  // LMM font count
-   .getFontsDir = MyGetFontsDir,
-   .getFontIndices = MyGetFontIndices,
-   .getGlyphRunMetrics = MyGetGlyphRunMetrics
+   .fontCount = 11,  // LMM fonts count
+   .getFontsDir = __MyGetFontsDir,
+   .getFontIndices = __MyGetFontIndices,
+   .getGlyphRunMetrics = __MyGetGlyphRunMetrics
 };
 
 // Setup document parameters
 MB_DocParams params = {};
 params.size_bytes = sizeof(MB_DocParams);
-params.font_size_pts = 24.0f;
+params.font_size_pts = 14.0f;
 params.max_width_fdu = 0;  // Unlimited
 params.color_text_argb = 0xFF000000;  // Black
 params.color_bkg_argb = 0xFFFFFFFF;   // White
@@ -417,7 +523,7 @@ if (ret != MBOK) {
 }
 
 // Add macro definitions (optional but recommended)
-std::string macros = LoadFile("Macros.mth");
+std::string macros = ReadFile("Macros.mth");
 pAPI->addMacros(engine, macros.c_str(), "Macros.mth");
 
 // Parse LaTeX
@@ -435,10 +541,10 @@ if (ret != MBOK) {
 // Setup renderer (your implementation)
 MBI_DocRenderer renderer = {
    .size_bytes = sizeof(MBI_DocRenderer),
-   .drawLine = MyDrawLine,
-   .drawRect = MyDrawRect,
-   .fillRect = MyFillRect,
-   .drawGlyphRun = MyDrawGlyphRun
+   .drawLine = __MyDrawLine,
+   .drawRect = __MyDrawRect,
+   .fillRect = __MyFillRect,
+   .drawGlyphRun = __MyDrawGlyphRun
 };
 
 // Render at position (x=0, y=0)

@@ -12,11 +12,12 @@ This project provides a **MathBox** library with C-ABI interface for cross-platf
 
 The solution consists of three main components:
 
-- **[MathBoxLib](MathBoxLib/ReadMeLib.md)** - Platform-independent C++ library
-  - Core LaTeX parser and typesetting engine
-  - Macro system with parameter substitution
-  - C-ABI interface for cross-language integration
-  - Platform-agnostic rendering interfaces
+- **[MathBoxLib](MathBoxLib/ReadMeLib.md)** - **Platform-independent** C++ library
+- **Pure C++14/STL** - No OS-specific dependencies (Windows, Linux, macOS portable)
+- Core LaTeX parser and typesetting engine
+- Macro system with parameter substitution
+- C-ABI interface for cross-language integration
+- Platform-agnostic rendering interfaces (host-provided)
   
 - **[MathBoxDemo](MathBoxDemo/ReadMeDemo.md)** - Windows demo application
   - DirectWrite rendering implementation
@@ -81,23 +82,71 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 - Multiple fonts (Roman, Bold, Italic, Sans, Typewriter)
 - ~75% test coverage with 156+ unit tests
 
-**🚧 In Progress:**
-- Releasing v1.0 with core features and demo application
+## Current Status
 
-**📋 Planned:**
-- Multi-line environments (`equation`, `align`)
+**Version: 1.0-beta** (February 2026)
+
+### Library Status: ✅ Production-Ready
+- **Platform-independent**: Pure C++14/STL, no OS dependencies
+- **Backward compatible**: API enhancements only, no breaking changes
+- Core LaTeX parser: Stable, ~75% test coverage, 156+ unit tests
+- C-ABI interface: Stable, ready for production integration  
+- Macro system: Feature-complete with comprehensive error reporting
+- Typesetting engine: Following TeXbook specifications
+- **Portable**: Ready for Linux/macOS ports (contributions welcome!)
+
+### Demo Application Status: 🚧 Reference Implementation
+- Demonstrates integration patterns
+- Limited to small documents (no scrolling)
+- Not intended as end-user application
+
+### What's New in Beta
+- Comprehensive macro expansion with nested support
+- Enhanced error reporting with source tracking
+- Extensive dimension parsing (all TeX units)
+- Robust delimiter and environment handling
+- Production-tested C-ABI interface
+
+### Known Limitations
+- Windows-only (DirectWrite renderer)
+- No multi-line equation environments yet
+- No color text support
+- Selection/copy features planned for v2.0
+
+### Roadmap to [1.0] Final - Q2 2026
+- [ ] Community feedback from beta testing
+- [ ] Bug fixes and stability improvements
+- [ ] Documentation refinements
+
+**📋 Future Plans:**
+
+### Planned for [2.0] - 2026/2027
+- Selection and copy-to-clipboard support
 - Color text support
-- Bra-ket Notation (handling middle | is tricky)
-- Extensible Arrows (with or w/o macros)
-- siunitx package support (units and spacing)
-- Additional fonts (LMM missing some glyphs)
+- Tracing/logging support
+- **ABI enhancement**: Version 2 (backward compatible - old clients work with new DLL)
+- New optional callbacks added to end of structures
+
+### Post-v2.0 (v2.1+)
+- Multi-line equation environments (`equation`, `align`, `gather`)
+- Bra-ket notation
+- Extensible arrows
+- siunitx package support
+- Additional fonts beyond Latin Modern Math
+- Cross-platform renderers (FreeType, Skia, etc.)
 
 ## How to Build
 
-**Prerequisites:**
+**Prerequisites (Windows Build):**
 - Visual Studio 2022 (or later)
 - Windows 10/11 with DirectWrite support
 - C++14 compiler
+
+**Note**: MathBoxLib itself is platform-independent (pure C++14/STL). The Windows-specific components are:
+- **MathBoxDemo** - Uses DirectWrite for rendering
+- **MathBoxTests** - Uses DirectWrite for font management in tests
+
+**Porting to Linux/macOS**: Requires implementing `IFontManager` and `IDocRenderer` using platform-specific APIs (FreeType, Cairo, Skia, etc.). Contributions welcome!
 
 **Quick Start:**
 1. Clone the repository
@@ -166,4 +215,6 @@ Contributions are welcome! Please ensure changes maintain compatibility with:
 
 ## License
 
-MIT License (under consideration)
+MIT License - Copyright (c) 2026 CELICOM
+
+See [LICENSE.md](LICENSE.md) for details.

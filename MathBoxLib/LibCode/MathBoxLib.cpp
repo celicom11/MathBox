@@ -5,7 +5,6 @@
 #include "..\MathBox\LMMFont.h"
 #include "..\MathBox\ContainerItem.h"
 
-#define ABI_VERSION 1
 
 static uint32_t _startPos = 0;
 static uint32_t _endPos = 0;
@@ -288,7 +287,7 @@ static MB_RET mathItemGetLineBox_impl(MB_MathItem item, int32_t line,
 //MAIN ENTRY
 static const MBI_API g_Api = {
    sizeof(MBI_API),
-   ABI_VERSION,
+   MB_VERSION_MAJOR,
    createEngine_impl,
    destroyEngine_impl,
    destroyMathItem_impl,

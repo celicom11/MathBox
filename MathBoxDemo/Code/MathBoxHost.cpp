@@ -34,7 +34,7 @@ bool CMathBoxHost::LoadMathBoxLib() {
    auto pfnMB_GetApi = (const MBI_API * (*)())GetProcAddress(m_hMathBoxLib, "MB_GetApi");
    _ASSERT_RET(pfnMB_GetApi, false);
    m_pMBAPI = pfnMB_GetApi();
-   _ASSERT_RET(m_pMBAPI && m_pMBAPI->abi_version >= 1, false);
+   _ASSERT_RET(m_pMBAPI && m_pMBAPI->abi_version >= MB_VERSION_MAJOR, false);
    MB_RET ret = m_pMBAPI->createEngine(&m_DocParams, &m_engine);
    if (ret != MBOK) {
       PCSTR szError = m_pMBAPI->getLastError(m_engine, &m_Error.nErrorStartPos, &m_Error.nErrorEndPos);

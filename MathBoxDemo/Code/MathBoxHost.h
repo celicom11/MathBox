@@ -1,5 +1,9 @@
 #pragma once
 #include "MathBox_CAPI.h"
+#if MB_VERSION_MAJOR < 1
+#error "MathBox version 1.0 or higher required"
+#endif
+
 #include "MathBoxHostDefs.h"
 
 class CD2DRenderer;

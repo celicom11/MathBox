@@ -1,6 +1,16 @@
-// MathBox C-ABI, v1.0
+// MathBox C-ABI, v1.0-beta
 #pragma once
 #include <stdint.h>
+
+// Version information (MAJOR.MINOR format)
+#define MB_VERSION_MAJOR 1
+#define MB_VERSION_MINOR 0
+#define MB_VERSION_PRERELEASE "beta"  // Empty string for final releases
+#define MB_VERSION_STRING "1.0-beta"
+
+// Helper macro for version comparisons
+#define MB_MAKE_VERSION(major, minor) ((major) * 100 + (minor))
+#define MB_VERSION MB_MAKE_VERSION(MB_VERSION_MAJOR, MB_VERSION_MINOR)
 
 //RETURN CODES
 #define MBOK                  0

@@ -95,6 +95,11 @@ public:
          nullptr, nullptr, HINST_THISCOMPONENT, this
       );
       _ASSERT_RET(m_hwnd, E_FAIL);
+      // In WinMain or window creation
+      wchar_t wszTitle[256];
+      swprintf_s(wszTitle, L"MathBox Demo - v%hs", MB_VERSION_STRING);
+      SetWindowTextW(m_hwnd, wszTitle);
+
       HRESULT hr = m_d2dr.Initialize(m_hwnd);
       CHECK_HR(hr);
       WCHAR wszDir[MAX_PATH] = { 0 };
