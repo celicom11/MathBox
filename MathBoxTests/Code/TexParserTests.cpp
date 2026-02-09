@@ -2644,7 +2644,7 @@ namespace TexParserTests
       // ERROR REPORTING WITH MACRO EXPANSION TESTS
       // ============================================================================
 
-      TEST_METHOD(MacroExpansion_Error_SingleLevel_UndefinedSymbol) {
+      TEST_METHOD(MacroExpansion_Error_SingleLevel_UndefinedCommand) {
          // Test: Error in expanded macro body - undefined command
          // \mycommand expands to: \undefined{x}
          CTexParser parser(g_Doc);
@@ -2659,30 +2659,46 @@ namespace TexParserTests
          Assert::IsFalse(err.sError.empty(), L"Should have error message");
 
          // DEBUG: Output the actual error message  
-         Logger::WriteMessage(("Error message: " + err.sError).c_str());
+         Logger::WriteMessage(("Error message:\n" + err.sError).c_str());
          Logger::WriteMessage(("Error stage: " + to_string((int)err.eStage)).c_str());
          Logger::WriteMessage(("Error pos: " + to_string(err.nStartPos) + "-" + to_string(err.nEndPos)).c_str());
          
-         // Verify error has multiple lines
+         // Verify error has 3 lines:
+         // Line 1: Main error "Unknown command '\undefined'"
+         // Line 2: "  Expanded macro: \undefined{x}"
+         // Line 3: "  from macro file(s): Macros.mth"
          size_t nFirstNewline = err.sError.find('\n');
          Assert::IsTrue(nFirstNewline != string::npos, L"Error should have multiple lines");
 
-         // Verify contains macro information
+         // Verify contains expanded macro text
+         Assert::IsTrue(err.sError.find("Expanded macro:") != string::npos,
+            L"Error should have 'Expanded macro:' line");
+         Assert::IsTrue(err.sError.find("\\undefined{x}") != string::npos,
+            L"Error should show expanded macro with argument substituted");
+
+         // Verify contains macro file
+         Assert::IsTrue(err.sError.find("from macro file(s):") != string::npos,
+            L"Error should have 'from macro file(s):' line");
          Assert::IsTrue(err.sError.find("Macros.mth") != string::npos,
             L"Error should mention macro file");
 
-         // Verify contains expanded macro text
-         Assert::IsTrue(err.sError.find("\\undefined") != string::npos,
-            L"Error should show expanded macro content");
+         // Verify error position maps to user input (\mycommand in "$$\mycommand{x}$$")
+         Assert::IsTrue(err.nStartPos >= 2 && err.nStartPos <= 15,
+            L"Error position should point to \\mycommand in user input");
       }
 
-      TEST_METHOD(MacroExpansion_Error_SingleLevel_UndefinedCommand) {
-         // Test: Undefined command inside macro expansion
-         // \test expands to: \undefined
+      TEST_METHOD(MacroExpansion_Error_NestedMacros_ThreeLevels) {
+         // Test: Error in deeply nested macro expansion (your example)
+         // \outer{1} -> \@inner{1^2} -> \sqrt{\half{1^2}} -> \sqrt{\ensuremat\frac{1^2}{2}}
+         // Error: \ensuremat is not defined (typo, should be \ensuremath)
          CTexParser parser(g_Doc);
-         parser.AddMacros("\\newcommand{\\test}{\\undefined}", "MyMacros.mth");
+         parser.AddMacros(
+            "\\newcommand{\\half}[1]{\\ensuremat\\frac{#1}{2}}"  // Typo: \ensuremat instead of \ensuremath
+            "\\newcommand{\\@inner}[1]{\\sqrt{\\half{#1}}}"
+            "\\newcommand{\\outer}[1]{\\@inner{#1^2}}",
+            "Macros.mth");
 
-         CMathItem* pRet = parser.Parse("$$\\test$$");
+         CMathItem* pRet = parser.Parse("$$\\outer{1}$$");
          SMemGuard mg{ pRet };
 
          Assert::IsNull(pRet, L"Parse should fail with undefined command");
@@ -2690,18 +2706,45 @@ namespace TexParserTests
          const ParserError& err = parser.LastError();
          Assert::IsFalse(err.sError.empty());
 
-         // Should mention the expanded macro
-         size_t nNewline = err.sError.find('\n');
-         Assert::IsTrue(nNewline != string::npos, L"Should have macro expansion details");
+         // DEBUG: Output the actual error
+         Logger::WriteMessage(("Nested error message:\n" + err.sError).c_str());
 
-         // Should mention macro file
-         Assert::IsTrue(err.sError.find("MyMacros.mth") != string::npos,
-            L"Should reference macro file");
+         // Expected error format:
+         // Line 1: "Unknown command '\ensuremat'"
+         // Line 2: "  Expanded macro: \sqrt{\ensuremat\frac{1^2}{2}}"
+         // Line 3: "  from macro file(s): Macros.mth"
+
+         // Verify expanded macro shows the FULL expanded text including user input
+         Assert::IsTrue(err.sError.find("Expanded macro:") != string::npos,
+            L"Should have 'Expanded macro:' line");
+         
+         // The expanded text should be: \sqrt{\ensuremat\frac{1^2}{2}}
+         // This includes:
+         // - \sqrt from \@inner
+         // - \ensuremat\frac from \half
+         // - {1^2} from user input (not from macro!)
+         // - {2} from \half
+         Assert::IsTrue(err.sError.find("\\sqrt") != string::npos,
+            L"Should show \\sqrt from \\@inner");
+         Assert::IsTrue(err.sError.find("\\ensuremat") != string::npos,
+            L"Should show \\ensuremat (the error token)");
+         Assert::IsTrue(err.sError.find("\\frac") != string::npos,
+            L"Should show \\frac from \\half");
+         Assert::IsTrue(err.sError.find("1^2") != string::npos,
+            L"Should show user input 1^2 (not from macro)");
+
+         // Verify macro file mentioned
+         Assert::IsTrue(err.sError.find("Macros.mth") != string::npos,
+            L"Should mention macro file");
+
+         // Verify error position maps to \outer in user input
+         Assert::IsTrue(err.nStartPos >= 2 && err.nStartPos <= 12,
+            L"Error position should point to \\outer in user input");
       }
 
-      TEST_METHOD(MacroExpansion_Error_WithArguments_WrongCommand) {
-         // Test: Error in expanded macro with arguments
-         // \abs expands to: \badcmd{#1}
+      TEST_METHOD(MacroExpansion_Error_WithArguments_ShowsSubstitution) {
+         // Test: Error with argument substitution visible
+         // \abs expands to: \badcmd{x+y} (argument substituted)
          CTexParser parser(g_Doc);
          parser.AddMacros("\\newcommand{\\abs}[1]{\\badcmd{#1}}", "Macros.mth");
 
@@ -2713,47 +2756,22 @@ namespace TexParserTests
          const ParserError& err = parser.LastError();
          Assert::IsFalse(err.sError.empty());
 
-         // Verify expanded macro shown in error
-         Assert::IsTrue(err.sError.find('\n') != string::npos,
-            L"Should have macro expansion details");
+         // Verify expanded macro shows argument substituted
+         Assert::IsTrue(err.sError.find("\\badcmd{x+y}") != string::npos,
+            L"Should show \\badcmd with substituted argument x+y");
          Assert::IsTrue(err.sError.find("Macros.mth") != string::npos,
             L"Should mention macro file");
-         Assert::IsTrue(err.sError.find("\\badcmd") != string::npos,
-            L"Should show the problematic command");
       }
 
-      TEST_METHOD(MacroExpansion_Error_NestedMacros_TwoLevels) {
-         // Test: Error in nested macro expansion
-         // \outer -> \inner -> \wrongcmd
-         CTexParser parser(g_Doc);
-         parser.AddMacros(
-            "\\newcommand{\\inner}[1]{\\wrongcmd{#1}}"
-            "\\newcommand{\\outer}[1]{\\inner{#1}}",
-            "NestedMacros.mth");
-
-         // \inner expands to \wrongcmd{x} which is undefined
-         CMathItem* pRet = parser.Parse("$$\\outer{x}$$");
-         SMemGuard mg{ pRet };
-
-         Assert::IsNull(pRet, L"Should fail with undefined command");
-
-         const ParserError& err = parser.LastError();
-         Assert::IsFalse(err.sError.empty());
-
-         // Error should reference the macro file
-         Assert::IsTrue(err.sError.find("NestedMacros.mth") != string::npos,
-            L"Should show macro file in error");
-      }
-
-      TEST_METHOD(MacroExpansion_Error_InEnvironment_MismatchedEnd) {
-         // Test: Error in macro containing environment
+      TEST_METHOD(MacroExpansion_Error_InEnvironment_ShowsFullExpansion) {
+         // Test: Error in macro containing environment - shows complete expanded text
          // Mismatched \begin{matrix} ... \end{array}
          CTexParser parser(g_Doc);
          parser.AddMacros(
-            "\\newcommand{\\badmatrix}{\\begin{matrix}a&b\\end{array}}",
+            "\\newcommand{\\badmatrix}[2]{\\begin{matrix}#1&#2\\end{array}}",
             "Macros.mth");
 
-         CMathItem* pRet = parser.Parse("$$\\badmatrix$$");
+         CMathItem* pRet = parser.Parse("$$\\badmatrix{a}{b}$$");
          SMemGuard mg{ pRet };
 
          Assert::IsNull(pRet, L"Should fail with mismatched environment");
@@ -2761,10 +2779,42 @@ namespace TexParserTests
          const ParserError& err = parser.LastError();
          Assert::IsFalse(err.sError.empty());
 
+         // Should show expanded macro: \begin{matrix}a&b\end{array}
+         Assert::IsTrue(err.sError.find("Expanded macro:") != string::npos,
+            L"Should have expanded macro line");
+         Assert::IsTrue(err.sError.find("\\begin{matrix}") != string::npos,
+            L"Should show \\begin{matrix}");
+         Assert::IsTrue(err.sError.find("a&b") != string::npos,
+            L"Should show substituted arguments a&b");
+         Assert::IsTrue(err.sError.find("\\end{array}") != string::npos,
+            L"Should show \\end{array}");
+
          // Should mention environment error
          Assert::IsTrue(err.sError.find("environment") != string::npos ||
             err.sError.find("Unmatched") != string::npos,
             L"Error should mention environment issue");
+      }
+
+      TEST_METHOD(MacroExpansion_Error_MixedMacroAndUserTokens) {
+         // Test: Expanded macro contains both macro tokens AND user input tokens
+         // \wrap{x^2} expands to: [\badcmd x^2] where [ ] are from macro, x^2 is user input
+         CTexParser parser(g_Doc);
+         parser.AddMacros("\\newcommand{\\wrap}[1]{[\\badcmd #1]}", "Macros.mth");
+
+         CMathItem* pRet = parser.Parse("$$\\wrap{x^2}$$");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNull(pRet, L"Should fail with undefined command");
+
+         const ParserError& err = parser.LastError();
+         Assert::IsFalse(err.sError.empty());
+
+         // Expanded macro should show: [\badcmd x^2]
+         // Note: x^2 is from user input (nRefIdx == 0), but should still be included
+         Assert::IsTrue(err.sError.find("\\badcmd") != string::npos,
+            L"Should show \\badcmd from macro");
+         Assert::IsTrue(err.sError.find("x^2") != string::npos,
+            L"Should show user input x^2");
       }
 
       TEST_METHOD(MacroExpansion_Error_VerifyPositionMapping) {
@@ -2787,35 +2837,10 @@ namespace TexParserTests
             L"Error position should be in user input range");
 
          // Should have macro expansion info
-         Assert::IsTrue(err.sError.find('\n') != string::npos,
-            L"Should include macro expansion details");
-      }
-
-      TEST_METHOD(MacroExpansion_Error_VerifyExpandedMacroText) {
-         // Test: Error message shows the expanded macro body
-         CTexParser parser(g_Doc);
-         parser.AddMacros(
-            "\\newcommand{\\myfunc}[1]{\\log\\undefinedcmd #1}",
-            "TestMacros.mth");
-
-         // Cause error: \undefinedcmd is not valid
-         CMathItem* pRet = parser.Parse("$$\\myfunc{x}$$");
-         SMemGuard mg{ pRet };
-
-         Assert::IsNull(pRet, L"Should fail with undefined command");
-
-         const ParserError& err = parser.LastError();
-         Assert::IsFalse(err.sError.empty());
-
-         // Error should show:
-         // Line 1: Main error
-         // Line 2: Expanded macro
-         // Line 3: Macro file
-         Assert::IsTrue(err.sError.find("\\undefinedcmd") != string::npos || 
-                       err.sError.find("\\log") != string::npos,
-            L"Should show expanded macro body");
-         Assert::IsTrue(err.sError.find("TestMacros.mth") != string::npos,
-            L"Should show macro file name");
+         Assert::IsTrue(err.sError.find("Expanded macro:") != string::npos,
+            L"Should include 'Expanded macro:' line");
+         Assert::IsTrue(err.sError.find("\\undefined{a}") != string::npos,
+            L"Should show expanded text");
       }
 
       TEST_METHOD(MacroExpansion_Error_MultipleFiles_ShowAll) {
@@ -2825,6 +2850,7 @@ namespace TexParserTests
          parser.AddMacros("\\newcommand{\\second}[1]{\\first{#1}}", "File2.mth");
 
          // Error occurs in \first expansion (undefined \badfunc)
+         // \second{x} -> \first{x} -> \badfunc x
          CMathItem* pRet = parser.Parse("$$\\second{x}$$");
          SMemGuard mg{ pRet };
 
@@ -2833,9 +2859,41 @@ namespace TexParserTests
          const ParserError& err = parser.LastError();
          Assert::IsFalse(err.sError.empty());
 
-         // Should mention File1.mth (where the malformed \first is defined)
+         // Should show expanded macro
+         Assert::IsTrue(err.sError.find("\\badfunc") != string::npos,
+            L"Should show \\badfunc in expanded text");
+
+         // Should mention File1.mth (where \first with \badfunc is defined)
+         // Note: May also mention File2.mth if both involved
          Assert::IsTrue(err.sError.find("File1.mth") != string::npos,
             L"Should show macro file where error originated");
+      }
+
+      TEST_METHOD(MacroExpansion_Error_NoMacroExpansion_SimpleError) {
+         // Test: Error without macro expansion - should have only 1 line
+         CTexParser parser(g_Doc);
+
+         CMathItem* pRet = parser.Parse("$$\\undefined$$");
+         SMemGuard mg{ pRet };
+
+         Assert::IsNull(pRet, L"Should fail with undefined command");
+
+         const ParserError& err = parser.LastError();
+         Assert::IsFalse(err.sError.empty());
+
+         // Should NOT have "Expanded macro:" line
+         Assert::IsTrue(err.sError.find("Expanded macro:") == string::npos,
+            L"Simple error should not have 'Expanded macro:' line");
+         Assert::IsTrue(err.sError.find("from macro file") == string::npos,
+            L"Simple error should not have 'from macro file' line");
+
+         // Should have only the main error message
+         size_t nNewlineCount = 0;
+         for (char c : err.sError) {
+            if (c == '\n') ++nNewlineCount;
+         }
+         Assert::AreEqual((size_t)0, nNewlineCount,
+            L"Simple error should be single line (no newlines)");
       }
 };
 };

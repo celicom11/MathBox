@@ -120,7 +120,11 @@ public:
       //parse document
       if(bOk)
          bOk = m_MathBox.Parse(sDocUtf8);
-      _ASSERT(bOk);
+      if(!bOk) {
+         string sErr = m_MathBox.LastError().sError;
+         MessageBoxA(nullptr, sErr.c_str(), "Error", MB_OK | MB_ICONERROR);
+         return E_FAIL;
+      }
       ShowWindow(m_hwnd, SW_SHOWNORMAL);
       UpdateWindow(m_hwnd);
       return S_OK;

@@ -10,7 +10,7 @@ bool CMathClassBuilder::CanTakeCommand(PCSTR szCmd) const {
    string sCmd(szCmd);
    return (sCmd == "mathord" || sCmd == "mathop" || sCmd == "mathbin" ||
       sCmd == "mathrel" || sCmd == "mathopen" || sCmd == "mathclose" ||
-      sCmd == "mathpunct" || sCmd == "ensuremath");
+      sCmd == "mathpunct");
 
 }
 CMathItem* CMathClassBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
@@ -35,7 +35,8 @@ CMathItem* CMathClassBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pPars
    else if (sCmdStr == "mathpunct")
       eClass = etaPUNCT;
    else {
-      pParser->SetError("Unknown class command: \\" + sCmdStr);
+      _ASSERT(0); //snbh!
+      pParser->SetError("Unknown mathclass command: \\" + sCmdStr);
       return nullptr;
    }
    CMathItem* pItem = pParser->ConsumeItem(elcapFig, pParser->GetContext());

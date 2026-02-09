@@ -63,7 +63,7 @@ void CTexParser::SetError(int nTkIdx, const string& sError) {
       }
    }
    else {
-      // Main document parsing - find all related expanded tokens
+      // Main document parsing - show the actual expanded text
       const int nRefIdx = pToken->nRefIdx;
       
       // Map error position from expanded tokens to original user input
@@ -73,22 +73,27 @@ void CTexParser::SetError(int nTkIdx, const string& sError) {
          m_Error.nEndPos = tkOrig.nPos + tkOrig.nLen;
       }
       
-      // Find min/max positions in macro text for all tokens with same nRefIdx
-      int nMinPos = INT_MAX;
-      int nMaxPos = 0;
+      // Find first (TkStart) and last (TkEnd) tokens with this nRefIdx in m_vTokens
+      int nTkStart = -1;
+      int nTkEnd = -1;
       
-      for (const STexToken& tk : m_vTokens) {
-         if (tk.nRefIdx == nRefIdx) {
-            nMinPos = min(nMinPos, tk.nPos);
-            nMaxPos = max(nMaxPos, tk.nPos + tk.nLen);
+      for (int i = 0; i < (int)m_vTokens.size(); ++i) {
+         if (m_vTokens[i].nRefIdx == nRefIdx) {
+            if (nTkStart == -1) nTkStart = i;
+            nTkEnd = i;
          }
       }
       
-      // Extract expanded macro text
-      if (nMinPos != INT_MAX && nMaxPos > nMinPos) {
-         const string& sMacrosText = m_MacrosMgr.getMacrosText();
-         if (nMinPos >= 0 && nMaxPos <= (int)sMacrosText.size()) {
-            string sExpandedText = sMacrosText.substr(nMinPos, nMaxPos - nMinPos);
+      // Build expanded text from ALL tokens between TkStart and TkEnd (inclusive)
+      // This includes both macro-expanded tokens (nRefIdx > 0) and 
+      // user-input tokens (nRefIdx == 0) like "1^2" in the example
+      if (nTkStart >= 0 && nTkEnd >= nTkStart) {
+         string sExpandedText;
+         for (int i = nTkStart; i <= nTkEnd; ++i) {
+            sExpandedText += TokenText(i);
+         }
+         
+         if (!sExpandedText.empty()) {
             sDetailedError += "\n  Expanded macro: " + sExpandedText;
          }
       }

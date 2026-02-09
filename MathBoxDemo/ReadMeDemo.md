@@ -271,14 +271,47 @@ void OnPaint() {
 
 ### Error Handling
 
+The parser provides detailed error messages with context information. When a parsing error occurs, the error message follows a structured format:
+
+**Simple Error (no macro expansion):**
+```
+Unknown command '\undefined'
+```
+
+**Error in Macro Expansion (3-line format):**
+```
+Line 1: Main error message
+Line 2:   Expanded macro: <actual expanded text>
+Line 3:   from macro file(s): <filename(s)>
+```
+
+**Example - Error in nested macro expansion:**
+```
+Missing argument for '\frac' command
+  Expanded macro: \sqrt{\frac{x^2}}
+  from macro file(s): Macros.mth
+```
+
+This format helps identify:
+1. **What went wrong** - The primary error
+2. **What was being processed** - The actual expanded text (not the macro definition)
+3. **Where it came from** - Which macro file(s) were involved
+
+**Note:** The expanded text on line 2 includes:
+- Tokens from macro definitions (e.g., `\sqrt`, `\frac`)
+- Tokens from user input (e.g., `x^2` passed as argument)
+- All intermediate expansion results
+
+**Implementation:**
+
 ```cpp
 if (!mathBox.Parse(latex)) {
    const SMathBoxError& error = mathBox.LastError();
    
    // Error information
-   string message = error.sError;        // Error message
-   int startPos = error.nStartPos;       // Error start position
-   int endPos = error.nEndPos;           // Error end position
+   string message = error.sError;        // Multi-line error message
+   int startPos = error.nStartPos;       // Error start position (in original input)
+   int endPos = error.nEndPos;           // Error end position (in original input)
    EnumParsingStage stage = error.eStage; // Parsing stage
    
    // Display error
@@ -286,8 +319,26 @@ if (!mathBox.Parse(latex)) {
    MessageBox(nullptr, wMsg.c_str(), L"Parse Error", MB_OK | MB_ICONERROR);
    
    // Optional: Highlight error position in editor
+   // Note: nStartPos/nEndPos always refer to the original user input,
+   // even when the error occurred in expanded macro text
    // ...
 }
+```
+
+**Error Position Mapping:**
+
+The `nStartPos` and `nEndPos` fields always refer to positions in the **original user input**, not the expanded text:
+
+```latex
+% User input: $$\outer{1}$$
+% Where \outer expands to nested macros
+
+% If error occurs in expanded text: \sqrt{\ensuremat\frac{1^2}{2}}
+% nStartPos/nEndPos point to "\outer{1}" in original input
+% Error message shows both:
+%   - Original position (for highlighting in editor)
+%   - Expanded text (for understanding what went wrong)
+```
 ```
 
 ### Parsing Stages
