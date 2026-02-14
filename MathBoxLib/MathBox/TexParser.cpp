@@ -57,10 +57,8 @@ void CTexParser::SetError(int nTkIdx, const string& sError) {
       // Building macros stage - tokens are in CMacroProcessor
       string sMacroFile;
       int nPosInFile = 0;
-      
-      if (m_MacrosMgr.getTokenSource(*pToken, nPosInFile, sMacroFile)) {
-         sDetailedError += "\n  from macro file: " + sMacroFile;
-      }
+      if (m_MacrosMgr.getTokenSource(*pToken, nPosInFile, sMacroFile))
+         sDetailedError += "\nPosition [" + std::to_string(nPosInFile) + "] in macro file: " + sMacroFile;
    }
    else {
       // Main document parsing - show the actual expanded text
@@ -94,7 +92,7 @@ void CTexParser::SetError(int nTkIdx, const string& sError) {
          }
          
          if (!sExpandedText.empty()) {
-            sDetailedError += "\n  Expanded macro: " + sExpandedText;
+            sDetailedError += "\nExpanded macro: " + sExpandedText;
          }
       }
       
@@ -103,16 +101,15 @@ void CTexParser::SetError(int nTkIdx, const string& sError) {
       for (const STexToken& tk : m_vTokens) {
          if (tk.nRefIdx == nRefIdx) {
             string sFile;
-            int nPos;
-            if (m_MacrosMgr.getTokenSource(tk, nPos, sFile)) {
+            int nPosInFile;
+            if (m_MacrosMgr.getTokenSource(tk, nPosInFile, sFile))
                setFiles.insert(sFile);
-            }
          }
       }
       
       // Format macro file(s) line
       if (!setFiles.empty()) {
-         sDetailedError += "\n  from macro file(s): ";
+         sDetailedError += "\nfrom macro file(s): ";
          bool bFirst = true;
          for (const string& sFile : setFiles) {
             if (!bFirst) sDetailedError += ", ";
@@ -346,7 +343,7 @@ bool CTexParser::BuildGroups() {
                }
                //const STexToken* pTknOpenEnv = GetToken(vGroupStarts.back() + 2);
                if (TokenText(vGroupStarts.back() + 2) != TokenText(nIdx + 2)) {
-                  SetError(nIdx + 2, "Unmatched environment name'" + TokenText(nIdx + 2) + "' afetr \\end");
+                  SetError(nIdx + 2, "Unmatched environment name in '\\end{" + TokenText(nIdx + 2) + "}'");
                   return false;
                }
             }

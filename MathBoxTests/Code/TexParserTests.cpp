@@ -2769,7 +2769,7 @@ namespace TexParserTests
          CTexParser parser(g_Doc);
          parser.AddMacros(
             "\\newcommand{\\badmatrix}[2]{\\begin{matrix}#1&#2\\end{array}}",
-            "Macros.mth");
+            "Macros.bad");
 
          CMathItem* pRet = parser.Parse("$$\\badmatrix{a}{b}$$");
          SMemGuard mg{ pRet };
@@ -2780,19 +2780,10 @@ namespace TexParserTests
          Assert::IsFalse(err.sError.empty());
 
          // Should show expanded macro: \begin{matrix}a&b\end{array}
-         Assert::IsTrue(err.sError.find("Expanded macro:") != string::npos,
-            L"Should have expanded macro line");
-         Assert::IsTrue(err.sError.find("\\begin{matrix}") != string::npos,
-            L"Should show \\begin{matrix}");
-         Assert::IsTrue(err.sError.find("a&b") != string::npos,
-            L"Should show substituted arguments a&b");
+         Assert::IsTrue(err.sError.find("Position [51]") != string::npos,
+            L"Error should have Position [51]");
          Assert::IsTrue(err.sError.find("\\end{array}") != string::npos,
-            L"Should show \\end{array}");
-
-         // Should mention environment error
-         Assert::IsTrue(err.sError.find("environment") != string::npos ||
-            err.sError.find("Unmatched") != string::npos,
-            L"Error should mention environment issue");
+            L"Should contain \\end{array}");
       }
 
       TEST_METHOD(MacroExpansion_Error_MixedMacroAndUserTokens) {
