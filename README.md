@@ -74,7 +74,7 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 **✅ Fully Implemented:**
 - Comprehensive LaTeX tokenizer with error reporting
 - Macro system with nesting and parameter substitution
-- Math mode (`$...$`, `$$...$$`) and text mode
+- Math (`$...$`, `$$...$$`) and Text modes
 - Fractions, radicals, superscripts/subscripts
 - Accents, delimiters, operators
 - Overlay/decoration commands (`\boxed`, `\underline`, `\cancel`)
@@ -84,7 +84,7 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 
 ## Current Status
 
-**Version: 1.0-beta** (February 2026)
+**Version: 1.1-beta** (February 2026)
 
 ### Library Status: ✅ Production-Ready
 - **Platform-independent**: Pure C++14/STL, no OS dependencies
@@ -98,22 +98,18 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 ### Demo Application Status: 🚧 Reference Implementation
 - Demonstrates integration patterns
 - Limited to small documents (no scrolling)
-- Not intended as end-user application
-
-### What's New in Beta
-- Comprehensive macro expansion with nested support
-- Enhanced error reporting with source tracking
-- Extensive dimension parsing (all TeX units)
-- Robust delimiter and environment handling
-- Production-tested C-ABI interface
+- Just for testing macros/LaTex scripts
 
 ### Known Limitations
-- Windows-only (DirectWrite renderer)
+- No automatic line breaking (planned for v1.x)
+- No automatic inter-word layout/spacing (planned for v1.x)
+- No color text support (planned for v1.x)
+- Single "Latin Modern Math" math font
+- No unicode/utf8 input
 - No multi-line equation environments yet
-- No color text support
-- Selection/copy features planned for v2.0
+- Selection/copy (planned for v2.0)
 
-### Roadmap to [1.x] Final - Q2 2026
+### Roadmap to [1.x] Final - Q2/Q3 2026
 - [ ] Community feedback from beta testing
 - [ ] Bug fixes and stability improvements
 - [ ] Documentation refinements
