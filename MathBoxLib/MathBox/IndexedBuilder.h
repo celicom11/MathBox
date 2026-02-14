@@ -5,5 +5,5 @@
 class CIndexedBuilder {
 public:
    static CMathItem* _BuildIndexed(const CMathStyle& style, float fUserScale,
-                                 CMathItem* pBase, CMathItem* pSupers, CMathItem* pSubs);
+                                 CMathItem* pBaseOrig, CMathItem* pSupers, CMathItem* pSubs);
 };

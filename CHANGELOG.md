@@ -5,6 +5,36 @@ All notable changes to MathBox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1-beta] - 2026-02-14
+
+### Improved
+- **Error Reporting**: Enhanced macro expansion error messages
+  - Now shows actual expanded text instead of macro definitions
+  - 3-line structured format for macro errors:
+    ```
+    Main error message
+      Expanded macro: <actual expanded text>
+      from macro file(s): <filename(s)>
+    ```
+  - Position tracking (nStartPos/nEndPos) correctly maps to original user input
+  - Nested macro expansions display full expansion chain including user arguments
+  - Example: `\outer{1}` → `\sqrt{\ensuremat\frac{1^2}{2}}` shows complete context
+- **Fixes**: 
+  - added line-breaks support in text groups
+  - improved sub/superscript spacing
+  - removed extra space on new-lines
+
+### Changed
+- Updated documentation (ReadMeDemo.md) with comprehensive error handling examples
+- Added 8 new unit tests for macro expansion error scenarios
+
+### Technical
+- Refactored `CTexParser::SetError()` to build expanded text from token stream
+- Fixed bug where macro definition was shown instead of actual expansion
+- Improved error context for deeply nested macro expansions
+
+---
+
 ## [1.0-beta] - 2026-02-07
 
 First public beta release of MathBoxLib.
@@ -47,24 +77,24 @@ First public beta release of MathBoxLib.
 
 ## [Unreleased]
 
-### Planned for [1.0] - Q2 2026
+### Planned for [1.2+] - Q2 2026
 - Bug fixes from community testing
-
+- Auto line breaking
+- Auto glue sizing/inter-word spacing. 
 ### Planned for [2.0] - 2027
+- Color text support
+- Bra-ket notation
+- Extensible arrows
 - Selection and copy-to-clipboard support
 - Basic multi-line environment support
 - Enhanced logging/debugging support
   - Add `traceLog` callback to `MB_DocParams` (at end of structure)
   - Diagnostic output for complex parsing scenarios
-- Additional error recovery modes
 - **ABI Version**: Will increment to 2 (indicates new features available)
 - **Backward Compatible**: Old v1.0 clients continue working with v2.0 DLL
 
 ### Future (v2.1+)
 - Multi-line equation environments (`equation`, `align`, `gather`)
-- Color text support
-- Bra-ket notation
-- Extensible arrows
 - siunitx package support
 - Additional fonts beyond Latin Modern Math
 - Cross-platform renderers (FreeType, Skia, etc.)
@@ -79,62 +109,7 @@ First public beta release of MathBoxLib.
 
 ### ABI Version Policy
 - ABI version = MAJOR version number
-- **Backward compatibility guaranteed**: Old clients work with newer DLL
+- **Backward compatibility guaranteed**: Old clients work with newer DLLs
 - New fields added at END of structures (never in middle or remove existing)
 - Clients can check `MBI_API::abi_version` to detect available features
 
----
-
-## Upgrade Guide
-
-### From v1.0 to v2.0 (Backward Compatible Enhancement)
-
-**ABI Version Changes**: `abi_version` increments from 1 to 2
-
-**Old v1.0 Clients:**
-- ? **No changes required** - continues working with v2.0 DLL
-- Simply replace `MathBoxLib.dll` - no recompilation needed
-- New features (like `traceLog`) ignored automatically
-
-**New v2.0 Clients (to use new features):**
-1. Update `MathBox_CAPI.h` header
-2. Recompile against new header
-3. Initialize new fields (e.g., `traceLog` callback)
-
-**Example:**
-```cpp
-// v1.0 client code (still works with v2.0 DLL!)
-MB_DocParams params = {};
-params.size_bytes = sizeof(MB_DocParams);  // Library detects v1.0 client
-params.font_size_pts = 24.0f;
-params.font_mgr = myFontManager;
-// ... v1.0 fields only
-// No traceLog field - library handles gracefully
-
-// v2.0 client code (uses new features)
-MB_DocParams params = {};
-params.size_bytes = sizeof(MB_DocParams);  // Library detects v2.0 client  
-params.font_size_pts = 24.0f;
-params.font_mgr = myFontManager;
-params.traceLog = MyTraceLogCallback;  // NEW in v2.0 - optional!
-// ... other fields
-```
-
-**Feature Detection at Runtime:**
-```cpp
-const MBI_API* pAPI = MB_GetApi();
-
-if (pAPI->abi_version >= 2) {
-   // v2.0+ features available (selection, tracing, etc.)
-   // Can use traceLog callback
-} else {
-   // v1.0 features only
-}
-```
-
-**Backward Compatibility Policy:**
-- ? New fields always added at END of structures
-- ? Existing fields never removed or reordered
-- ? Function signatures never changed
-- ? Old return codes/enums remain valid
-- ? Never require recompilation of old clients

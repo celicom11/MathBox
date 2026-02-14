@@ -94,7 +94,8 @@ CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord
 
    SMathFontStyle mfStyle;
    PCSTR szFontCmd = (ctx.sFontCmd.empty() ? "mathnormal" : ctx.sFontCmd.c_str());
-   _ASSERT_RET(FontStyleHelper::_GetMathFontStyle(szFontCmd, mfStyle), nullptr);
+   if (!FontStyleHelper::_GetMathFontStyle(szFontCmd, mfStyle))
+      FontStyleHelper::_GetMathFontStyle("mathnormal", mfStyle); //fallback
    if(bNumber && (ctx.sFontCmd == "mathbfit" || ctx.sFontCmd == "mathsfit" || ctx.sFontCmd == "mathssit"))
       mfStyle.nLetterDigitsFont = FONT_LMM; //use upright digits with these math fonts!
    if (sWord.size() == 1 && !isalnum(sWord[0]) && sWord[0] !='[' && sWord[0] != ']') {

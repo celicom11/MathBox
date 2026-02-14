@@ -4,6 +4,18 @@
 #include "WordItem.h"
 
 namespace {
+   // Helper to get the actual base/nucleus for positioning calculations
+   CMathItem* _GetNucleusForScriptPosition(CMathItem* pBase) {
+      // For accented items, find the innermost base (nucleus)
+      CMathItem* pNucleus = pBase;
+      while (pNucleus->Type() == eacACCENT || pNucleus->Type() == eacOVERUNDER) {
+         CContainerItem* pCont = static_cast<CContainerItem*>(pNucleus);
+         if (pCont->Items().empty())
+            break;
+         pNucleus = pCont->Items().front(); // First item is always the base
+      }
+      return pNucleus;
+   }
    int32_t _GetSuperscriptShiftUp(CMathItem* pBase, bool bCramped, float fScale, const STexBox& boxSuper) {
       int32_t nSuperShiftUp;
       if(pBase->Type() != eacWORD || pBase->UserScale()!=1.0f) //kernel is a boxed formula or LargeOP
@@ -37,14 +49,16 @@ namespace {
    }
 }
 
-CMathItem* CIndexedBuilder::_BuildIndexed(const CMathStyle& style, float fUserScale, CMathItem* pBase, 
+CMathItem* CIndexedBuilder::_BuildIndexed(const CMathStyle& style, float fUserScale, CMathItem* pBaseOrig, 
                                           CMathItem* pSupers, CMathItem* pSubs) {
-   _ASSERT_RET(pBase && (pSupers || pSubs), nullptr);
+   _ASSERT_RET(pBaseOrig && (pSupers || pSubs), nullptr);
    float fScale = fUserScale * style.StyleScale();
-   CContainerItem* pRetBox = new CContainerItem(pBase->Doc(), eacINDEXED, style);
-   pRetBox->AddBox(pBase, 0, 0);
+   CContainerItem* pRetBox = new CContainerItem(pBaseOrig->Doc(), eacINDEXED, style);
+   pRetBox->AddBox(pBaseOrig, 0, 0);
    uint16_t nItalicCorrection = 0;
-   //bool bBaseIsSym = false; //not in use?
+   // Get nucleus for italic correction calculation
+   CMathItem* pBase = _GetNucleusForScriptPosition(pBaseOrig);
+
    if (pBase->Type() == eacWORD || pBase->Type() == eacBIGOP) {
       CWordItem* pWordItem = static_cast<CWordItem*>(pBase);
       uint32_t nGCount = pWordItem->GlyphCount();
@@ -57,42 +71,42 @@ CMathItem* CIndexedBuilder::_BuildIndexed(const CMathStyle& style, float fUserSc
    int32_t nSuperShiftUp = 0;
    int32_t nSuperDX, nSuperDY;
    if (pSupers) {
-      if (pBase->IndexPlacement() == eipOverscript || pBase->IndexPlacement() == eipOverUnderscript) {
+      if (pBaseOrig->IndexPlacement() == eipOverscript || pBaseOrig->IndexPlacement() == eipOverUnderscript) {
          //Overscript/UpperLimit
-         nSuperDX = (nItalicCorrection + pBase->Box().Width() - pSupers->Box().Width())/2;
-         nSuperDY = pBase->Box().BaselineY() + F2NEAREST(otfUpperLimitGapMin * fScale) + 
+         nSuperDX = (nItalicCorrection + pBaseOrig->Box().Width() - pSupers->Box().Width())/2;
+         nSuperDY = pBaseOrig->Box().BaselineY() + F2NEAREST(otfUpperLimitGapMin * fScale) + 
             pSupers->Box().Height(); //q&d
       }
       else {
-         nSuperDX = pBase->Box().Right();
+         nSuperDX = nItalicCorrection + pBase->Box().Right();
          nSuperShiftUp = _GetSuperscriptShiftUp(pBase, style.IsCramped(), fScale, pSupers->Box());
          nSuperDY = nSuperShiftUp + pSupers->Box().Ascent();
       }
    }
    if (pSubs) {
       int32_t nSubDX, nSubDY;
-      if (pBase->IndexPlacement() == eipUnderscript || pBase->IndexPlacement() == eipOverUnderscript) {
+      if (pBaseOrig->IndexPlacement() == eipUnderscript || pBaseOrig->IndexPlacement() == eipOverUnderscript) {
          //Underscript/BottomLimit
-         nSubDX = (-nItalicCorrection + pBase->Box().Width() - pSubs->Box().Width()) / 2;;
-         nSubDY = pBase->Box().Bottom() - pBase->Box().BaselineY() + F2NEAREST(otfLowerLimitGapMin * fScale); //q&d
+         nSubDX = (-nItalicCorrection + pBaseOrig->Box().Width() - pSubs->Box().Width()) / 2;
+         nSubDY = pBaseOrig->Box().Bottom() - pBaseOrig->Box().BaselineY() + F2NEAREST(otfLowerLimitGapMin * fScale); //q&d
       }
       else {
-         nSubDX = pBase->Box().Right() - nItalicCorrection;
+         nSubDX = pBase->Box().Right() - nItalicCorrection/2;
          _GetSubscriptRelPos(pBase, fScale, pSubs->Box(), pSupers ? &pSupers->Box() : nullptr,
                               nSubDY, nSuperShiftUp);
          if (pSupers)
             nSuperDY = nSuperShiftUp + pSupers->Box().Ascent();//corrected
       }
-      pRetBox->AddBox(pSubs, nSubDX, pBase->Box().BaselineY() + nSubDY);
+      pRetBox->AddBox(pSubs, nSubDX, pBaseOrig->Box().BaselineY() + nSubDY);
    }
    if (pSupers)
-      pRetBox->AddBox(pSupers, nSuperDX, pBase->Box().BaselineY() - nSuperDY);
-   bool bAddSpace = pSupers && pBase->IndexPlacement() != eipOverscript && pBase->IndexPlacement() != eipOverUnderscript;
+      pRetBox->AddBox(pSupers, nSuperDX, pBaseOrig->Box().BaselineY() - nSuperDY);
+   bool bAddSpace = pSupers && pBaseOrig->IndexPlacement() != eipOverscript && pBaseOrig->IndexPlacement() != eipOverUnderscript;
    if(!bAddSpace)
-      bAddSpace = pSubs && pBase->IndexPlacement() != eipUnderscript && pBase->IndexPlacement() != eipOverUnderscript;
+      bAddSpace = pSubs && pBaseOrig->IndexPlacement() != eipUnderscript && pBaseOrig->IndexPlacement() != eipOverUnderscript;
    if(bAddSpace)
       pRetBox->AddWidth(F2NEAREST(otfSpaceAfterScript * fScale));
    pRetBox->NormalizeOrigin(0, 0);
-   pRetBox->SetAtom(pBase->AtomType());
+   pRetBox->SetAtom(pBaseOrig->AtomType());
    return pRetBox;
 }

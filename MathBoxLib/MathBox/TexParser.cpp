@@ -222,14 +222,18 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
    case ettSB_OPEN: bCanBeEmpty = false; break;
    case ettFB_OPEN:bCanBeEmpty = true; break;
    case ett$$:
+      ctxG.sFontCmd.clear(); //do not use text-font in MATH mode!
       ctxG.currentStyle = etsDisplay;
       ctxG.bDisplayFormula = true;
       ctxG.bTextMode = false; //math display mode
+      ctxG.bNoNewLines = true;
       bCanBeEmpty = false;
       break;
    case ett$:
+      ctxG.sFontCmd.clear(); //do not use text-font in MATH mode!
       ctxG.currentStyle = etsText;
       ctxG.bTextMode = false; //math inline mode
+      ctxG.bNoNewLines = true;
       bCanBeEmpty = false;
       break;
    case ettCOMMAND: {
@@ -239,8 +243,10 @@ bool CTexParser::OnGroupOpen_(int nTkIdx, IN OUT SParserContext& ctxG,
             SetError(nTkIdx, "Inner \\[...\\] are not allowed in math mode");
             return false;
          }
+         ctxG.sFontCmd.clear(); //do not use text-font in MATH mode!
          ctxG.currentStyle = etsDisplay;
          ctxG.bDisplayFormula = true;
+         ctxG.bNoNewLines = true;
          ctxG.bTextMode = false; //math mode
          bCanBeEmpty = false;
       }

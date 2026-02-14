@@ -180,10 +180,11 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   ProcessFontSizeCmd_(nIdxG, ctxG);
                else if (_isNewlineCommand(sCmd)) {
                   ++nIdxG;
-                  if (!ctxG.bDisplayFormula) {
+                  if (!ctxG.bNoNewLines) {
                      vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                      vGroupItems.back().InitNewLine();
                   }
+                  //else TraceLog("ignoring NewLine token!");
                }
                else if (sCmd == "\\middle" && ctxG.bInLeftRight) {
                   nCurTokenIdx = ++nIdxG;//skip to delimiter

@@ -116,14 +116,14 @@ CMathItem* CVBoxBuilder::BuildFromParser(PCSTR szCmd, IParserAdapter* pParser) {
       // ~= subarray{c}
       SParserContext ctxArg(ctx);
       ctxArg.currentStyle.ToSuperscriptStyle();
-
+      ctxArg.bNoNewLines = false;
       CMathItem* pArg = pParser->ConsumeItem(elcapFig, ctxArg);
       if (!pArg) {
          if (!pParser->HasError())
             pParser->SetError("Missing {arg} for command '\\substack'");
          return nullptr;
       }
-      if (pArg->Type() != eacLINES) {
+      if (pArg->Type() != eacLINES && pArg->Type() != eacTEXTLINES) {
          _ASSERT(0); //snbh 
          if (!pParser->HasError())
             pParser->SetError("Unexpected type of the {arg} for command '\\substack'");

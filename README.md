@@ -113,7 +113,7 @@ This project requires deep understanding of $\TeX$ and OpenType font typesetting
 - No color text support
 - Selection/copy features planned for v2.0
 
-### Roadmap to [1.0] Final - Q2 2026
+### Roadmap to [1.x] Final - Q2 2026
 - [ ] Community feedback from beta testing
 - [ ] Bug fixes and stability improvements
 - [ ] Documentation refinements

@@ -61,6 +61,7 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx
       if(ctx.currentStyle.Style() < etsScript)
          ctx.currentStyle.ToSubscriptStyle();
    }
+   ctx.bNoNewLines = false; //we process new-lines in the environments!
    return true;
 }
 bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {

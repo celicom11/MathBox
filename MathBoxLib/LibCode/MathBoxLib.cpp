@@ -150,7 +150,7 @@ static uint32_t mathItemLineCount_impl(MB_MathItem item) {
    }
    CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
    uint32_t lines = 1;
-   if (pItem->Type() == eacLINES) {
+   if (pItem->Type() == eacLINES || pItem->Type() == eacTEXTLINES) {
       CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
       lines = (uint32_t)pVBOX->Items().size();
    }
@@ -186,7 +186,7 @@ static MB_RET mathItemDrawLines_impl(MB_MathItem item, float x, float y,
       return MB_BADPARAM;
    }
    CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
-   if (line_start >= 0 && pItem->Type() == eacLINES) {
+   if (line_start >= 0 && (pItem->Type() == eacLINES || pItem->Type() == eacTEXTLINES)) {
       CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
       if (line_end >= (int32_t)pVBOX->Items().size()) {
          _sGlobalError = "line_end is out of range";
@@ -255,7 +255,7 @@ static MB_RET mathItemGetLineBox_impl(MB_MathItem item, int32_t line,
    }
    CMathItem* pItem = reinterpret_cast<CMathItem*>(item);
    STexBox box;
-   if (line >= 0 && pItem->Type() == eacLINES) {
+   if (line >= 0 && (pItem->Type() == eacLINES || pItem->Type() == eacTEXTLINES)) {
       CContainerItem* pVBOX = static_cast<CContainerItem*>(pItem);
       if (line >= (int32_t)pVBOX->Items().size()) {
          _sGlobalError = "Line index is out of range";

@@ -92,6 +92,7 @@ enum EnumMathItemType {
    eacLINES,            // container item with multiple lines/HBOX-es
    eacRULE,             // rule/rectangle filler item
    eacOVERLAY,          // container item with a lines over an item
+   eacTEXTLINES,        // container item with multiple TEXT lines/HBOX-es which could be un-boxed/merged to parent Text box if needed
 };
 enum EnumIndexPlacement {
    eipStd = 0,           //default
@@ -300,6 +301,7 @@ struct SParserContext {
    bool        bInSubscript{ false };         // building atom's subscript
    bool        bInSuperscript{ false };       // building atom's superscript
    bool        bDisplayFormula{ false };      // centered on a separate line
+   bool        bNoNewLines{ false };          // ignore \\,\newline,\cr commands
    CMathStyle  currentStyle;                  // MATH mode style
    float       fUserScale{ 1.0f };            // User scaling factor
    float       fFontScale{ 1.0f };            // current font scaling factor, need in ApplyFontScale!
@@ -318,6 +320,7 @@ struct SParserContext {
       this->currentStyle = other.currentStyle;
       this->fUserScale = other.fUserScale;
       this->sFontCmd = other.sFontCmd;
+      this->bNoNewLines = other.bNoNewLines;
    }
    //helpers
    void SetInSubscript() {

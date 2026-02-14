@@ -4,9 +4,9 @@
 
 // Version information (MAJOR.MINOR format)
 #define MB_VERSION_MAJOR 1
-#define MB_VERSION_MINOR 0
+#define MB_VERSION_MINOR 1
 #define MB_VERSION_PRERELEASE "beta"  // Empty string for final releases
-#define MB_VERSION_STRING "1.0-beta"
+#define MB_VERSION_STRING "1.1-beta"
 
 // Helper macro for version comparisons
 #define MB_MAKE_VERSION(major, minor) ((major) * 100 + (minor))

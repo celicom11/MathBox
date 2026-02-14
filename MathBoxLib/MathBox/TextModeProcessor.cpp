@@ -124,8 +124,11 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                ProcessFontSizeCmd_(nIdxG, ctxG);
             else if (_isNewlineCommand(sCmd)) {
                ++nIdxG;
-               vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
-               vGroupItems.back().InitNewLine();
+               if (!ctxG.bNoNewLines) {
+                  vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
+                  vGroupItems.back().InitNewLine();
+               }
+               //else TraceLog("ignoring NewLine token!");
             }
             else
                m_Parser.SetError(nCurTokenIdx, "Unexpected command '" + sCmd +"'");
@@ -243,7 +246,22 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
             m_Parser.SetError(ritem.TkIdxStart(), "RawItem failed to build");
             return nullptr;
          }
-         vvLines.back().push_back(pItem);
+         if (!ctx.bNoNewLines && pItem->Type() == eacTEXTLINES) {
+            //UNBOX/MOVE LINES TO OUR CONTAINER
+            CContainerItem* pCnt = static_cast<CContainerItem*>(pItem);
+            _ASSERT(pCnt && !pCnt->Items().empty()); //snbh!
+            
+            //append first line 
+            vvLines.back().push_back(pCnt->Items().front());
+            for (int nLineIdx = 1; nLineIdx < (int)pCnt->Items().size(); ++nLineIdx) {
+               vvLines.emplace_back();             // goto new line
+               vvLines.back().push_back(pCnt->Items()[nLineIdx]);
+            }
+            pCnt->Clear(true); //do not delete child items!
+            delete pCnt;       //not needed: all items moved out
+         }
+         else
+            vvLines.back().push_back(pItem);
       }
    } //for
    //pack lines to HBoxes
@@ -267,7 +285,7 @@ CMathItem* CTextModeProcessor::PackGroupItems_(vector<CRawItem>& vGroupItems, co
    parserAdapter.GetLength("MinLineskipRatio", fMinLineskipRatio);
    const int32_t nBaselineskip = F2NEAREST(fLineskipRatio * ctx.EffectiveScale() * otfUnitsPerEm);
    const int32_t nMinLineskip = F2NEAREST(fMinLineskipRatio * ctx.EffectiveScale() * otfUnitsPerEm );
-   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), eacLINES, ctx.currentStyle);
+   CContainerItem* pRet = new CContainerItem(m_Parser.Doc(), (ctx.bNoNewLines ? eacLINES : eacTEXTLINES), ctx.currentStyle);
    for (const vector<CMathItem*>& vLine : vvLines) {
       if (vLine.empty()) {
          CMathItem* pStrut = new CRuleItem(m_Parser.Doc(), 0, otfUnitsPerEm, 3*otfUnitsPerEm/4, 

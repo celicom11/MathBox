@@ -22,7 +22,7 @@ namespace { //static helpers
    inline PCSTR _SkipSpaces(PCSTR szText, OUT int& nSpaces) {
       nSpaces = 0;
       while (_IsGAP(*szText) || _IsCRLF(*szText)) {
-         if(*szText != 'r') // sorry OLD-MAC users :/
+         if(*szText != '\r') // sorry OLD-MAC users :/
             ++nSpaces;
          ++szText;
       }
