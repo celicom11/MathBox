@@ -288,8 +288,16 @@
     <ClInclude Include="MathBox\MathStyleBuilder.h">
       <Filter>Builders</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMeLib.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MathBoxLib.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

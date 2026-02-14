@@ -190,6 +190,7 @@
     <ClInclude Include="MathBox\stdafx.h" />
     <ClInclude Include="LibCode\DocParamWrap.h" />
     <ClInclude Include="LibCode\MathBox_CAPI.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MathBox\AccentBuilder.cpp">
@@ -325,6 +326,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMeLib.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MathBoxLib.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
