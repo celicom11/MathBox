@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Tokenizer.h"
+#include "Utf8Helper.h"
 
 namespace { //static helpers
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
@@ -72,7 +73,21 @@ namespace { //static helpers
 }
 bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) {
    vTokens.clear();
+   for (size_t nPos = 0; nPos < m_sText.size();) {
+      const size_t nStart = nPos;
+      uint32_t nUnicode = 0;
+      if (!Utf8Helper::_DecodeNext(m_sText, nPos, nUnicode) || nUnicode == 0) {
+         STexToken tkError;
+         tkError.nPos = (int32_t)nStart;
+         tkError.nLen = 1;
+         err.SetError(m_bIsMacroText ? epsTOKENIZINGMACROS : epsTOKENIZING,
+                      tkError, "Invalid UTF-8 input");
+         return false;
+      }
+   }
    PCSTR szPos = m_sText.c_str();
+   if (m_sText.compare(0, 3, "\xEF\xBB\xBF") == 0)
+      szPos += 3; // optional source BOM; positions still refer to original bytes
    while (1) {
       STexToken token;
       if(m_bIsMacroText)
@@ -191,6 +206,20 @@ bool CTokenizer::Tokenize(OUT vector<STexToken>& vTokens, OUT ParserError& err) 
             ++szPos;
          }
          token.nType = ettALNUM;
+      }
+      else if ((uint8_t)*szPos >= 0x80) {
+         token.nType = ettUTF8;
+         size_t nPos = (size_t)(szPos - m_sText.c_str());
+         do {
+            uint32_t nUnicode = 0;
+            Utf8Helper::_DecodeNext(m_sText, nPos, nUnicode); // validated above
+         } while (nPos < m_sText.size() && (uint8_t)m_sText[nPos] >= 0x80);
+         if (nPos - token.nPos > UINT16_MAX) {
+            token.nLen = 1;
+            err.SetError(epsTOKENIZING, token, "UTF-8 token exceeds maximum byte length");
+            return false;
+         }
+         szPos = m_sText.c_str() + nPos;
       }
       else if(m_bIsMacroText && *szPos == '#') {
          //macro parameter in macro text

@@ -44,7 +44,7 @@ class CTableItem : public CMathItem {
 public:
 //CTOR/INIT
    CTableItem() = delete;
-   CTableItem(IParserAdapter& parser, const CMathStyle& style) :
+   CTableItem(IParserAdapter& parser, const CMathStyle& style, bool bTextCells = false) :
       CMathItem(parser.Doc(), eacTABLE, style) {
       m_eAtom = etaORD;
       float fLength;
@@ -52,7 +52,12 @@ public:
          m_nMinAscent = PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);
       if (parser.GetLength("arraystrutdepth", fLength))
          m_nMinDescent = PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);
-      if(parser.GetLength("arraycolsep", fLength))
+      if (bTextCells) {
+         fLength = 6.0f; // LaTeX tabular default, in points per column side
+         parser.GetLength("tabcolsep", fLength);
+         m_nColSep = 2 * PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);
+      }
+      else if(parser.GetLength("arraycolsep", fLength))
          m_nColSep = PTS2EM(parser.Doc().DefaultFontSizePts(),fLength);
       if (parser.GetLength("extrarowheight", fLength))
          m_nRowSep = PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);

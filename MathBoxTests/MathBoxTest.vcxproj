@@ -164,6 +164,7 @@
     <ClCompile Include="..\MathBoxLib\MathBox\BoxCmdBuilder.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\DimensionParser.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\EnvHelper.cpp" />
+    <ClCompile Include="..\MathBoxLib\MathBox\EmojiCmdBuilder.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\ExtGlyphBuilder.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\FractionBuilder.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\GlueItem.cpp" />
@@ -199,6 +200,8 @@
     <ClCompile Include="..\MathBoxLib\MathBox\WordItem.cpp" />
     <ClCompile Include="..\MathBoxLib\MathBox\WordItemBuilder.cpp" />
     <ClCompile Include="Code\D2DFontManager.cpp" />
+    <ClCompile Include="Code\CapiTests.cpp" />
+    <ClCompile Include="Code\Utf8Tests.cpp" />
     <ClCompile Include="Code\GlueFactoryTests.cpp" />
     <ClCompile Include="Code\GlueItemTests.cpp" />
     <ClCompile Include="Code\HBoxItemTests.cpp" />

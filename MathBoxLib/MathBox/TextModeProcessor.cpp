@@ -18,6 +18,7 @@
 #include "OverlayBuilder.h"
 #include "VarCmdBuilder.h"
 #include "MathStyleBuilder.h"
+#include "EmojiCmdBuilder.h"
 
 
 
@@ -56,6 +57,7 @@ CTextModeProcessor::CTextModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new COverlayBuilder);
    RegisterBuilder(new CVarCmdBuilder);
    RegisterBuilder(new CMathStyleBuilder);
+   RegisterBuilder(new CEmojiCmdBuilder);
 }
 CTextModeProcessor::~CTextModeProcessor() {
    for (IMathItemBuilder* pBuilder : m_vItemBuilders) {
@@ -80,7 +82,7 @@ CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
       pItem = new CGlueItem(m_Parser.Doc(), glueSpace, ctx.currentStyle, ctx.fUserScale);
       ++nIdx;
    }
-   else if( tkItem.nType == ettALNUM || tkItem.nType == ettNonALPHA || 
+   else if( tkItem.nType == ettALNUM || tkItem.nType == ettNonALPHA || tkItem.nType == ettUTF8 ||
             tkItem.nType == ettSB_OPEN || tkItem.nType == ettSB_CLOSE)
       pItem = BuildItemWordToken_(nIdx, ctx);
    else if (tkItem.nType == ettCOMMAND) { 
@@ -215,11 +217,11 @@ bool CTextModeProcessor::ProcessFontSizeCmd_(IN OUT int& nIdx, IN OUT SParserCon
 CMathItem* CTextModeProcessor::BuildItemWordToken_(IN OUT int& nIdx, const SParserContext& ctx) {
    const STexToken* pCurToken = GetToken(nIdx);
    _ASSERT_RET(pCurToken, nullptr);
-   _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA || 
+   _ASSERT_RET(pCurToken->nType == ettALNUM || pCurToken->nType == ettNonALPHA || pCurToken->nType == ettUTF8 ||
       pCurToken->nType == ettSB_OPEN || pCurToken->nType == ettSB_CLOSE, nullptr);
    string sText = TokenText(nIdx);
    //awkward solution for : single escape char
-   //consider emit single ettNonALPHA char in tokenozer!
+   //consider emit single ettNonALPHA char in tokenizer!
    if (sText[0] == '\\' && pCurToken->nType == ettNonALPHA && sText.size() == 2)
       sText = sText[1];
    CMathItem* pRet = CWordItemBuilder::_BuildText(m_Parser.Doc(), sText, ctx);

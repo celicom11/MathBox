@@ -7,6 +7,7 @@
 #include "D2DFontManager.h"
 #include "LMMFont.h"
 #include "MacroProcessor.h"
+#include "EnvHelper.h"
 
 static IDWriteFactory* g_pDWriteFactory = nullptr;
 static CD2DFontManager g_D2DFontManager;
@@ -70,6 +71,172 @@ namespace TexParserTests
       SafeRelease(&g_pDWriteFactory);
       g_pDWriteFactory = nullptr;
    }
+   TEST_CLASS(EnvHelperTests) {
+   public:
+      TEST_METHOD(Tabular_ColumnPaddingUsesTabcolsepIndependentlyOfArraycolsep) {
+         auto TableWidth = [](const char* szEnv, float fTabSep, float fArraySep) {
+            CTexParser parser(g_Doc);
+            parser.SetLength("tabcolsep", fTabSep);
+            parser.SetLength("arraycolsep", fArraySep);
+            string sInput = string("$$\\begin{") + szEnv + "}{l}a\\end{" + szEnv + "}$$";
+            CMathItem* pItem = parser.Parse(sInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNotNull(pItem);
+            return pItem->Box().Width();
+         };
+         const int32_t nWide = TableWidth("tabular", 6, 3);
+         const int32_t nNarrow = TableWidth("tabular", 2, 3);
+         const int32_t nExpected = 2 * (PTS2EM(g_Doc.DefaultFontSizePts(), 6.0f) -
+                                       PTS2EM(g_Doc.DefaultFontSizePts(), 2.0f));
+         Assert::AreEqual(nExpected, nWide - nNarrow);
+         Assert::AreEqual(nWide, TableWidth("tabular", 6, 9));
+         Assert::AreEqual(TableWidth("array", 6, 3), TableWidth("array", 2, 3));
+         Assert::AreEqual((int32_t)0, TableWidth("tabular", 0, 3) - (nNarrow - 2 * PTS2EM(g_Doc.DefaultFontSizePts(), 2.0f)));
+      }
+      TEST_METHOD(Tabular_DefaultPaddingIsSixPointsWithoutMacros) {
+         CTexParser parser(g_Doc);
+         CMathItem* pDefault = parser.Parse("$$\\begin{tabular}{l}a\\end{tabular}$$");
+         SMemGuard defaultGuard{ pDefault };
+         Assert::IsNotNull(pDefault);
+         parser.SetLength("tabcolsep", 6.0f);
+         CMathItem* pExplicit = parser.Parse("$$\\begin{tabular}{l}a\\end{tabular}$$");
+         SMemGuard explicitGuard{ pExplicit };
+         Assert::IsNotNull(pExplicit);
+         Assert::AreEqual(pDefault->Box().Width(), pExplicit->Box().Width());
+      }
+      TEST_METHOD(Tabular_MetadataPreservesMathDispatchAndInheritedStyle) {
+         CTexParser parser(g_Doc);
+         CMathItem* pItem = parser.Parse("$$\\begin{tabular}{|lcr||}a&b&c\\end{tabular}$$");
+         SMemGuard guard{ pItem };
+         Assert::IsNotNull(pItem);
+         CEnvHelper env;
+         SParserContext ctx;
+         ctx.currentStyle = CMathStyle(etsScript, true);
+         ctx.fUserScale = 1.25f;
+         ctx.bNoNewLines = true;
+         Assert::IsTrue(env.Init(parser, 1, ctx));
+         Assert::IsTrue(env.Enabled() && env.TextCells());
+         Assert::AreEqual(string("tabular"), env.GetEnvName());
+         Assert::IsFalse(ctx.bTextMode);
+         Assert::IsFalse(ctx.bNoNewLines);
+         Assert::AreEqual((int)etsScript, (int)ctx.currentStyle.Style());
+         Assert::IsTrue(ctx.currentStyle.IsCramped());
+         Assert::AreEqual(1.25f, ctx.fUserScale);
+         Assert::AreEqual((size_t)3, env.ColAlignments().size());
+         Assert::AreEqual((int)ecaLeft, (int)env.ColAlignments()[0]);
+         Assert::AreEqual((int)ecaCenter, (int)env.ColAlignments()[1]);
+         Assert::AreEqual((int)ecaRight, (int)env.ColAlignments()[2]);
+         Assert::AreEqual((size_t)4, env.VertLines().size());
+         Assert::AreEqual('|', env.VertLines()[0]);
+         Assert::AreEqual('d', env.VertLines()[3]);
+         Assert::AreEqual((char)0, env.LeftDelim());
+         Assert::AreEqual((char)0, env.RightDelim());
+         Assert::AreEqual(string("a"), parser.TokenText(env.GetStartTkIdx()));
+      }
+      TEST_METHOD(ColumnSpecs_CompactAndSpacedFormsPreserveBoundaryContract) {
+         const char* asSpecs[] = { "lcr", "l c r", "|l|c||r:", " l c r " };
+         for (const char* szSpec : asSpecs) {
+            CTexParser parser(g_Doc);
+            string sInput = string("$$\\begin{array} {") + szSpec + "}a&b&c\\end{array}$$";
+            CMathItem* pItem = parser.Parse(sInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNotNull(pItem);
+            CEnvHelper env;
+            SParserContext ctx;
+            Assert::IsTrue(env.Init(parser, 1, ctx));
+            Assert::IsFalse(env.TextCells());
+            Assert::AreEqual((size_t)3, env.ColAlignments().size());
+            Assert::AreEqual((size_t)4, env.VertLines().size());
+            Assert::AreEqual((int)etsText, (int)ctx.currentStyle.Style());
+            Assert::AreEqual(string("a"), parser.TokenText(env.GetStartTkIdx()));
+         }
+      }
+      TEST_METHOD(Tabular_RejectsTextModeAndMalformedPreambles) {
+         const char* asInputs[] = {
+            "\\begin{tabular}{l}a\\end{tabular}",
+            "$$\\begin{tabular}a\\end{tabular}$$",
+            "$$\\begin{tabular}{}a\\end{tabular}$$",
+            "$$\\begin{tabular}{|}a\\end{tabular}$$",
+            "$$\\begin{tabular}{x}a\\end{tabular}$$",
+            "$$\\begin{tabular}{|||l}a\\end{tabular}$$"
+         };
+         for (const char* szInput : asInputs) {
+            CTexParser parser(g_Doc);
+            CMathItem* pItem = parser.Parse(szInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNull(pItem);
+            Assert::IsTrue(parser.HasError());
+         }
+      }
+      TEST_METHOD(EnvHelper_ReinitializationClearsPreviousDelimitersAndColumns) {
+         CTexParser matrixParser(g_Doc);
+         CMathItem* pMatrix = matrixParser.Parse("$$\\begin{pmatrix}a\\end{pmatrix}$$");
+         SMemGuard matrixGuard{ pMatrix };
+         Assert::IsNotNull(pMatrix);
+         CTexParser tableParser(g_Doc);
+         CMathItem* pTable = tableParser.Parse("$$\\begin{tabular}{lr}a&b\\end{tabular}$$");
+         SMemGuard tableGuard{ pTable };
+         Assert::IsNotNull(pTable);
+         CEnvHelper env;
+         SParserContext ctx;
+         Assert::IsTrue(env.Init(matrixParser, 1, ctx));
+         Assert::AreEqual('(', env.LeftDelim());
+         Assert::IsTrue(env.Init(tableParser, 1, ctx));
+         Assert::IsTrue(env.TextCells());
+         Assert::AreEqual((size_t)2, env.ColAlignments().size());
+         Assert::AreEqual((char)0, env.LeftDelim());
+      }
+      TEST_METHOD(ExistingEnvironments_KeepTheirModesAndDelimiters) {
+         struct SEnvironment {
+            const char* szName;
+            const char* szColumns;
+            EnumTexStyle eStyle;
+            char cLeft, cRight;
+         };
+         const SEnvironment aEnvironments[] = {
+            { "array", "{l}", etsText, 0, 0 },
+            { "darray", "{l}", etsDisplay, 0, 0 },
+            { "matrix", "", etsDisplay, 0, 0 },
+            { "pmatrix", "", etsDisplay, '(', ')' },
+            { "bmatrix", "", etsDisplay, '[', ']' },
+            { "Bmatrix", "", etsDisplay, '{', '}' },
+            { "vmatrix", "", etsDisplay, '|', '|' },
+            { "Vmatrix", "", etsDisplay, 'd', 'd' },
+            { "cases", "", etsText, '{', 0 },
+            { "rcases", "", etsText, 0, '}' },
+            { "dcases", "", etsDisplay, '{', 0 },
+            { "drcases", "", etsDisplay, 0, '}' },
+            { "smallmatrix", "", etsScript, 0, 0 },
+            { "subarray", "{l}", etsScript, 0, 0 }
+         };
+         for (const SEnvironment& expected : aEnvironments) {
+            CTexParser parser(g_Doc);
+            string sInput = string("$$\\begin{") + expected.szName + "}" + expected.szColumns +
+               "a\\end{" + expected.szName + "}$$";
+            CMathItem* pItem = parser.Parse(sInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNotNull(pItem);
+            SParserContext ctx;
+            CEnvHelper env;
+            Assert::IsTrue(env.Init(parser, 1, ctx));
+            Assert::IsFalse(env.TextCells());
+            Assert::IsFalse(ctx.bTextMode);
+            Assert::AreEqual((int)expected.eStyle, (int)ctx.currentStyle.Style());
+            Assert::AreEqual(expected.cLeft, env.LeftDelim());
+            Assert::AreEqual(expected.cRight, env.RightDelim());
+         }
+      }
+      TEST_METHOD(Tabular_MissingColumnTokenReportsErrorWithoutDereference) {
+         CTexParser parser(g_Doc);
+         CMathItem* pItem = parser.Parse("\\begin{tabular}");
+         SMemGuard guard{ pItem };
+         parser.ClearError();
+         CEnvHelper env;
+         SParserContext ctx;
+         Assert::IsFalse(env.Init(parser, 0, ctx));
+         Assert::IsTrue(parser.LastError().sError.find("column specifications") != string::npos);
+      }
+   };
    TEST_CLASS(TexParserTests) {
    public:
       // Input: "$$x_a$$"

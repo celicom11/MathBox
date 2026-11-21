@@ -36,13 +36,13 @@ public:
    }
    bool GetFontIndices(int32_t nFontIdx, uint32_t nCount, const uint32_t* pUnicodes,
                         OUT uint16_t* pIndices) override {
-      return m_pDP->font_mgr.getFontIndices(nFontIdx, nCount, pUnicodes, pIndices);
+      return m_pDP->font_mgr.getFontIndices(m_pDP->font_mgr.context, nFontIdx, nCount, pUnicodes, pIndices);
    }
    bool GetGlyphRunMetrics(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
                            OUT SGlyphMetrics* pGlyphMetrics, OUT SBounds& bounds) override {
       vector<MB_GlyphMetrics> vGMetrics(nCount,{sizeof(MB_GlyphMetrics)});
       MB_Bounds mbBounds;
-      if (!m_pDP->font_mgr.getGlyphRunMetrics(nFontIdx, nCount, pIndices, vGMetrics.data(), &mbBounds))
+      if (!m_pDP->font_mgr.getGlyphRunMetrics(m_pDP->font_mgr.context, nFontIdx, nCount, pIndices, vGMetrics.data(), &mbBounds))
          return false;
       //copy output data
       bounds.nMinX = mbBounds.nMinX;
@@ -69,18 +69,18 @@ struct SDocRendererWrap : public IDocRenderer {
 
    void DrawLine(SPointF pt1, SPointF pt2, EnumLineStyles eStyle,
                  float fWidth, uint32_t nARGB) override {
-      m_pMBRenderer->drawLine(pt1.fX, pt1.fY, pt2.fX, pt2.fY, eStyle, fWidth, nARGB);
+      m_pMBRenderer->drawLine(m_pMBRenderer->context, pt1.fX, pt1.fY, pt2.fX, pt2.fY, eStyle, fWidth, nARGB);
    }
    void DrawRect(SRectF rcf, EnumLineStyles eStyle,
                   float fWidth, uint32_t nARGB) override {
-      m_pMBRenderer->drawRect(rcf.fLeft, rcf.fTop, rcf.fRight, rcf.fBottom, eStyle, fWidth, nARGB);
+      m_pMBRenderer->drawRect(m_pMBRenderer->context, rcf.fLeft, rcf.fTop, rcf.fRight, rcf.fBottom, eStyle, fWidth, nARGB);
    }
    void FillRect(SRectF rcf, uint32_t nARGB) override {
-      m_pMBRenderer->fillRect(rcf.fLeft, rcf.fTop, rcf.fRight, rcf.fBottom, nARGB);
+      m_pMBRenderer->fillRect(m_pMBRenderer->context, rcf.fLeft, rcf.fTop, rcf.fRight, rcf.fBottom, nARGB);
    }
    void DrawGlyphRun(int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
                      SPointF ptfBaseOrigin, float fScale, uint32_t nARGB) override {
-      m_pMBRenderer->drawGlyphRun(nFontIdx, nCount, pIndices, ptfBaseOrigin.fX, ptfBaseOrigin.fY, fScale, nARGB);
+      m_pMBRenderer->drawGlyphRun(m_pMBRenderer->context, nFontIdx, nCount, pIndices, ptfBaseOrigin.fX, ptfBaseOrigin.fY, fScale, nARGB);
    
    }
 };

@@ -17,7 +17,7 @@ bool CCfgReader::Init(PCWSTR wszPath) {
       return false;
    wstring wsLine, wsKey, wsVal;
    while (std::getline(inFile, wsLine)) {
-      if (wsLine.front() == L';' || wsLine.find('=') == wstring::npos) //skip comments/garbage lines
+      if (wsLine.empty() || wsLine.front() == L';' || wsLine.find('=') == wstring::npos) //skip comments/garbage lines
          continue;
       uint32_t nEqPos = (uint32_t)wsLine.find(L'=');
       wsKey = wsLine.substr(0, nEqPos);

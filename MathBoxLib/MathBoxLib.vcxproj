@@ -147,6 +147,8 @@
     <ClInclude Include="MathBox\ContainerItem.h" />
     <ClInclude Include="MathBox\DimensionParser.h" />
     <ClInclude Include="MathBox\EnvHelper.h" />
+    <ClInclude Include="MathBox\Utf8Helper.h" />
+    <ClInclude Include="MathBox\EmojiCmdBuilder.h" />
     <ClInclude Include="MathBox\ExtGlyphBuilder.h" />
     <ClInclude Include="MathBox\MacroProcessor.h" />
     <ClInclude Include="MathBox\MathStyleBuilder.h" />
@@ -201,6 +203,9 @@
     </ClCompile>
     <ClCompile Include="MathBox\DimensionParser.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="MathBox\EmojiCmdBuilder.cpp">
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="MathBox\EnvHelper.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h</PrecompiledHeaderFile>
@@ -312,6 +317,8 @@
     </ClCompile>
     <ClCompile Include="LibCode\MathBoxLib.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)MathBox;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)MathBox;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="MathBox\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

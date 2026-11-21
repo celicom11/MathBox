@@ -97,6 +97,9 @@
     <ClCompile Include="MathBox\EnvHelper.cpp">
       <Filter>Processors</Filter>
     </ClCompile>
+    <ClCompile Include="MathBox\EmojiCmdBuilder.cpp">
+      <Filter>Builders</Filter>
+    </ClCompile>
     <ClCompile Include="MathBox\LMMFont.cpp">
       <Filter>Processors</Filter>
     </ClCompile>
@@ -235,6 +238,12 @@
       <Filter>MathItems</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\EnvHelper.h">
+      <Filter>Processors</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\EmojiCmdBuilder.h">
+      <Filter>Builders</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBox\Utf8Helper.h">
       <Filter>Processors</Filter>
     </ClInclude>
     <ClInclude Include="MathBox\FontStyleHelper.h">

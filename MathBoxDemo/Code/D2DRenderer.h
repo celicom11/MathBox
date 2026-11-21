@@ -1,5 +1,4 @@
 #pragma once
-#include "MathBox_CAPI.h"
 #include "MathBoxHostDefs.h"
 
 

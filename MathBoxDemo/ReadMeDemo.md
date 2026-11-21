@@ -89,6 +89,23 @@ ColorSelect = 0xFF4FFF    # Pink selection highlight
 
 ## Document Files
 
+### Optional host fonts
+
+`Utf8Font` and `SymbolFont` select installed DirectWrite font families. Spaces in names are preserved up to the optional semicolon comment.
+
+```ini
+Utf8Font = Arial
+Utf8FontScale = 1.0
+SymbolFont = Segoe UI Symbol
+SymbolFontScale = 0.8
+```
+
+The UTF-8 family supplies regular, bold, italic and bold-italic faces at indices 14–17. DirectWrite selects the closest available style within the requested family. The symbol face occupies index 18. Missing configuration entries leave the corresponding slots unavailable. An unavailable configured family or a nonpositive/nonfinite scale causes initialization to fail with a message.
+
+Scales multiply the font em size. The manager converts advances and bearings into MathBox's 1,000 design units per em and applies the configured multiplier to those metrics and ink bounds. The host drawing callback applies the same multiplier to the renderer's glyph size. Text shares the existing baseline. `IFontProvider_` requires no additional method.
+
+Start at 1.0 for text and 0.8 for symbols. For a closer lowercase size match with Latin Modern Roman, estimate the text scale as `(LM Roman xHeight / LM Roman unitsPerEm) / (host xHeight / host unitsPerEm)`, then adjust visually. Equal em sizes do not necessarily give equal x-heights, ascenders or symbol heights. This multiplier is user-controlled, with no automatic x-height adjustment. The font-loading support is ready for subsequent UTF-8 parser integration.
+
 ### TestDoc.txt
 
 UTF-8 encoded LaTeX document. Supports:

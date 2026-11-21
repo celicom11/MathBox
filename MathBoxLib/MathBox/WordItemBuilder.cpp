@@ -3,6 +3,7 @@
 #include "WordItem.h"
 #include "FontStyleHelper.h"
 #include "HBoxItem.h"
+#include "Utf8Helper.h"
 
 namespace {
    inline bool _IsCRLF(char wc) { return wc == '\n' || wc == '\r'; }
@@ -118,10 +119,40 @@ CMathItem* CWordItemBuilder::_BuildMathWord(IDocParams& doc, const string& sWord
 }
 // text mode CWordItem builder
 CMathItem* CWordItemBuilder::_BuildText(IDocParams& doc, const string& sText, const SParserContext& ctx) {
+   if (sText.empty())
+      return nullptr;
    STextFontStyle tfStyle;
    _ASSERT_RET(FontStyleHelper::_GetTextFontStyle(ctx.sFontCmd.c_str(), tfStyle), nullptr);
    int16_t nFontIdx = tfStyle.nLetterDigitsFont == FONT_DOC ? FONT_ROMAN_REGULAR : tfStyle.nLetterDigitsFont; //TODO!
+   vector<uint32_t> vUnicodes;
+   bool bUtf8 = false;
+   for (size_t nPos = 0; nPos < sText.size();) {
+      uint32_t nUnicode = 0;
+      if (!Utf8Helper::_DecodeNext(sText, nPos, nUnicode))
+         return nullptr;
+      vUnicodes.push_back(nUnicode);
+      bUtf8 = bUtf8 || nUnicode >= 0x80;
+   }
+   if (bUtf8) {
+      switch (nFontIdx) {
+      case FONT_ROMAN_BOLD:
+      case FONT_SANS_BOLD: nFontIdx = FONT_UTF8_BOLD; break;
+      case FONT_ROMAN_ITALIC:
+      case FONT_ROMAN_SL_REGULAR:
+      case FONT_SANS_OBLIQUE:
+      case FONT_MONO_ITALIC: nFontIdx = FONT_UTF8_ITALIC; break;
+      case FONT_ROMAN_BOLDITALIC:
+      case FONT_ROMAN_SL_BOLD:
+      case FONT_SANS_BOLDOBLIQUE: nFontIdx = FONT_UTF8_BOLDITALIC; break;
+      default: nFontIdx = FONT_UTF8_REGULAR; break;
+      }
+   }
+   if ((uint32_t)nFontIdx >= doc.FontManager().FontCount())
+      return nullptr;
    CWordItem* pWord = new CWordItem(doc, nFontIdx, ctx.currentStyle, eacWORD, ctx.fUserScale);
-   pWord->SetTextA(sText.c_str());
+   if (!pWord->SetText(vUnicodes)) {
+      delete pWord;
+      return nullptr;
+   }
    return pWord;
 }

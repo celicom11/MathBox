@@ -27,6 +27,7 @@
 #include "BoxCmdBuilder.h"
 #include "OverlayBuilder.h"
 #include "MathStyleBuilder.h"
+#include "EmojiCmdBuilder.h"
 
 
 
@@ -72,6 +73,7 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new CBoxCmdBuilder);
    RegisterBuilder(new COverlayBuilder);
    RegisterBuilder(new CMathStyleBuilder);
+   RegisterBuilder(new CEmojiCmdBuilder);
    RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
 CMathModeProcessor::~CMathModeProcessor() {
@@ -585,7 +587,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
    //build Tabel Item
    int nIdx = vGroupItems.front().TkIdxStart(); //TODO: better index?
    CParserAdapter parserAdapter(m_Parser, nIdx, ctx);
-   CTableItem* pTable = new CTableItem(parserAdapter, ctx.currentStyle);
+   CTableItem* pTable = new CTableItem(parserAdapter, ctx.currentStyle, envh.TextCells());
    if( !pTable->Init(envh.ColAlignments(), envh.VertLines(), table) ) {
       _ASSERT(0);//snbh!
       delete pTable;

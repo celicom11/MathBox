@@ -1,16 +1,25 @@
-// MathBox C-ABI, v1.0-beta
+// MathBox C-ABI, version 2
 #pragma once
+
+// Version information (MAJOR.MINOR.PATCH format)
+#define MB_VERSION_MAJOR      2     // == C-ABI compatibility!
+#define MB_VERSION_MINOR      0     // functional changes
+#define MB_VERSION_PATCH      0     // minor changes/bug fixes
+#define MB_VERSION_BUILD      0     // Windows file version revision
+#define MB_VERSION_PRERELEASE "beta.1"
+#define MB_VERSION_STRING     "2.0.0-beta.1"
+
+#define MB_STRINGIFY_IMPL(value) #value
+#define MB_STRINGIFY(value) MB_STRINGIFY_IMPL(value)
+#define MB_VERSION_FILE_STRING MB_STRINGIFY(MB_VERSION_MAJOR) "." MB_STRINGIFY(MB_VERSION_MINOR) "." MB_STRINGIFY(MB_VERSION_PATCH) "." MB_STRINGIFY(MB_VERSION_BUILD)
+
+#ifndef RC_INVOKED
 #include <stdint.h>
+#include <stddef.h>
+#ifndef __cplusplus
+#include <stdbool.h>
+#endif
 
-// Version information (MAJOR.MINOR format)
-#define MB_VERSION_MAJOR 1
-#define MB_VERSION_MINOR 1
-#define MB_VERSION_PRERELEASE "beta"  // Empty string for final releases
-#define MB_VERSION_STRING "1.1-beta"
-
-// Helper macro for version comparisons
-#define MB_MAKE_VERSION(major, minor) ((major) * 100 + (minor))
-#define MB_VERSION MB_MAKE_VERSION(MB_VERSION_MAJOR, MB_VERSION_MINOR)
 
 //RETURN CODES
 #define MBOK                  0
@@ -46,11 +55,12 @@ typedef struct {
 typedef struct {
    uint32_t size_bytes;
    uint32_t fontCount;
+   void* context;
 
-   bool (*getFontsDir)(/*in out*/ uint32_t* buf_len, /*out*/ wchar_t* out_dir); //Unicode!
-   bool (*getFontIndices)(int32_t font_idx, uint32_t count, const uint32_t* unicodes, /*out*/ uint16_t* out_indices);
-   bool (*getGlyphRunMetrics)(int32_t font_idx, uint32_t count, const uint16_t* indices,
-      /*out*/ MB_GlyphMetrics* out_glyph_metrics, /*out*/ MB_Bounds* out_bounds);
+   bool (*getFontsDir)(void* context, /*in out*/ uint32_t* buf_len, /*out*/ wchar_t* out_dir); //Unicode!
+   bool (*getFontIndices)(void* context, int32_t font_idx, uint32_t count, const uint32_t* unicodes, /*out*/ uint16_t* out_indices);
+   bool (*getGlyphRunMetrics)(void* context, int32_t font_idx, uint32_t count, const uint16_t* indices,
+                               /*out*/ MB_GlyphMetrics* out_glyph_metrics, /*out*/ MB_Bounds* out_bounds);
 } MBI_FontManager;
 
 //document registers/params and fonts
@@ -68,11 +78,12 @@ typedef struct {
 //abstract renderer, all units are in DIPs
 typedef struct {
    uint32_t size_bytes;
+   void* context;
 
-   void (*drawLine)(float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
-   void (*drawRect)(float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
-   void (*fillRect)(float l, float t, float r, float b, uint32_t argb);
-   void (*drawGlyphRun)(int32_t font_idx, uint32_t count, const uint16_t* indices,
+   void (*drawLine)(void* context, float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
+   void (*drawRect)(void* context, float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
+   void (*fillRect)(void* context, float l, float t, float r, float b, uint32_t argb);
+   void (*drawGlyphRun)(void* context, int32_t font_idx, uint32_t count, const uint16_t* indices,
                         float base_x, float base_y, float scale, uint32_t argb);
 } MBI_DocRenderer;
 
@@ -81,9 +92,11 @@ typedef struct MB_Engine_t* MB_Engine;
 typedef void* MB_MathItem;
 typedef struct MBI_API {
    uint32_t size_bytes;
-   uint32_t abi_version;
+   uint32_t abi_version;   //2
+   uint32_t minor_version; //0
+   uint32_t patch_version; //0
    //Caller must use/destroy returned MB_Engine 
-   MB_RET (*createEngine)(const MB_DocParams* doc, /*out*/ MB_Engine* out_engine);
+   MB_RET(*createEngine)(const MB_DocParams* doc, /*out*/ MB_Engine* out_engine);
    void   (*destroyEngine)(MB_Engine engine);
    void   (*destroyMathItem)(MB_MathItem item);
 
@@ -93,17 +106,17 @@ typedef struct MBI_API {
    //add more macros; optional
    MB_RET(*addMacros)(MB_Engine engine, const char* szMacros, const char* szFileName);
    //Caller must use/destroy returned MB_MathItem NOTE: can be destroyed after engine!
-   MB_RET (*parseLatex)(MB_Engine engine, const char* szText, /*out*/ MB_MathItem* out_item);
+   MB_RET(*parseLatex)(MB_Engine engine, const char* szText, /*out*/ MB_MathItem* out_item);
    //all "float" units are in DIPs
    uint32_t(*mathItemLineCount)(MB_MathItem item);
-   MB_RET (*mathItemDraw)(MB_MathItem item, float x, float y, const MBI_DocRenderer* renderer);
-   MB_RET (*mathItemDrawLines)(MB_MathItem item, float x, float y, int32_t line_start, int32_t line_end, 
-                               const MBI_DocRenderer* renderer);
-   MB_RET (*mathItemSelect)(MB_MathItem item, float left, float top, float right, float bottom, uint32_t flags);
-   MB_RET (*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top, 
-                                              /*out*/ float* right, /*out*/ float* bottom);
+   MB_RET(*mathItemDraw)(MB_MathItem item, float x, float y, const MBI_DocRenderer* renderer);
+   MB_RET(*mathItemDrawLines)(MB_MathItem item, float x, float y, int32_t line_start, int32_t line_end,
+      const MBI_DocRenderer* renderer);
+   MB_RET(*mathItemSelect)(MB_MathItem item, float left, float top, float right, float bottom, uint32_t flags);
+   MB_RET(*mathItemGetBox)(MB_MathItem item, /*out*/ float* left, /*out*/ float* top,
+      /*out*/ float* right, /*out*/ float* bottom);
    MB_RET(*mathItemGetLineBox)(MB_MathItem item, int32_t line,
-                              /*out*/ float* left, /*out*/ float* top, /*out*/ float* right, /*out*/ float* bottom);
+      /*out*/ float* left, /*out*/ float* top, /*out*/ float* right, /*out*/ float* bottom);
 } MBI_API;
 
 //MathBox Engine API
@@ -126,3 +139,4 @@ extern "C" {
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+#endif // !RC_INVOKED

@@ -39,12 +39,12 @@ static MB_RET createEngine_impl(const MB_DocParams* doc, MB_Engine* out_engine) 
       return MB_BADPARAM;
    }
    uint32_t buf_len = 0;
-   if (!doc->font_mgr.getFontsDir(&buf_len, nullptr) || !buf_len) {
+   if (!doc->font_mgr.getFontsDir(doc->font_mgr.context, &buf_len, nullptr) || !buf_len) {
       _sGlobalError = "Failed to get LMM fonts directory size";
       return MB_ERR;
    }
    vector<wchar_t> vBuf(buf_len, 0);
-   if (!doc->font_mgr.getFontsDir(&buf_len, vBuf.data()) || 0 == vBuf[0]) {
+   if (!doc->font_mgr.getFontsDir(doc->font_mgr.context, &buf_len, vBuf.data()) || 0 == vBuf[0]) {
       _sGlobalError = "Failed to get LMM fonts directory";
       return MB_ERR;
    }
@@ -288,6 +288,8 @@ static MB_RET mathItemGetLineBox_impl(MB_MathItem item, int32_t line,
 static const MBI_API g_Api = {
    sizeof(MBI_API),
    MB_VERSION_MAJOR,
+   MB_VERSION_MINOR,
+   MB_VERSION_PATCH,
    createEngine_impl,
    destroyEngine_impl,
    destroyMathItem_impl,

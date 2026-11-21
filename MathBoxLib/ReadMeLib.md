@@ -34,14 +34,43 @@ The library exports a C-ABI that allows host applications to:
 3. Implement rendering via `MBI_DocRenderer` callbacks
 4. Parse and render LaTeX mathematical expressions
 
+## UTF-8 text and named emoji in 2.1-beta
+
+The tokenizer validates UTF-8 and emits `ettUTF8` for consecutive non-ASCII literal characters. ASCII syntax retains its existing token classes. Token positions and lengths refer to source bytes. An optional leading UTF-8 BOM is accepted. Malformed encodings are rejected with byte-position diagnostics, and UTF-8 tokens exceeding the current 65,535-byte token limit produce an error.
+
+Text-mode Unicode words use host font slots 14–17 for regular, bold, italic and bold-italic styles. Sans/mono/small-cap commands use the corresponding available host regular/weight/slant variant. The host must provide the selected face and its metrics. Glyph mapping and measurement failures cause parsing to fail instead of returning incomplete text items. Direct Unicode math literals and complex-script shaping remain future work.
+
+`\emoji{name}` constructs a symbol-font item using slot 18 and supports text and math mode. Examples follow.
+
+```latex
+\textbf{тест на русском}
+\emoji{grinning-face} \emoji{warning} \emoji{check-mark}
+```
+
+Supported names are `grinning-face` (`grinning`), `grinning-face-with-smiling-eyes` (`smile`), `slightly-smiling-face`, `winking-face` (`wink`), `thinking-face`, `warning`, `check-mark` (`checkmark`), `cross-mark`, `red-heart` (`heart`), `thumbs-up`, `thumbs-down`, `light-bulb` and `star`. Unknown names and missing symbol fonts produce errors. Each name maps to one Unicode scalar and uses monochrome host rendering. The configured font determines glyph coverage.
+
 ## Backward Compatibility Policy
+
+### ABI 2 runtime version metadata
+
+`MBI_API::abi_version` is the C ABI compatibility major. Compatible feature releases increment `minor_version`, and compatible bug-fix releases increment `patch_version`. These two fields are appended after the original function table. Consumers check table size before reading them so an earlier ABI 2 DLL can still supply the original API.
+
+```cpp
+if (pAPI->size_bytes >= offsetof(MBI_API, patch_version) + sizeof(uint32_t)) {
+   uint32_t nMinor = pAPI->minor_version;
+   uint32_t nPatch = pAPI->patch_version;
+   // Use the reported implementation version.
+}
+```
+
+`MathBox_CAPI.h` also defines the Windows file revision as `MB_VERSION_BUILD`. The resource compiler reads the version constants from this header with C declarations excluded by `RC_INVOKED`. The DLL file version is `MAJOR.MINOR.PATCH.BUILD`, and its product string uses `MB_VERSION_STRING`, including the prerelease label.
 
 **MathBoxLib guarantees backward compatibility:**
 
-? **Old clients can always use newer library versions**
+? **Old clients can use newer library versions unless explicit restrictions**
 - Applications built against v1.0 headers continue working with v2.0+ DLL
 - ABI version number indicates compatibility level
-- New features added as optional enhancements, not breaking changes
+- New features added as optional enhancements, but breaking changes are possible
 
 ### How It Works
 

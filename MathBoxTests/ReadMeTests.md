@@ -306,6 +306,12 @@ Tests horizontal box and raw item functionality.
 
 ## Running Tests
 
+The latest UTF-8/emoji implementation adds sixteen tests in `Utf8Tests.cpp` and `CapiTests.cpp`. All 180 tests pass in Debug and Release x64. These tests cover token byte boundaries and invalid encodings, host font/style selection, supplementary characters, macro default arguments, callback failures, emoji argument/name validation and scaled symbol drawing. Synthetic glyph callbacks verify code points independently of installed font coverage.
+
+The ABI tests in `Code/CapiTests.cpp` load the built `MathBoxLib.dll` through `MB_GetApi`. Build `MathBoxDemo.sln` so the library and test DLL share the solution output directory. The solution orders the library build before the test project. Run VSTest from `x64\Debug` or `x64\Release` for the existing parser fixture's font-path convention. The ABI fixture resolves the DLL and glyph CSV relative to the test module and supplies deterministic synthetic font metrics.
+
+The eight ABI tests cover version/table entries, independent callback contexts, all four renderer adapter methods, null contexts, incompatible structure sizes, parser error recovery, and destruction of an item after its engine.
+
 ### From Visual Studio
 
 1. **Build Test Project**

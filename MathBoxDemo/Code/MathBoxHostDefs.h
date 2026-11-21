@@ -1,7 +1,12 @@
 #pragma once
-#include "MathBox_CAPI.h"
+#include "..\..\MathBoxLib\LibCode\MathBox_CAPI.h"
 
 constexpr int32_t otfUnitsPerEm = 1000;
+constexpr int32_t FONT_UTF8_REGULAR = 14;
+constexpr int32_t FONT_UTF8_BOLD = 15;
+constexpr int32_t FONT_UTF8_ITALIC = 16;
+constexpr int32_t FONT_UTF8_BOLDITALIC = 17;
+constexpr int32_t FONT_SYMBOL = 18;
 #define PTS2DIPS(x) ((x)*96.0f/72.0f)
 #define F2NEAREST(x) ((int32_t)((x)<0?(x)-0.5f:(x)+0.5f))
 #define DIPS2EM(fFontHPts, x) F2NEAREST((x)*otfUnitsPerEm/PTS2DIPS(fFontHPts))

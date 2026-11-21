@@ -241,6 +241,7 @@ enum EnumTokenType {
    ettAMP,                             // &, tabular alignment
    ettSUBS,                            // _, subscript
    ettSUPERS,                          // ^, superscript
+   ettUTF8,                            // contiguous non-ASCII Unicode literals, UTF-8 byte spans
    ettMARG1 = 100,                     // macro parameter 1
    ettMARG2,                           // macro parameter 2
    ettMARG3,                           // macro parameter 3

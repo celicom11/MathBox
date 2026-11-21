@@ -13,6 +13,15 @@
     <ClCompile Include="..\MathBoxLib\MathBox\GlueItem.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>
+    <ClCompile Include="Code\CapiTests.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Utf8Tests.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MathBoxLib\MathBox\EmojiCmdBuilder.cpp">
+      <Filter>MathBox</Filter>
+    </ClCompile>
     <ClCompile Include="..\MathBoxLib\MathBox\HBoxItem.cpp">
       <Filter>MathBox</Filter>
     </ClCompile>

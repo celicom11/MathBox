@@ -30,4 +30,3 @@ template <class T> void SafeRelease(T** ppT) {
 //linker
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
-#pragma once

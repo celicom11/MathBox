@@ -109,6 +109,28 @@ public:
       wsFontsDir += L"\\LatinModernFonts\\";
       hr = m_D2DFontManager.Init(wsFontsDir, m_d2dr.DWFactory());
       CHECK_HR(hr);
+      wstring wsUtf8Font, wsSymbolFont;
+      float fUtf8Scale = 1.0f, fSymbolScale = 0.8f;
+      try {
+         cfgr.GetFVal(L"Utf8FontScale", fUtf8Scale);
+         cfgr.GetFVal(L"SymbolFontScale", fSymbolScale);
+      }
+      catch (const std::exception&) {
+         MessageBox(nullptr, L"Invalid font scale in MathBoxDemo.cfg", L"Error", MB_OK | MB_ICONERROR);
+         return E_INVALIDARG;
+      }
+      if (cfgr.GetSVal(L"Utf8Font", wsUtf8Font) &&
+          !m_D2DFontManager.AddUtf8Font(wsUtf8Font.c_str(), fUtf8Scale)) {
+         wstring wsError = L"Could not load Utf8Font [" + wsUtf8Font + L"] or its scale is invalid";
+         MessageBox(nullptr, wsError.c_str(), L"Error", MB_OK | MB_ICONERROR);
+         return E_FAIL;
+      }
+      if (cfgr.GetSVal(L"SymbolFont", wsSymbolFont) &&
+          !m_D2DFontManager.AddSymbolFont(wsSymbolFont.c_str(), fSymbolScale)) {
+         wstring wsError = L"Could not load SymbolFont [" + wsSymbolFont + L"] or its scale is invalid";
+         MessageBox(nullptr, wsError.c_str(), L"Error", MB_OK | MB_ICONERROR);
+         return E_FAIL;
+      }
       if (!m_MathBox.LoadMathBoxLib()) {
          wstring sErr = L"Could not load MathBoxLib";
          MessageBox(nullptr, sErr.c_str(), L"Error", MB_OK | MB_ICONERROR);

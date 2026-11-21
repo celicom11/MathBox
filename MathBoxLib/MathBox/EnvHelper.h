@@ -27,6 +27,8 @@ public:
    char RightDelim() const { return m_cRightDelim; }
 
    bool Enabled() const { return !m_sEnv.empty();}
+   // Cell parsing mode; the enclosing math processor still owns environment dispatch.
+   bool TextCells() const { return m_sEnv == "tabular"; }
 //METHODS
    bool Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx); //nTkIdx must be ettCOMMAND, "\\begin"
 private:

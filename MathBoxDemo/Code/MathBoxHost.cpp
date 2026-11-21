@@ -13,6 +13,7 @@ CMathBoxHost::CMathBoxHost(CD2DFontManager& d2dFontManager, CD2DRenderer& d2dr) 
    m_DocParams.size_bytes = sizeof(MB_DocParams);
    m_DocParams.max_width_fdu = 0;   //no limit
    //D2DFontManager shim
+   m_DocParams.font_mgr.context = nullptr; //not needed
    m_DocParams.font_mgr.size_bytes = sizeof(MBI_FontManager);
    m_DocParams.font_mgr.fontCount = 0; //unknown yet
    m_DocParams.font_mgr.getFontsDir = _getFontsDir;
@@ -20,6 +21,7 @@ CMathBoxHost::CMathBoxHost(CD2DFontManager& d2dFontManager, CD2DRenderer& d2dr) 
    m_DocParams.font_mgr.getGlyphRunMetrics = _getGlyphRunMetrics;
    //DocRenderer shim
    m_DocRenderer.size_bytes = sizeof(MBI_DocRenderer);
+   m_DocRenderer.context = nullptr; //not needed
    m_DocRenderer.drawLine = _drawLine;
    m_DocRenderer.drawRect = _drawRect;
    m_DocRenderer.fillRect = _fillRect;
@@ -34,7 +36,7 @@ bool CMathBoxHost::LoadMathBoxLib() {
    auto pfnMB_GetApi = (const MBI_API * (*)())GetProcAddress(m_hMathBoxLib, "MB_GetApi");
    _ASSERT_RET(pfnMB_GetApi, false);
    m_pMBAPI = pfnMB_GetApi();
-   _ASSERT_RET(m_pMBAPI && m_pMBAPI->abi_version >= MB_VERSION_MAJOR, false);
+   _ASSERT_RET(m_pMBAPI && m_pMBAPI->abi_version == MB_VERSION_MAJOR, false);
    MB_RET ret = m_pMBAPI->createEngine(&m_DocParams, &m_engine);
    if (ret != MBOK) {
       PCSTR szError = m_pMBAPI->getLastError(m_engine, &m_Error.nErrorStartPos, &m_Error.nErrorEndPos);
@@ -98,7 +100,7 @@ void CMathBoxHost::Draw(float fX, float fY) {
       m_pMBAPI->mathItemDraw(m_pMBItem, fX, fY, &m_DocRenderer);
 }
 //C-API/callbacks
-bool CMathBoxHost::_getFontsDir(IN OUT uint32_t* buf_len, OUT wchar_t* out_dir) {
+bool CMathBoxHost::_getFontsDir(void* context, IN OUT uint32_t* buf_len, OUT wchar_t* out_dir) {
    _ASSERT_RET(buf_len, false);
    const wstring wsFontDir = _pFontManager->GetFontDir();
    const uint32_t nLenChars = (uint32_t)wsFontDir.size() + 1;
@@ -113,27 +115,30 @@ bool CMathBoxHost::_getFontsDir(IN OUT uint32_t* buf_len, OUT wchar_t* out_dir) 
    return true;
 }
 
-bool CMathBoxHost::_getFontIndices(int32_t font_idx, uint32_t count, const uint32_t* unicodes, 
+bool CMathBoxHost::_getFontIndices(void* context, int32_t font_idx, uint32_t count, const uint32_t* unicodes,
                                     OUT uint16_t* out_indices) {
    return _pFontManager->GetFontIndices(font_idx, count, unicodes, out_indices);
 }
-bool CMathBoxHost::_getGlyphRunMetrics(int32_t font_idx, uint32_t count,
+bool CMathBoxHost::_getGlyphRunMetrics(void* context, int32_t font_idx, uint32_t count,
                                           const uint16_t* indices, OUT MB_GlyphMetrics* out_glyph_metrics, 
                                           OUT MB_Bounds* out_bounds) {
    return _pFontManager->GetGlyphRunMetrics(font_idx, count, indices, out_glyph_metrics, *out_bounds);
 }
 //
-void CMathBoxHost::_drawLine(float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb) {
+void CMathBoxHost::_drawLine(void* context, float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb) {
    _pD2DR->DrawLine(x1, y1, x2, y2, (EnumLineStyles)style, width, argb);
 }
-void CMathBoxHost::_drawRect(float left, float top, float right, float bottom, 
+void CMathBoxHost::_drawRect(void* context, float left, float top, float right, float bottom,
                              uint32_t style, float width, uint32_t argb) {
    _pD2DR->DrawRect(left, top, right, bottom, (EnumLineStyles)style, width, argb);
 }
-void CMathBoxHost::_fillRect(float left, float top, float right, float bottom, uint32_t argb) {
+void CMathBoxHost::_fillRect(void* context, float left, float top, float right, float bottom, uint32_t argb) {
    _pD2DR->FillRect(left, top, right, bottom, argb);
 }
-void CMathBoxHost::_drawGlyphRun(int32_t font_idx, uint32_t count, const uint16_t* indices,
+void CMathBoxHost::_drawGlyphRun(void* context, int32_t font_idx, uint32_t count, const uint16_t* indices,
                                  float base_x, float base_y, float scale, uint32_t argb) {
-   _pD2DR->DrawGlyphRun(font_idx, count, indices, base_x, base_y, scale, argb);
+   // Metrics already include the font's inner scale in MathBox design units.
+   // Drawing uses native font units, so combine inner and item/style scales once.
+   _pD2DR->DrawGlyphRun(font_idx, count, indices, base_x, base_y,
+                      scale * _pFontManager->GetFontScale(font_idx), argb);
 }

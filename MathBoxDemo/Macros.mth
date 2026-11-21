@@ -1,6 +1,7 @@
 % Macros.mth - MathBox v1.0 Standard Macros
 %--- Default Lengths/Ratios ---
 \setlength{\arraycolsep}{1em}            % half-width between columns
+\setlength{\tabcolsep}{6pt}             % padding on each side of a tabular column
 \setlength{\extrarowheight}{0.2em}       % extra row height  
 \setlength{\arraystrutheight}{0.7em}     % min row ascent
 \setlength{\arraystrutdepth}{0.3em}      % min row descent

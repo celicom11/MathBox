@@ -339,8 +339,8 @@ bool CMacroProcessor::ExtractArguments_(int nRefIdx,const SMacroDef& macroDef,
    if (macroDef.nDefArgTkIdx) {
       vArgs.emplace_back();
       vector<STexToken>& vArgTokens = vArgs.back();
-      const STexToken& tkCurrent = vMainTokens[nTkIdx]; //token after macro name
-      if (tkCurrent.nType == ettSB_OPEN) {
+      if (nTkIdx < (int)vMainTokens.size() && vMainTokens[nTkIdx].nType == ettSB_OPEN) {
+         const STexToken& tkCurrent = vMainTokens[nTkIdx];
          for (uint32_t nIdx = nTkIdx + 1; nIdx < tkCurrent.nTkIdxEnd; ++nIdx) {
             //copy tokens
             vArgTokens.push_back(vMainTokens[nIdx]);

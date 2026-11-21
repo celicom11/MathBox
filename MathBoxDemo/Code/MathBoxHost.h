@@ -1,9 +1,4 @@
 #pragma once
-#include "MathBox_CAPI.h"
-#if MB_VERSION_MAJOR < 1
-#error "MathBox version 1.0 or higher required"
-#endif
-
 #include "MathBoxHostDefs.h"
 
 class CD2DRenderer;
@@ -42,15 +37,15 @@ public:
    bool Parse(const string& sTeX);
    void Draw(float fX, float fY);
    //C-API/callbacks
-   static bool _getFontsDir(IN OUT uint32_t* buf_len, OUT wchar_t* out_dir);
-   static bool _getFontIndices(int32_t font_idx, uint32_t count, const uint32_t* unicodes, OUT uint16_t* out_indices);
-   static bool _getGlyphRunMetrics(int32_t font_idx, uint32_t count, const uint16_t* indices,
+   static bool _getFontsDir(void* context, IN OUT uint32_t* buf_len, OUT wchar_t* out_dir);
+   static bool _getFontIndices(void* context, int32_t font_idx, uint32_t count, const uint32_t* unicodes, OUT uint16_t* out_indices);
+   static bool _getGlyphRunMetrics(void* context, int32_t font_idx, uint32_t count, const uint16_t* indices,
                                      OUT MB_GlyphMetrics* out_glyph_metrics, OUT MB_Bounds* out_bounds);
    //
-   static void _drawLine(float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
-   static void _drawRect(float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
-   static void _fillRect(float l, float t, float r, float b, uint32_t argb);
-   static void _drawGlyphRun(int32_t font_idx, uint32_t count, const uint16_t* indices,
+   static void _drawLine(void* context, float x1, float y1, float x2, float y2, uint32_t style, float width, uint32_t argb);
+   static void _drawRect(void* context, float l, float t, float r, float b, uint32_t style, float width, uint32_t argb);
+   static void _fillRect(void* context, float l, float t, float r, float b, uint32_t argb);
+   static void _drawGlyphRun(void* context, int32_t font_idx, uint32_t count, const uint16_t* indices,
                               float base_x, float base_y, float scale, uint32_t argb);
    //TODO: static void _traceMsg(int nLevel,const char* szMsg);
 
