@@ -146,6 +146,12 @@ namespace {
       Assert::IsNull(pContext);
       return false; // Deliberate host failure before font loading.
    }
+   string _MeasuredText(const CCallbackRecorder& fonts) {
+      string sText;
+      for (uint32_t nUnicode : fonts.vUnicodes)
+         sText += (char)nUnicode;
+      return sText;
+   }
    void _NullContextFill(void* pContext, float, float, float, float, uint32_t) {
       Assert::IsNull(pContext);
    }
@@ -506,6 +512,117 @@ namespace CapiTests {
             Assert::IsNull(fixture.item);
             Assert::IsTrue(*fixture.pApi->getLastError(fixture.engine, nullptr, nullptr) != 0);
          }
+      }
+      TEST_METHOD(LengthScopes_NestedGroupsRestoreRepeatedSetAndAddAssignments) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\setlength{\\x}{10pt}", "lengths.mth"));
+         fixture.Parse("\\the\\x{\\setlength{\\x}{19pt}\\setlength{\\x}{20pt}\\the\\x"
+            "{\\addtolength{\\x}{3pt}\\the\\x}\\the\\x}\\the\\x");
+         Assert::AreEqual(string("10.00pt20.00pt23.00pt20.00pt10.00pt"), _MeasuredText(fixture.fonts));
+      }
+      TEST_METHOD(LengthScopes_MathGroupsAndMacroGroupsRestoreOuterValues) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\setlength{\\x}{10pt}"
+            "\\newcommand{\\local}{\\begingroup\\setlength{\\x}{7pt}\\the\\x\\endgroup}", "lengths.mth"));
+         fixture.Parse("\\the\\x$\\setlength{\\x}{20pt}\\the\\x{\\addtolength{\\x}{2pt}\\the\\x}\\the\\x$"
+            "\\the\\x\\local\\the\\x");
+         Assert::AreEqual(string("10.00pt20.00pt22.00pt20.00pt10.00pt7.00pt10.00pt"), _MeasuredText(fixture.fonts));
+      }
+      TEST_METHOD(LengthScopes_TableCellsRestoreAtColumnsAndRows) {
+         const char* asEnv[] = { "tabular", "array", "matrix" };
+         for (const char* szEnv : asEnv) {
+            CApiFixture fixture;
+            fixture.Create();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+               "\\setlength{\\x}{10pt}", "lengths.mth"));
+            string sInput = string("$\\begin{") + szEnv + "}" + (string(szEnv) == "matrix" ? "" : "{ll}") +
+               "\\setlength{\\x}{20pt}\\the\\x&\\the\\x\\cr"
+               "\\addtolength{\\x}{5pt}\\the\\x&\\the\\x\\end{" + szEnv + "}$\\the\\x";
+            fixture.Parse(sInput.c_str());
+            Assert::AreEqual(string("20.00pt10.00pt15.00pt10.00pt10.00pt"), _MeasuredText(fixture.fonts));
+         }
+      }
+      TEST_METHOD(LengthScopes_RootAssignmentsDoNotPersistAcrossParses) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\setlength{\\x}{10pt}", "lengths.mth"));
+         fixture.Parse("\\setlength{\\x}{25pt}\\the\\x");
+         Assert::AreEqual(string("25.00pt"), _MeasuredText(fixture.fonts));
+         fixture.pApi->destroyMathItem(fixture.item);
+         fixture.item = nullptr;
+         fixture.fonts.vUnicodes.clear();
+         fixture.Parse("\\the\\x");
+         Assert::AreEqual(string("10.00pt"), _MeasuredText(fixture.fonts));
+      }
+      TEST_METHOD(LengthScopes_NewVariablesDisappearAndFailedParsesRestoreDefaults) {
+         const char* asInputs[] = {
+            "{\\setlength{\\local}{3pt}}\\the\\local",
+            "\\setlength{\\x}{99pt}{\\setlength{\\local}{3pt}\\unknown}",
+            "$\\begin{tabular}{l}\\setlength{\\x}{99pt}\\unknown\\end{tabular}$",
+            "$\\begin{array}{l}\\setlength{\\x}{99pt}\\unknown\\end{array}$"
+         };
+         for (const char* szInput : asInputs) {
+            CApiFixture fixture;
+            fixture.Create();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+               "\\setlength{\\x}{10pt}", "lengths.mth"));
+            Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, szInput, &fixture.item) != MBOK);
+            Assert::IsNull(fixture.item);
+            fixture.fonts.vUnicodes.clear();
+            fixture.Parse("\\the\\x");
+            Assert::AreEqual(string("10.00pt"), _MeasuredText(fixture.fonts));
+         }
+      }
+      TEST_METHOD(LengthScopes_NestedTableInheritsCellLengthsWithoutLeaking) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\setlength{\\x}{10pt}", "lengths.mth"));
+         fixture.Parse("$\\begin{tabular}{ll}\\setlength{\\x}{20pt}"
+            "\\begin{tabular}{ll}\\the\\x&\\addtolength{\\x}{3pt}\\the\\x\\end{tabular}"
+            "\\the\\x&\\the\\x\\end{tabular}$");
+         Assert::AreEqual(string("20.00pt23.00pt20.00pt10.00pt"), _MeasuredText(fixture.fonts));
+      }
+      TEST_METHOD(LengthScopes_GroupPaddingAffectsOnlyItsOwnTable) {
+         CApiFixture fixture;
+         fixture.Create();
+         fixture.LoadDemoMacros();
+         fixture.Parse("{\\setlength{\\tabcolsep}{0pt}$\\begin{tabular}{ll}A&B\\end{tabular}$}"
+            "$\\begin{tabular}{ll}C&D\\end{tabular}$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+         Assert::AreEqual((size_t)4, fixture.fonts.vDrawX.size());
+         Assert::AreEqual(8.0f, fixture.fonts.vDrawX[1] - fixture.fonts.vDrawX[0], 0.03f);
+         Assert::AreEqual(24.0f, fixture.fonts.vDrawX[3] - fixture.fonts.vDrawX[2], 0.03f);
+      }
+      TEST_METHOD(LengthScopes_CellAssignmentsDoNotChangeEnclosingTablePadding) {
+         const char* asEnv[] = { "tabular", "array" };
+         for (const char* szEnv : asEnv) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            fixture.fonts.bCheckGlyph = false; // array cells use native LMM glyph indices
+            string sInput = string("$\\begin{") + szEnv + "}{ll}\\setlength{\\" +
+               (string(szEnv) == "tabular" ? "tabcolsep" : "arraycolsep") + "}{0pt}A&B\\end{" + szEnv + "}$";
+            fixture.Parse(sInput.c_str());
+            MBI_DocRenderer renderer = fixture.fonts.Renderer();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+            Assert::AreEqual((size_t)2, fixture.fonts.vDrawX.size());
+            Assert::AreEqual(24.0f, fixture.fonts.vDrawX[1] - fixture.fonts.vDrawX[0], 0.03f);
+         }
+      }
+      TEST_METHOD(LengthScopes_CellNewlineKeepsAssignmentsUntilActualRowEnd) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\setlength{\\x}{10pt}", "lengths.mth"));
+         fixture.Parse("$\\begin{tabular}{l}\\setlength{\\x}{20pt}\\the\\x\\newline\\the\\x\\\\\\the\\x\\end{tabular}$");
+         Assert::AreEqual(string("20.00pt20.00pt10.00pt"), _MeasuredText(fixture.fonts));
       }
       TEST_METHOD(GroupErrors_UnclosedBraceBeforeEnvironmentPointsToOpening) {
          CApiFixture fixture;

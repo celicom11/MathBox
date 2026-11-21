@@ -125,6 +125,7 @@ CMathItem* CTexParser::Parse(const string& sText) {
    ClearError();
    if(!m_MacroProcessor.InitMacros())
       return nullptr;
+   CLengthScope lengthScope(*this); // document assignments never change engine defaults
    if (m_pTokenizer)
       delete m_pTokenizer;
    m_pTokenizer = new CTokenizer(sText);
@@ -185,6 +186,7 @@ CMathItem* CTexParser::ProcessItemToken(IN OUT int& nIdx, const SParserContext& 
       m_pMathProcessor->ProcessItemToken(nIdx, ctx);
 }
 CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
+   CLengthScope lengthScope(*this);
    bool bCanBeEmpty = true;
    SParserContext ctxG;
    ctxG.CopyBasics(ctx);

@@ -28,6 +28,7 @@
 #include "OverlayBuilder.h"
 #include "MathStyleBuilder.h"
 #include "EmojiCmdBuilder.h"
+#include "VarCmdBuilder.h"
 
 
 
@@ -74,6 +75,7 @@ CMathModeProcessor::CMathModeProcessor(CTexParser& parser):m_Parser(parser) {
    RegisterBuilder(new COverlayBuilder);
    RegisterBuilder(new CMathStyleBuilder);
    RegisterBuilder(new CEmojiCmdBuilder);
+   RegisterBuilder(new CVarCmdBuilder);
    RegisterBuilder(new CMathSymBuilder(m_Parser.Doc()));//MUST BE LAST!
 }
 CMathModeProcessor::~CMathModeProcessor() {
@@ -148,6 +150,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
    }
    if (nIdxStart >= nIdxEnd)
       return nullptr; //ntd
+   CTexParser::CLengthScope cellLengthScope(m_Parser, envh.Enabled());
    for (int nIdxG = nIdxStart; nIdxG < nIdxEnd;) {
       CMathItem* pItem = nullptr;
       const STexToken* pCurToken = GetToken(nIdxG);
@@ -158,7 +161,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       _ASSERT_RET(pCurToken, nullptr);//snbh!
       int nCurTokenIdx = nIdxG;
       pItem = ProcessItemToken(nIdxG, ctxG);
-      if (!m_Parser.HasError() && !pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
+      if (!m_Parser.HasError() && !pItem && nIdxG == nCurTokenIdx && !pCurToken->nTkIdxEnd) { //post-process unconsumed tokens
          switch (pCurToken->nType) {
          case ettNonALPHA:
             if (TokenText(nIdxG) == "'") {
@@ -182,6 +185,8 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                   ProcessFontSizeCmd_(nIdxG, ctxG);
                else if (_isNewlineCommand(sCmd)) {
                   ++nIdxG;
+                  if (envh.Enabled())
+                     cellLengthScope.Restart();
                   if (!ctxG.bNoNewLines) {
                      vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                      vGroupItems.back().InitNewLine();
@@ -217,6 +222,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
                m_Parser.SetError(nCurTokenIdx, "& is allowed only in environments");
             else {
                ++nIdxG;
+               cellLengthScope.Restart();
                vGroupItems.emplace_back(nCurTokenIdx, nCurTokenIdx);
                vGroupItems.back().InitAmp();
             }
@@ -274,6 +280,7 @@ CMathItem* CMathModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       if (pItem)
          vGroupItems.emplace_back(nCurTokenIdx, nIdxG-1, pItem);
    } //main for
+   cellLengthScope.Close(); // table layout reads the enclosing lengths, not the last cell's overrides
    if (ctxG.bInLeftRight) {
       //try to add closing delimiter
       vGroupItems.emplace_back(nIdxEnd + 1, nIdxEnd + 1);

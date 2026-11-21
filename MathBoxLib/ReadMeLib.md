@@ -63,7 +63,11 @@ For smaller multiline cells, put the size command before the inner table: `{\scr
 
 `MathBoxDemo/Macros.mth` supplies `\makecell{first\\second}` as a macro over a one-column tabular with no outer padding. The optional alignment is `[l]`, `[c]` or `[r]`, with centered alignment by default. Nested makecell content and `{\scriptsize\makecell[l]{first\\second}}` are supported in table cells. Use an enclosing tabular text cell when including `$...$` math inside the macro body: grouping currently runs before expansion and does not infer text-mode boundaries from arbitrary macros. Starred forms and combined vertical/horizontal alignment arguments are not supported.
 
-The demo sets `\extrarowheight` to `0.2em`; use `0pt` for comparison with LaTeX's default extra row height. General scoped length restoration, optional table baseline placement and nonempty `@{material}` are still pending.
+The demo sets `\extrarowheight` to `0.2em`; use `0pt` for comparison with LaTeX's default extra row height. Optional table baseline placement and nonempty `@{material}` are still pending.
+
+Length assignments (`\setlength` and `\addtolength`) are local to the current group, math/environment group or table cell. Nested content inherits overrides; leaving the scope restores the enclosing value and removes locally introduced variables. `\newline` inside a tabular cell retains its assignments, while column and row separators start fresh cell scopes. Set table-wide spacing before entering the table; assignments inside a cell do not change its enclosing table's padding.
+
+Each `Parse` call has its own root length scope. Script assignments do not persist into later parses, including after errors. Macro-file lengths and lengths configured directly on the parser outside a scope remain the engine defaults. Internally, `CTexParser::m_vLengthScopes` stores a vector of local name/value vectors, managed by a noncopyable RAII guard; the existing parser-adapter interfaces and C ABI are unchanged. Explicit global assignment syntax is not implemented.
 
 Grouping errors caused by an unclosed group before `\end{tabular}` now identify the blocking opening token and include the closing command in the message. Unmatched closing braces return parser errors.
 

@@ -130,7 +130,7 @@ CMathItem* CTextModeProcessor::ProcessRange_(int nIdxStart, int nIdxEnd, const S
       _ASSERT_RET(pCurToken,nullptr);//snbh!
       const int nCurTokenIdx = nIdxG;
       pItem = ProcessItemToken(nIdxG, ctxG);
-      if(!m_Parser.HasError() && !pItem && !pCurToken->nTkIdxEnd) { //post-process non-group tokens
+      if(!m_Parser.HasError() && !pItem && nIdxG == nCurTokenIdx && !pCurToken->nTkIdxEnd) { //post-process unconsumed tokens
          switch (pCurToken->nType) {
          case ettCOMMAND: { // command or symbol!
             string sCmd = TokenText(nIdxG);
@@ -211,6 +211,7 @@ CMathItem* CTextModeProcessor::ProcessTabular_(int nIdxStart, int nIdxEnd,
          m_Parser.SetError(nStart, "Too many cells for tabular column specifications");
          return false;
       }
+      CTexParser::CLengthScope lengthScope(m_Parser);
       std::unique_ptr<CMathItem> pCell(ProcessRange_(nStart, nEnd, ctxCell));
       if (m_Parser.HasError())
          return false;

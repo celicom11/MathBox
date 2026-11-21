@@ -20,7 +20,32 @@ class CTexParser {
    vector<STexToken>    m_vTokensOrig;             // tokens of first tokenization (for error reporting)
    vector<STexToken>    m_vTokens;                 // current tokens
    map<string, float>   m_mapLengths;              // macros/user dimensions/lengths
+   using TLocalLengths = vector<pair<string, float>>;
+   vector<TLocalLengths> m_vLengthScopes;          // local overrides, outermost to innermost
 public:
+   class CLengthScope {
+      CTexParser& m_Parser;
+      bool        m_bActive{ false };
+   public:
+      explicit CLengthScope(CTexParser& parser, bool bEnabled = true) : m_Parser(parser) {
+         if (bEnabled)
+            Restart();
+      }
+      ~CLengthScope() { Close(); }
+      CLengthScope(const CLengthScope&) = delete;
+      CLengthScope& operator=(const CLengthScope&) = delete;
+      void Close() {
+         if (m_bActive) {
+            m_Parser.m_vLengthScopes.pop_back();
+            m_bActive = false;
+         }
+      }
+      void Restart() {
+         Close();
+         m_Parser.m_vLengthScopes.emplace_back();
+         m_bActive = true;
+      }
+   };
 //CTOR/DTOR/INIT
    CTexParser(IDocParams& doc);
    ~CTexParser();
@@ -69,6 +94,14 @@ public:
       PCSTR szVar = sVar.c_str();
       if(szVar[0] == '\\')
          ++szVar; //skip leading backslash
+      for (auto itScope = m_vLengthScopes.rbegin(); itScope != m_vLengthScopes.rend(); ++itScope) {
+         for (const auto& length : *itScope) {
+            if (length.first == szVar) {
+               fPts = length.second;
+               return true;
+            }
+         }
+      }
       auto it = m_mapLengths.find(szVar);
       if (it == m_mapLengths.end())
          return false;
@@ -79,6 +112,17 @@ public:
       PCSTR szVar = sVar.c_str();
       if (szVar[0] == '\\')
          ++szVar; //skip leading backslash
+      if (!m_vLengthScopes.empty()) {
+         TLocalLengths& lengths = m_vLengthScopes.back();
+         for (auto& length : lengths) {
+            if (length.first == szVar) {
+               length.second = fPts;
+               return;
+            }
+         }
+         lengths.emplace_back(szVar, fPts);
+         return;
+      }
       m_mapLengths[szVar] = fPts;
    }
    //internal grouping builder

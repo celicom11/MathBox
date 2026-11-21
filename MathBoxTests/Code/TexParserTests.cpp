@@ -1767,6 +1767,47 @@ namespace TexParserTests
             L"Error should mention units are required");
       }
    };
+   TEST_CLASS(LengthScopeTests) {
+   public:
+      TEST_METHOD(ScopeGuard_RestoresOnExceptionAndNormalizesNames) {
+         CTexParser parser(g_Doc);
+         parser.SetLength("x", 10.0f);
+         try {
+            CTexParser::CLengthScope outer(parser);
+            parser.SetLength("\\x", 20.0f);
+            parser.SetLength("x", 21.0f);
+            {
+               CTexParser::CLengthScope inner(parser);
+               parser.SetLength("\\x", 30.0f);
+               parser.SetLength("local", 5.0f);
+               float fValue = 0;
+               Assert::IsTrue(parser.GetLength("x", fValue));
+               Assert::AreEqual(30.0f, fValue);
+            }
+            float fValue = 0;
+            Assert::IsTrue(parser.GetLength("\\x", fValue));
+            Assert::AreEqual(21.0f, fValue);
+            Assert::IsFalse(parser.GetLength("local", fValue));
+            throw 1;
+         }
+         catch (int) {}
+         float fValue = 0;
+         Assert::IsTrue(parser.GetLength("x", fValue));
+         Assert::AreEqual(10.0f, fValue);
+         Assert::IsFalse(parser.GetLength("local", fValue));
+      }
+      TEST_METHOD(Parse_GroupOnlyAssignmentsAreSuccessfulAndRestoreBase) {
+         CTexParser parser(g_Doc);
+         parser.SetLength("x", 10.0f);
+         CMathItem* pItem = parser.Parse("{\\setlength{\\x}{20pt}}abc");
+         SMemGuard guard{ pItem };
+         Assert::IsNotNull(pItem);
+         Assert::IsFalse(parser.HasError());
+         float fValue = 0;
+         Assert::IsTrue(parser.GetLength("x", fValue));
+         Assert::AreEqual(10.0f, fValue);
+      }
+   };
    TEST_CLASS(MacroProcessorTests) {
    public:
       // Test 1: Basic \setlength
