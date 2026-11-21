@@ -8,6 +8,9 @@
 #include "LMMFont.h"
 #include "MacroProcessor.h"
 #include "EnvHelper.h"
+#include "TableItem.h"
+#include "ParserAdapter.h"
+#include "MockMathItem.h"
 
 static IDWriteFactory* g_pDWriteFactory = nullptr;
 static CD2DFontManager g_D2DFontManager;
@@ -73,6 +76,128 @@ namespace TexParserTests
    }
    TEST_CLASS(EnvHelperTests) {
    public:
+      TEST_METHOD(EmptyAtExpressions_RemoveOnlyRequestedBoundaryPadding) {
+         const char* asSpecs[] = { "lr", "@{}lr", "lr@{}", "l@{}r", "@{}l@{}r@{}" };
+         const int anRemovedSides[] = { 0, 1, 1, 2, 4 };
+         int32_t nDefaultWidth = 0;
+         for (size_t nIdx = 0; nIdx < _countof(asSpecs); ++nIdx) {
+            CTexParser parser(g_Doc);
+            string sInput = string("$$\\begin{tabular}{") + asSpecs[nIdx] + "}a&b\\end{tabular}$$";
+            CMathItem* pItem = parser.Parse(sInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNotNull(pItem);
+            if (!nIdx)
+               nDefaultWidth = pItem->Box().Width();
+            Assert::AreEqual(anRemovedSides[nIdx] * PTS2EM(g_Doc.DefaultFontSizePts(), 6.0f),
+                             nDefaultWidth - pItem->Box().Width());
+            CEnvHelper env;
+            SParserContext ctx;
+            Assert::IsTrue(env.Init(parser, 1, ctx));
+            Assert::AreEqual((size_t)3, env.ColumnSpacing().size());
+            Assert::AreEqual((size_t)2, env.ColAlignments().size());
+         }
+      }
+      TEST_METHOD(EmptyAtExpressions_WorkInArraysAndMacroPreambles) {
+         CTexParser parser(g_Doc);
+         parser.AddMacros("\\newcommand{\\compactcols}{@{}l@{}r@{}}", "columns.mth");
+         CMathItem* pItem = parser.Parse("$$\\begin{array}{\\compactcols}a&b\\end{array}$$");
+         SMemGuard guard{ pItem };
+         Assert::IsNotNull(pItem);
+         CEnvHelper env;
+         SParserContext ctx;
+         Assert::IsTrue(env.Init(parser, 1, ctx));
+         for (const SColumnSpacing& spacing : env.ColumnSpacing()) {
+            Assert::IsTrue(spacing.bOverride);
+            Assert::AreEqual((int32_t)0, spacing.nWidthFDU);
+         }
+      }
+      TEST_METHOD(AtExpressions_RejectMalformedOrUnsupportedMaterial) {
+         const char* asSpecs[] = { "@l", "@{x}l", "l@{\\hspace{1em}}", "@{}" };
+         for (const char* szSpec : asSpecs) {
+            CTexParser parser(g_Doc);
+            string sInput = string("$$\\begin{tabular}{") + szSpec + "}a\\end{tabular}$$";
+            CMathItem* pItem = parser.Parse(sInput);
+            SMemGuard guard{ pItem };
+            Assert::IsNull(pItem);
+            Assert::IsTrue(parser.HasError());
+         }
+      }
+      TEST_METHOD(TableBoundaryWidths_PositionCellsRulesAndTotalWidthTogether) {
+         struct SRecordingRenderer : public IDocRenderer {
+            vector<float> vVerticalX;
+            void DrawLine(SPointF pt1, SPointF pt2, EnumLineStyles, float, uint32_t) override {
+               if (pt1.fX == pt2.fX)
+                  vVerticalX.push_back(pt1.fX);
+            }
+            void DrawRect(SRectF, EnumLineStyles, float, uint32_t) override {}
+            void FillRect(SRectF, uint32_t) override {}
+            void DrawGlyphRun(int32_t, uint32_t, const uint16_t*, SPointF, float, uint32_t) override {}
+         };
+         CTexParser parser(g_Doc);
+         SParserContext ctx;
+         CParserAdapter adapter(parser, 0, ctx);
+         CTableItem item(adapter, ctx.currentStyle, true);
+         CMockMathItem* pFirst = new CMockMathItem(g_Doc, etaORD, ctx.currentStyle);
+         CMockMathItem* pSecond = new CMockMathItem(g_Doc, etaORD, ctx.currentStyle);
+         pFirst->Box().nAdvWidth = 100;
+         pSecond->Box().nAdvWidth = 200;
+         SEnvTable table;
+         table.nCols = 2;
+         table.vRows.emplace_back();
+         table.vRows[0].vCells = { pFirst, pSecond };
+         table.vColSpacing.resize(3);
+         const int32_t anPadding[] = { 20, 80, 40 };
+         for (size_t nIdx = 0; nIdx < 3; ++nIdx) {
+            table.vColSpacing[nIdx].bOverride = true;
+            table.vColSpacing[nIdx].nWidthFDU = anPadding[nIdx];
+         }
+         Assert::IsTrue(item.Init({ ecaLeft, ecaLeft }, { 'd', '|', 'd' }, table));
+         Assert::AreEqual((int32_t)220, pFirst->Box().Left());
+         Assert::AreEqual((int32_t)400, pSecond->Box().Left());
+         Assert::AreEqual((int32_t)840, item.Box().Width());
+         item.MoveTo(300, 400);
+         SRecordingRenderer renderer;
+         item.Draw({ 10, 20 }, renderer);
+         const int32_t anRuleX[] = { 0, 200, 360, 640, 840 };
+         Assert::AreEqual((size_t)5, renderer.vVerticalX.size());
+         for (size_t nIdx = 0; nIdx < 5; ++nIdx)
+            Assert::AreEqual(10 + EM2DIPS(g_Doc.DefaultFontSizePts(), 300 + anRuleX[nIdx]),
+                             renderer.vVerticalX[nIdx], 0.001f);
+      }
+      TEST_METHOD(TableBoundaryWidths_ScaleOverridesWithTableStyle) {
+         CTexParser parser(g_Doc);
+         SParserContext ctx;
+         ctx.currentStyle = CMathStyle(etsScript);
+         CParserAdapter adapter(parser, 0, ctx);
+         CTableItem item(adapter, ctx.currentStyle);
+         CMockMathItem* pCell = new CMockMathItem(g_Doc, etaORD, ctx.currentStyle);
+         pCell->Box().nAdvWidth = 100;
+         SEnvTable table;
+         table.nCols = 1;
+         table.vRows.emplace_back();
+         table.vRows[0].vCells.push_back(pCell);
+         table.vColSpacing.resize(2);
+         table.vColSpacing[0].bOverride = true;
+         table.vColSpacing[0].nWidthFDU = 100;
+         table.vColSpacing[1].bOverride = true;
+         table.vColSpacing[1].nWidthFDU = 200;
+         Assert::IsTrue(item.Init({ ecaLeft }, { 0, 0 }, table));
+         Assert::AreEqual((int32_t)70, pCell->Box().Left());
+         Assert::AreEqual((int32_t)310, item.Box().Width());
+      }
+      TEST_METHOD(TableBoundaryWidths_RejectInvalidDescriptorCount) {
+         CTexParser parser(g_Doc);
+         SParserContext ctx;
+         CParserAdapter adapter(parser, 0, ctx);
+         CTableItem item(adapter, ctx.currentStyle);
+         SEnvTable table;
+         table.nCols = 2;
+         table.vRows.emplace_back();
+         table.vColSpacing.resize(2); // three boundaries required
+         Assert::IsFalse(item.Init({ ecaLeft, ecaLeft }, {}, table));
+         table.vColSpacing.clear(); // legacy metadata remains valid
+         Assert::IsTrue(item.Init({ ecaLeft, ecaLeft }, {}, table));
+      }
       TEST_METHOD(Tabular_ColumnPaddingUsesTabcolsepIndependentlyOfArraycolsep) {
          auto TableWidth = [](const char* szEnv, float fTabSep, float fArraySep) {
             CTexParser parser(g_Doc);
@@ -104,7 +229,7 @@ namespace TexParserTests
          Assert::IsNotNull(pExplicit);
          Assert::AreEqual(pDefault->Box().Width(), pExplicit->Box().Width());
       }
-      TEST_METHOD(Tabular_MetadataPreservesMathDispatchAndInheritedStyle) {
+      TEST_METHOD(Tabular_MetadataSelectsTextModeAndPreservesInheritedStyle) {
          CTexParser parser(g_Doc);
          CMathItem* pItem = parser.Parse("$$\\begin{tabular}{|lcr||}a&b&c\\end{tabular}$$");
          SMemGuard guard{ pItem };
@@ -113,11 +238,17 @@ namespace TexParserTests
          SParserContext ctx;
          ctx.currentStyle = CMathStyle(etsScript, true);
          ctx.fUserScale = 1.25f;
+         ctx.sFontCmd = "mathbfit";
+         ctx.bDisplayFormula = true;
+         ctx.bInLeftRight = true;
          ctx.bNoNewLines = true;
          Assert::IsTrue(env.Init(parser, 1, ctx));
          Assert::IsTrue(env.Enabled() && env.TextCells());
          Assert::AreEqual(string("tabular"), env.GetEnvName());
-         Assert::IsFalse(ctx.bTextMode);
+         Assert::IsTrue(ctx.bTextMode);
+         Assert::IsTrue(ctx.sFontCmd.empty());
+         Assert::IsFalse(ctx.bDisplayFormula);
+         Assert::IsFalse(ctx.bInLeftRight);
          Assert::IsFalse(ctx.bNoNewLines);
          Assert::AreEqual((int)etsScript, (int)ctx.currentStyle.Style());
          Assert::IsTrue(ctx.currentStyle.IsCramped());

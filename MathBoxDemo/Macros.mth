@@ -48,3 +48,5 @@ K\kern{-0.16em}\raisebox{0.42ex}{\scriptsize A}%
 \newcommand{\nshortmid}{\not\shortmid}
 \newcommand{\nshortparallel}{\not\shortparallel}
 \newcommand{\notni}{\not\ni}
+%--- Makecell support ---
+\newcommand{\makecell}[2][c]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}

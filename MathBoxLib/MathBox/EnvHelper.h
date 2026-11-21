@@ -11,6 +11,7 @@ class CEnvHelper {
    vector<EnumColAlignment>   m_vColAlignments;
    // inter-column separators/vert lines: 0, '|', ':', or 'd' for double '||'
    vector<char>               m_vVLines;       // Size = m_vColAlignments.size() + 1
+   vector<SColumnSpacing>     m_vColSpacing;   // Size = m_vColAlignments.size() + 1 for preambles
    // Outer Delimiters unicodes (e.g. for pmatrix)
    char                       m_cLeftDelim { 0 };   // 0 if none
    char                       m_cRightDelim { 0 };  // 0 if none
@@ -23,11 +24,12 @@ public:
    const string& GetEnvName() const { return m_sEnv; }
    const vector<EnumColAlignment>& ColAlignments() const { return m_vColAlignments; }
    const vector<char>& VertLines() const { return m_vVLines; }
+   const vector<SColumnSpacing>& ColumnSpacing() const { return m_vColSpacing; }
    char LeftDelim() const { return m_cLeftDelim; }
    char RightDelim() const { return m_cRightDelim; }
 
    bool Enabled() const { return !m_sEnv.empty();}
-   // Cell parsing mode; the enclosing math processor still owns environment dispatch.
+   // Init updates the supplied context to text mode for tabular cells.
    bool TextCells() const { return m_sEnv == "tabular"; }
 //METHODS
    bool Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx); //nTkIdx must be ettCOMMAND, "\\begin"

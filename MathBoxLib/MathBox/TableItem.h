@@ -9,6 +9,7 @@ struct SEnvTable {
    char                       cHLineBottom{ 0 };   //bottom hline: 0, '-' or '='
    int16_t                    nCols{ 0 };       //number of columns
    vector<SEnvTableRow>       vRows;            //each row is either empty OR has same number of cells!
+   vector<SColumnSpacing>    vColSpacing;      // empty or nCols + 1 boundary descriptors
 };
 
 /*array / table container
@@ -30,7 +31,7 @@ class CTableItem : public CMathItem {
 //DATA
    int32_t                    m_nMinAscent{ 700 };    // 0.7 of the \strut
    int32_t                    m_nMinDescent{ 300 };   // 0.3 of the \strut
-   int32_t                    m_nColSep{ 1000 };      // \arraycolsep, >half the width between columns
+   int32_t                    m_nColSep{ 1000 };      // full default gap between columns
    int32_t                    m_nRowSep{ 200 };       // \extrarowheight in FDU
    int32_t                    m_nDoubleRuleSep{ 200 }; // \doublerulesep in FDU
    vector<EnumColAlignment>   m_vColAligns;
@@ -40,6 +41,8 @@ class CTableItem : public CMathItem {
    vector<vector<CMathItem*>> m_vvCells;              // table items, nullptrs allowed!
    //calculated sizes
    vector<int32_t>            m_vColWidths;           // Calculated in CalcRowGeometry_
+   vector<int32_t>            m_vColStarts;           // cell positions relative to table origin
+   vector<int32_t>            m_vRuleX;               // rule positions at column boundaries
    vector<SRowLayout>         m_vRowLayouts;          // Calculated in CalcRowGeometry_
 public:
 //CTOR/INIT
@@ -63,6 +66,14 @@ public:
          m_nRowSep = PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);
       if (parser.GetLength("doublerulesep", fLength))
          m_nDoubleRuleSep = PTS2EM(parser.Doc().DefaultFontSizePts(), fLength);
+      if (bTextCells) {
+         // Capture the text size at table entry, before cell-local size commands.
+         // Math-style scaling is applied separately in Init.
+         const float fScale = parser.GetContext().fUserScale;
+         m_nMinAscent = F2NEAREST(m_nMinAscent * fScale);
+         m_nMinDescent = F2NEAREST(m_nMinDescent * fScale);
+         m_nRowSep = F2NEAREST(m_nRowSep * fScale);
+      }
    }
    ~CTableItem() {
       for (auto& vRow : m_vvCells) {

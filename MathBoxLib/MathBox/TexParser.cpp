@@ -195,8 +195,8 @@ CMathItem* CTexParser::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx)
    const int nIdx0 = nIdx;
    if (!OnGroupOpen_(nIdx, ctxG, bCanBeEmpty, envh))
       return nullptr; //error in group open token
-   CMathItem* pRet = ctxG.bTextMode ? m_pTextProcessor->ProcessGroup(nIdx, ctxG) :
-                                      m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
+   CMathItem* pRet = ctxG.bTextMode ? m_pTextProcessor->ProcessGroup(nIdx, ctxG, &envh) :
+      m_pMathProcessor->ProcessGroup(nIdx, ctxG, envh);
    if (!pRet && m_Error.sError.empty() && !bCanBeEmpty) {
       m_Error.nStartPos = tkOpen.nPos;
       const STexToken* ptkClose = GetToken(tkOpen.nTkIdxEnd);
@@ -291,8 +291,12 @@ bool CTexParser::BuildGroups() {
          else {
             //check if we already have opening $/$$ token:
             // "${$"    means '{'  is not closed!
-            for(int nGSIdx: vGroupStarts) {
+            for (int nStackIdx = (int)vGroupStarts.size() - 1; nStackIdx >= 0; --nStackIdx) {
+               int nGSIdx = vGroupStarts[nStackIdx];
                STexToken& tknGS = vTokens[nGSIdx];
+               if (tknGS.nType == ettCOMMAND && TokenText(nGSIdx) == "\\begin" &&
+                   TokenText(nGSIdx + 2) == "tabular")
+                  break; // tabular cells enter text mode and can contain their own inline math
                if (tknGS.nType == tkn.nType) {
                   int nOpenIdx = vGroupStarts.back();
                   SetError(nOpenIdx, "Unclosed group '" + TokenText(nOpenIdx) + "'");
@@ -327,6 +331,17 @@ bool CTexParser::BuildGroups() {
          }
          else if (sCmd == "\\right" || sCmd == "\\]" || sCmd == "\\end") {
             if (vGroupStarts.empty() || !_IsOpenClose(TokenText(vGroupStarts.back()), sCmd)) {
+               // A matching construct may be hidden by an unclosed inner group.
+               for (int nStackIdx = (int)vGroupStarts.size() - 1; nStackIdx >= 0; --nStackIdx) {
+                  if (_IsOpenClose(TokenText(vGroupStarts[nStackIdx]), sCmd)) {
+                     const int nOpenIdx = vGroupStarts.back();
+                     string sClose = sCmd;
+                     if (sCmd == "\\end")
+                        sClose += "{" + TokenText(nIdx + 2) + "}";
+                     SetError(nOpenIdx, "Unclosed opening token '" + TokenText(nOpenIdx) + "' before '" + sClose + "'");
+                     return false;
+                  }
+               }
                SetError(nIdx, "Unmatched '" + sCmd + "' ");
                return false;
             }
@@ -367,6 +382,10 @@ bool CTexParser::BuildGroups() {
                   break;
                }
                //else
+               SetError(nIdx, "Unmatched closing '}' bracket is not allowed");
+               return false;
+            }
+            if (!bOk) {
                SetError(nIdx, "Unmatched closing '}' bracket is not allowed");
                return false;
             }

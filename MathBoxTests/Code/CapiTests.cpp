@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "../../MathBoxLib/LibCode/MathBox_CAPI.h"
 #include "../../MathBoxLib/LibCode/DocParamWrap.h"
+#include <fstream>
 
 namespace {
    class CCallbackRecorder {
@@ -13,6 +14,10 @@ namespace {
       float fLastDrawScale{ 0 };
       bool bFailIndices{ false }, bFailMetrics{ false };
       vector<uint32_t> vUnicodes;
+      vector<int32_t> vFonts, vDrawFonts;
+      vector<float> vDrawY;
+      vector<float> vDrawX, vDrawScales;
+      bool bCheckGlyph{ true };
 
       static bool _Directory(void* pContext, uint32_t* pLength, wchar_t* pBuffer) {
          CCallbackRecorder& recorder = *static_cast<CCallbackRecorder*>(pContext);
@@ -31,6 +36,7 @@ namespace {
          CCallbackRecorder& recorder = *static_cast<CCallbackRecorder*>(pContext);
          ++recorder.nIndexCalls;
          recorder.nLastFont = nFontIdx;
+         recorder.vFonts.push_back(nFontIdx);
          recorder.vUnicodes.insert(recorder.vUnicodes.end(), pUnicodes, pUnicodes + nCount);
          if (recorder.bFailIndices)
             return false;
@@ -62,13 +68,18 @@ namespace {
          ++static_cast<CCallbackRecorder*>(pContext)->nFills;
       }
       static void _Run(void* pContext, int32_t nFontIdx, uint32_t nCount, const uint16_t* pIndices,
-                       float, float, float fScale, uint32_t) {
+                       float fX, float fY, float fScale, uint32_t) {
          CCallbackRecorder& recorder = *static_cast<CCallbackRecorder*>(pContext);
          Assert::IsTrue(nCount > 0);
-         Assert::AreEqual(recorder.nGlyph, pIndices[0]);
+         if (recorder.bCheckGlyph)
+            Assert::AreEqual(recorder.nGlyph, pIndices[0]);
          ++recorder.nRuns;
          recorder.nLastDrawFont = nFontIdx;
          recorder.fLastDrawScale = fScale;
+         recorder.vDrawFonts.push_back(nFontIdx);
+         recorder.vDrawY.push_back(fY);
+         recorder.vDrawX.push_back(fX);
+         recorder.vDrawScales.push_back(fScale);
       }
       MBI_DocRenderer Renderer() {
          return { sizeof(MBI_DocRenderer), this, _Line, _Rect, _Fill, _Run };
@@ -121,6 +132,13 @@ namespace {
       void Parse(const char* szText = "abc") {
          Assert::AreEqual((MB_RET)MBOK, pApi->parseLatex(engine, szText, &item));
          Assert::IsNotNull(item);
+      }
+      void LoadDemoMacros() {
+         const wstring sPath = fonts.sFontsDir + L"..\\..\\MathBoxDemo\\Macros.mth";
+         std::ifstream file(sPath.c_str(), std::ios::binary);
+         Assert::IsTrue(file.is_open());
+         const string sMacros((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+         Assert::AreEqual((MB_RET)MBOK, pApi->addMacros(engine, sMacros.c_str(), "Macros.mth"));
       }
    };
 
@@ -352,6 +370,237 @@ namespace CapiTests {
          Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, "\\emoji{warning}", &fixture.item) != MBOK);
          Assert::IsNull(fixture.item);
          Assert::IsTrue(string(fixture.pApi->getLastError(fixture.engine, nullptr, nullptr)).find("measure emoji") != string::npos);
+      }
+      TEST_METHOD(Tabular_TextCommandsInMathContentUseTextFonts) {
+         CApiFixture fixture;
+         fixture.Create();
+         fixture.Parse("$\\begin{tabular}{@{}l@{}}"
+            "\\scriptsize\\textbackslash begin\\{matrix\\}\\\\"
+            "\\scriptsize\\quad a \\& b \\textbackslash\\textbackslash"
+            "\\end{tabular}$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 10, 20, &renderer));
+         Assert::IsTrue(fixture.fonts.nRuns > 0);
+         // Text symbols may use the LMM symbol font; ordinary words use Roman.
+         Assert::IsTrue(std::find(fixture.fonts.vDrawFonts.begin(), fixture.fonts.vDrawFonts.end(), 1) !=
+            fixture.fonts.vDrawFonts.end());
+         Assert::IsTrue(std::find(fixture.fonts.vUnicodes.begin(), fixture.fonts.vUnicodes.end(), (uint32_t)'&') !=
+            fixture.fonts.vUnicodes.end());
+         Assert::IsTrue(fixture.fonts.fLastDrawScale < 1.0f);
+         Assert::AreEqual((uint32_t)1, fixture.pApi->mathItemLineCount(fixture.item));
+      }
+      TEST_METHOD(Tabular_CellNewlinesStayInsideRowsAndStylesReset) {
+         CApiFixture fixture;
+         fixture.Create();
+         fixture.Parse("$$\\begin{tabular}{ll}A\\newline B & \\textbf{C}\\\\D & E\\end{tabular}$$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+         Assert::AreEqual((size_t)5, fixture.fonts.vDrawFonts.size());
+         Assert::AreEqual((int32_t)2, fixture.fonts.vDrawFonts[2]);
+         Assert::AreEqual((int32_t)1, fixture.fonts.vDrawFonts[3]);
+         Assert::IsTrue(fixture.fonts.vDrawY[1] > fixture.fonts.vDrawY[0]);
+         Assert::IsTrue(fixture.fonts.vDrawY[3] > fixture.fonts.vDrawY[1]);
+      }
+      TEST_METHOD(Tabular_InnerMathWorksUnderInlineAndDisplayMath) {
+         const char* asDelimiters[] = { "$", "$$" };
+         for (const char* szDelimiter : asDelimiters) {
+            CApiFixture fixture;
+            fixture.Create();
+            string sInput = string(szDelimiter) + "\\begin{tabular}{l}Name $x^2$\\end{tabular}" + szDelimiter;
+            fixture.Parse(sInput.c_str());
+            Assert::IsTrue(std::find(fixture.fonts.vFonts.begin(), fixture.fonts.vFonts.end(), 1) != fixture.fonts.vFonts.end());
+            Assert::IsTrue(fixture.fonts.nMetricCalls > 1);
+         }
+      }
+      TEST_METHOD(Tabular_NestedMakecellMacroPreservesInnerRows) {
+         CApiFixture fixture;
+         fixture.Create();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->addMacros(fixture.engine,
+            "\\newcommand{\\makecell}[2][c]{\\begin{tabular}{@{}#1@{}}#2\\end{tabular}}", "cells.mth"));
+         fixture.Parse("$$\\begin{tabular}{ll}\\makecell[l]{A\\\\B} & C\\\\D & E\\end{tabular}$$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+         Assert::AreEqual((size_t)5, fixture.fonts.vDrawY.size());
+         Assert::IsTrue(fixture.fonts.vDrawY[1] > fixture.fonts.vDrawY[0]);
+         Assert::IsTrue(fixture.fonts.vDrawY[3] > fixture.fonts.vDrawY[1]);
+      }
+      TEST_METHOD(Makecell_DemoMacroAlignsUnequalLines) {
+         const char* asAlignment[] = { "", "[l]", "[c]", "[r]" };
+         const float afOffset[] = { 12, 0, 12, 24 };
+         for (int nCase = 0; nCase < 4; ++nCase) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            string sInput = string("$\\makecell") + asAlignment[nCase] + "{A\\\\BBBB}$";
+            fixture.Parse(sInput.c_str());
+            MBI_DocRenderer renderer = fixture.fonts.Renderer();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+            Assert::AreEqual((size_t)2, fixture.fonts.vDrawX.size());
+            Assert::AreEqual(afOffset[nCase], fixture.fonts.vDrawX[0] - fixture.fonts.vDrawX[1], 0.03f);
+            Assert::IsTrue(fixture.fonts.vDrawY[1] > fixture.fonts.vDrawY[0]);
+         }
+      }
+      TEST_METHOD(Makecell_DemoMacroNestsWithoutSplittingOuterRows) {
+         CApiFixture fixture;
+         fixture.Create();
+         fixture.LoadDemoMacros();
+         fixture.Parse("$\\begin{tabular}{ll}\\makecell[l]{\\makecell[r]{A\\\\BB}\\\\C}&D\\\\E&F\\end{tabular}$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+         Assert::AreEqual((size_t)6, fixture.fonts.vDrawY.size());
+         Assert::IsTrue(fixture.fonts.vDrawX[0] > fixture.fonts.vDrawX[1]);
+         Assert::IsTrue(fixture.fonts.vDrawY[1] > fixture.fonts.vDrawY[0]);
+         Assert::IsTrue(fixture.fonts.vDrawY[2] > fixture.fonts.vDrawY[1]);
+         Assert::IsTrue(fixture.fonts.vDrawY[4] > fixture.fonts.vDrawY[2]);
+      }
+      TEST_METHOD(Makecell_DemoMacroScopedSizeScalesRowsAndRestoresFont) {
+         float afSpacing[2]{};
+         for (int nSize = 0; nSize < 2; ++nSize) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            string sInput = string("$\\begin{tabular}{ll}{") + (nSize ? "\\scriptsize" : "") +
+               "\\makecell[l]{A\\\\B}}&C\\end{tabular}$";
+            fixture.Parse(sInput.c_str());
+            MBI_DocRenderer renderer = fixture.fonts.Renderer();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+            Assert::AreEqual((size_t)3, fixture.fonts.vDrawScales.size());
+            Assert::AreEqual(nSize ? 0.7f : 1.0f, fixture.fonts.vDrawScales[0]);
+            Assert::AreEqual(1.0f, fixture.fonts.vDrawScales[2]);
+            afSpacing[nSize] = fixture.fonts.vDrawY[1] - fixture.fonts.vDrawY[0];
+         }
+         Assert::AreEqual(0.7f * afSpacing[0], afSpacing[1], 0.03f);
+      }
+      TEST_METHOD(Makecell_DemoMacroSupportsMathCellsAndArrayMatrixHosts) {
+         const char* asInputs[] = {
+            "$\\begin{tabular}{l}\\makecell[l]{Name $x^2$\\\\Value}\\end{tabular}$",
+            "$\\begin{array}{ll}\\makecell{A\\\\B}&x\\end{array}$",
+            "$\\begin{matrix}\\makecell{A\\\\B}&x\\end{matrix}$"
+         };
+         for (const char* szInput : asInputs) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            fixture.fonts.bCheckGlyph = false; // math atoms also use native LMM glyph indices
+            fixture.Parse(szInput);
+            MBI_DocRenderer renderer = fixture.fonts.Renderer();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+            Assert::AreEqual((uint32_t)1, fixture.pApi->mathItemLineCount(fixture.item));
+         }
+      }
+      TEST_METHOD(Makecell_DemoMacroHandlesBlankLinesAndRejectsUnsupportedArguments) {
+         const char* asBodies[] = { "", "A\\\\\\\\B", "A\\newline B" };
+         for (const char* szBody : asBodies) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            string sInput = string("$\\makecell{") + szBody + "}$";
+            fixture.Parse(sInput.c_str());
+         }
+         const char* asInvalid[] = { "$\\makecell*{A}$", "$\\makecell[t]{A}$", "$\\makecell[]{A}$", "$\\makecell[l]$" };
+         for (const char* szInput : asInvalid) {
+            CApiFixture fixture;
+            fixture.Create();
+            fixture.LoadDemoMacros();
+            Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, szInput, &fixture.item) != MBOK);
+            Assert::IsNull(fixture.item);
+            Assert::IsTrue(*fixture.pApi->getLastError(fixture.engine, nullptr, nullptr) != 0);
+         }
+      }
+      TEST_METHOD(GroupErrors_UnclosedBraceBeforeEnvironmentPointsToOpening) {
+         CApiFixture fixture;
+         fixture.Create();
+         fixture.LoadDemoMacros();
+         const string sInput = "$\\begin{tabular}{l}{\\scriptsize\\makecell[l]{A\\\\B}\\end{tabular}$";
+         Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, sInput.c_str(), &fixture.item) != MBOK);
+         uint32_t nStart = 0, nEnd = 0;
+         const string sError = fixture.pApi->getLastError(fixture.engine, &nStart, &nEnd);
+         Assert::AreEqual((uint32_t)sInput.find("{\\scriptsize"), nStart);
+         Assert::AreEqual(nStart + 1, nEnd);
+         Assert::IsTrue(sError.find("Unclosed opening token '{'") != string::npos);
+         Assert::IsTrue(sError.find("\\end{tabular}") != string::npos);
+         fixture.Parse("$\\makecell{A\\\\B}$"); // recover after grouping failure
+      }
+      TEST_METHOD(GroupErrors_UnmatchedClosersReturnErrorsWithoutCrashing) {
+         const char* asInputs[] = { "}", "[}", "abc}", "\\end{tabular}",
+            "$\\begin{tabular}{l}A\\end{matrix}$", "$\\left({x\\right)$" };
+         for (const char* szInput : asInputs) {
+            CApiFixture fixture;
+            fixture.Create();
+            Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, szInput, &fixture.item) != MBOK);
+            Assert::IsNull(fixture.item);
+            uint32_t nStart = 0, nEnd = 0;
+            const string sError = fixture.pApi->getLastError(fixture.engine, &nStart, &nEnd);
+            Assert::IsFalse(sError.empty());
+            Assert::IsTrue(nEnd > nStart);
+            fixture.Parse("abc");
+         }
+      }
+      TEST_METHOD(Tabular_ScopedFontSizeScalesNestedRowSpacing) {
+         auto RowSpacing = [](const char* szSize, const char* szBody) {
+            CApiFixture fixture;
+            fixture.Create();
+            string sInput = string("$\\begin{tabular}{ll}{") + szSize +
+               "\\begin{tabular}{@{}l@{}}" + szBody + "\\end{tabular}}&C\\end{tabular}$";
+            fixture.Parse(sInput.c_str());
+            MBI_DocRenderer renderer = fixture.fonts.Renderer();
+            Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+            Assert::AreEqual((size_t)3, fixture.fonts.vDrawY.size());
+            Assert::AreEqual(1.0f, fixture.fonts.fLastDrawScale); // C is outside the size group
+            return fixture.fonts.vDrawY[1] - fixture.fonts.vDrawY[0];
+         };
+         const float fNormal = RowSpacing("", "A\\\\B");
+         Assert::AreEqual(0.7f * fNormal, RowSpacing("\\scriptsize", "A\\\\B"), 0.03f);
+         Assert::AreEqual(fNormal, RowSpacing("", "\\scriptsize A\\\\\\scriptsize B"), 0.03f);
+      }
+      TEST_METHOD(Tabular_ScopedFontSizeScalesEmptyRowsAndCellNewlines) {
+         const char* asBodies[] = { "A\\\\\\\\B", "A\\newline B" };
+         for (const char* szBody : asBodies) {
+            float afSpacing[2]{};
+            for (int nSize = 0; nSize < 2; ++nSize) {
+               CApiFixture fixture;
+               fixture.Create();
+               string sInput = string("$\\begin{tabular}{l}{") + (nSize ? "\\scriptsize" : "") +
+                  "\\begin{tabular}{l}" + szBody + "\\end{tabular}}\\end{tabular}$";
+               fixture.Parse(sInput.c_str());
+               MBI_DocRenderer renderer = fixture.fonts.Renderer();
+               Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+               Assert::AreEqual((size_t)2, fixture.fonts.vDrawY.size());
+               afSpacing[nSize] = fixture.fonts.vDrawY[1] - fixture.fonts.vDrawY[0];
+            }
+            Assert::AreEqual(0.7f * afSpacing[0], afSpacing[1], 0.03f);
+         }
+      }
+      TEST_METHOD(Tabular_EmptyCellsRulesAndTrailingRowTerminatorParse) {
+         const char* asBodies[] = { "", "&B&", "A&&C", "A&B\\\\", "\\hline A&B\\\\\\hline" };
+         for (const char* szBody : asBodies) {
+            CApiFixture fixture;
+            fixture.Create();
+            string sInput = string("$$\\begin{tabular}{lll}") + szBody + "\\end{tabular}$$";
+            fixture.Parse(sInput.c_str());
+         }
+      }
+      TEST_METHOD(Tabular_ExcessColumnsAndInvalidTextReturnErrors) {
+         const char* asInputs[] = { "$$\\begin{tabular}{l}A&B\\end{tabular}$$",
+            "$$\\begin{tabular}{l}\\frac{1}{2}\\end{tabular}$$",
+            "$$\\begin{tabular}{l}A\\hline B\\end{tabular}$$" };
+         for (const char* szInput : asInputs) {
+            CApiFixture fixture;
+            fixture.Create();
+            Assert::IsTrue(fixture.pApi->parseLatex(fixture.engine, szInput, &fixture.item) != MBOK);
+            Assert::IsNull(fixture.item);
+            fixture.Parse("abc"); // parsing can recover after a partially built table
+         }
+      }
+      TEST_METHOD(Tabular_UnicodeAndEmojiUseHostFontsInsideCells) {
+         CApiFixture fixture;
+         fixture.params.font_mgr.fontCount = 19;
+         fixture.Create();
+         fixture.Parse("$$\\begin{tabular}{ll}\\textbf{\xD0\x96} & \\emoji{warning}\\end{tabular}$$");
+         MBI_DocRenderer renderer = fixture.fonts.Renderer();
+         Assert::AreEqual((MB_RET)MBOK, fixture.pApi->mathItemDraw(fixture.item, 0, 0, &renderer));
+         Assert::AreEqual((int32_t)15, fixture.fonts.vDrawFonts[0]);
+         Assert::AreEqual((int32_t)18, fixture.fonts.vDrawFonts[1]);
       }
    };
 }

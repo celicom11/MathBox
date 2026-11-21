@@ -296,8 +296,13 @@ enum EnumLCATParenthesis {
    elcapSquare,   // non-optional [] brackets
 };
 enum EnumColAlignment { ecaLeft=0, ecaCenter, ecaRight };
+struct SColumnSpacing {
+   bool     bOverride{ false }; // use replacement width instead of default boundary padding
+   int32_t  nWidthFDU{ 0 };     // unscaled document font design units
+};
 struct SParserContext {
    bool        bTextMode{ false };            // TEXT/MATH mode
+   bool        bInTabularCell{ false };       // nested text tables remain part of enclosing math content
    bool        bInLeftRight{ false };         // inside \left...\right construct
    bool        bInSubscript{ false };         // building atom's subscript
    bool        bInSuperscript{ false };       // building atom's superscript
@@ -318,8 +323,10 @@ struct SParserContext {
    }
    void CopyBasics(const SParserContext& other) {
       this->bTextMode = other.bTextMode;
+      this->bInTabularCell = other.bInTabularCell;
       this->currentStyle = other.currentStyle;
       this->fUserScale = other.fUserScale;
+      this->fFontScale = other.fFontScale;
       this->sFontCmd = other.sFontCmd;
       this->bNoNewLines = other.bNoNewLines;
    }

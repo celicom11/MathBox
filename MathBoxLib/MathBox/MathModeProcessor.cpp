@@ -507,6 +507,7 @@ CMathItem* CMathModeProcessor::PackGroupItemsLeftRight_( vector<CRawItem>& vGrou
 CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGroupItems,
                                  const SParserContext& ctx, const CEnvHelper& envh) {
    SEnvTable table;
+   table.vColSpacing = envh.ColumnSpacing();
    //build a table/grid of CRawItemindexes
    vector<CMathItem*> vCell; //current cell
    table.vRows.emplace_back(); //first row
@@ -579,9 +580,17 @@ CMathItem* CMathModeProcessor::PackGroupItemsTabularEnv_(vector<CRawItem>& vGrou
       table.cHLineBottom = table.vRows.back().cHLine;
       table.vRows.pop_back();
    }
+   if (table.vRows.empty()) {
+      m_Parser.SetError(vGroupItems.empty() ? -1 : vGroupItems.front().TkIdxStart(), "Empty table body");
+      return nullptr;
+   }
    //set columns for 1-row table
    if (table.nCols < (int16_t)table.vRows.back().vCells.size())
       table.nCols = (int16_t)table.vRows.back().vCells.size();
+   if (table.nCols < (int16_t)envh.ColAlignments().size())
+      table.nCols = (int16_t)envh.ColAlignments().size();
+   if (!table.vColSpacing.empty())
+      table.vColSpacing.resize((size_t)table.nCols + 1);
 
    vector<char> vHLines(table.vRows.size(),'\0');
    //build Tabel Item

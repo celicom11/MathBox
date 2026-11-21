@@ -19,6 +19,9 @@
 #include "VarCmdBuilder.h"
 #include "MathStyleBuilder.h"
 #include "EmojiCmdBuilder.h"
+#include "EnvHelper.h"
+#include "TableItem.h"
+#include <memory>
 
 
 
@@ -94,14 +97,18 @@ CMathItem* CTextModeProcessor::ProcessItemToken(IN OUT int& nIdx, const SParserC
    }
    return pItem;
 }
-CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx) {
-   vector<CRawItem> vGroupItems;
-   SParserContext ctxG(ctx); //may be changed during processing!
+CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserContext& ctx, const CEnvHelper* pEnv) {
    int nIdxStart, nIdxEnd;
    if (nIdx == -1) {
       //root group
       nIdxStart = 0;
       nIdx = nIdxEnd = (int)m_Parser.GetTokens().size();
+   }
+   else if (pEnv && pEnv->Enabled()) {
+      nIdxStart = pEnv->GetStartTkIdx();
+      nIdxEnd = GetToken(nIdx)->nTkIdxEnd;
+      nIdx = nIdxEnd + 4; // skip \end{tabular}
+      return ProcessTabular_(nIdxStart, nIdxEnd, ctx, *pEnv);
    }
    else {
       //we must be in {} group
@@ -112,6 +119,11 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       nIdxEnd = pTokenOpen->nTkIdxEnd;
       nIdx = pTokenOpen->nTkIdxEnd + 1;
    }
+   return ProcessRange_(nIdxStart, nIdxEnd, ctx);
+}
+CMathItem* CTextModeProcessor::ProcessRange_(int nIdxStart, int nIdxEnd, const SParserContext& ctx) {
+   vector<CRawItem> vGroupItems;
+   SParserContext ctxG(ctx);
    for (int nIdxG = nIdxStart; nIdxG < nIdxEnd;) {
       CMathItem* pItem = nullptr;
       const STexToken* pCurToken = GetToken(nIdxG);
@@ -146,6 +158,7 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
          }
       }
       if (m_Parser.HasError()) {
+         delete pItem;
          for (auto& rawitem : vGroupItems) {
             rawitem.Delete(); //cleanup!
          }
@@ -172,6 +185,80 @@ CMathItem* CTextModeProcessor::ProcessGroup(IN OUT int& nIdx, const SParserConte
       }
    } //main for
    return PackGroupItems_(vGroupItems, ctxG);
+}
+CMathItem* CTextModeProcessor::ProcessTabular_(int nIdxStart, int nIdxEnd,
+                                             const SParserContext& ctx, const CEnvHelper& env) {
+   // Capture table-wide lengths before cell-local assignments are evaluated.
+   CParserAdapter adapter(m_Parser, nIdxStart, ctx);
+   std::unique_ptr<CTableItem> pTable(new CTableItem(adapter, ctx.currentStyle, true));
+   SEnvTable table;
+   table.nCols = (int16_t)env.ColAlignments().size();
+   table.vColSpacing = env.ColumnSpacing();
+   table.vRows.emplace_back();
+   vector<std::unique_ptr<CMathItem>> vOwnedCells;
+   SParserContext ctxCell(ctx);
+   ctxCell.bInTabularCell = true;
+   auto SkipWhitespace = [this](int nStart, int nEnd) {
+      while (nStart < nEnd && (GetToken(nStart)->nType == ettSPACE || GetToken(nStart)->nType == ettCOMMENT))
+         ++nStart;
+      return nStart;
+   };
+   auto AppendCell = [&](int nStart, int nEnd) {
+      nStart = SkipWhitespace(nStart, nEnd);
+      while (nEnd > nStart && (GetToken(nEnd - 1)->nType == ettSPACE || GetToken(nEnd - 1)->nType == ettCOMMENT))
+         --nEnd;
+      if (table.vRows.back().vCells.size() >= (size_t)table.nCols) {
+         m_Parser.SetError(nStart, "Too many cells for tabular column specifications");
+         return false;
+      }
+      std::unique_ptr<CMathItem> pCell(ProcessRange_(nStart, nEnd, ctxCell));
+      if (m_Parser.HasError())
+         return false;
+      table.vRows.back().vCells.push_back(pCell.get()); // null represents an empty cell
+      vOwnedCells.push_back(std::move(pCell));
+      return true;
+   };
+   int nCellStart = nIdxStart;
+   for (int nIdx = nIdxStart; nIdx < nIdxEnd;) {
+      const STexToken* pToken = GetToken(nIdx);
+      const string sCommand = pToken->nType == ettCOMMAND ? TokenText(nIdx) : string();
+      if (pToken->nType == ettAMP || sCommand == "\\\\" || sCommand == "\\cr") {
+         if (!AppendCell(nCellStart, nIdx))
+            return nullptr;
+         if (pToken->nType != ettAMP)
+            table.vRows.emplace_back();
+         nCellStart = ++nIdx;
+      }
+      else if (sCommand == "\\hline") {
+         if (!table.vRows.back().vCells.empty() || SkipWhitespace(nCellStart, nIdx) != nIdx ||
+             table.vRows.back().cHLine == '=') {
+            m_Parser.SetError(nIdx, "Unexpected \\hline in tabular");
+            return nullptr;
+         }
+         table.vRows.back().cHLine = table.vRows.back().cHLine ? '=' : '-';
+         nCellStart = ++nIdx;
+      }
+      else if (pToken->nTkIdxEnd > (uint32_t)nIdx) {
+         // A nested group consumes its own &, row endings and inline math.
+         nIdx = pToken->nTkIdxEnd + (sCommand == "\\begin" ? 4 : 1);
+      }
+      else
+         ++nIdx;
+   }
+   if (table.vRows.size() > 1 && table.vRows.back().vCells.empty() &&
+       SkipWhitespace(nCellStart, nIdxEnd) == nIdxEnd) {
+      table.cHLineBottom = table.vRows.back().cHLine;
+      table.vRows.pop_back(); // omit a trailing row terminator's empty row
+   }
+   else if (!AppendCell(nCellStart, nIdxEnd))
+      return nullptr;
+   if (!pTable->Init(env.ColAlignments(), env.VertLines(), table)) {
+      m_Parser.SetError(nIdxStart, "Failed to construct tabular layout");
+      return nullptr;
+   }
+   for (auto& pCell : vOwnedCells)
+      pCell.release(); // CTableItem now owns the cells
+   return pTable.release();
 }
 CMathItem* CTextModeProcessor::BuildItemCmd_(IN OUT int& nIdx, const SParserContext& ctx) {
    string sCmd = TokenText(nIdx);

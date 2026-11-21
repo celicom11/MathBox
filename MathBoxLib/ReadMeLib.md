@@ -51,9 +51,25 @@ Supported names are `grinning-face` (`grinning`), `grinning-face-with-smiling-ey
 
 ## Backward Compatibility Policy
 
+### Table boundary padding
+
+Array/tabular preambles accept empty `@{}` expressions. For example, `{@{}l@{}}` removes the outer padding and `{l@{}r}` removes the intercolumn gap. Nonempty expressions currently produce a clear unsupported-expression error.
+
+Internally, `SEnvTable::vColSpacing` contains either no entries (default behavior) or `nCols + 1` descriptors. `bOverride` selects `nWidthFDU` in unscaled document font units. Table-style scaling is applied during initialization. The existing `CTableItem::Init` signature consumes this data, and the calculated boundary positions drive cell placement, total width and vertical rules.
+
+`tabular` is supported inside math content and parses its cells in text mode, including text commands, UTF-8 and emoji. Top-level `&` separates cells, `\\` or `\cr` ends a row, and `\newline` breaks a line within a cell. Cells can contain inline `$...$` math and nested tabular environments; formatting starts fresh for each cell. Empty cells, short rows and `\hline` are supported; excess columns produce an error. Standalone tabular in document text and optional `[t]`/`[b]` placement are not supported yet.
+
+For smaller multiline cells, put the size command before the inner table: `{\scriptsize\begin{tabular}{@{}l@{}}first\\second\end{tabular}}`. The table captures that size for its minimum row ascent, descent and extra row spacing. Size commands inside individual cells change their content without redefining the table's shared minimum row dimensions.
+
+`MathBoxDemo/Macros.mth` supplies `\makecell{first\\second}` as a macro over a one-column tabular with no outer padding. The optional alignment is `[l]`, `[c]` or `[r]`, with centered alignment by default. Nested makecell content and `{\scriptsize\makecell[l]{first\\second}}` are supported in table cells. Use an enclosing tabular text cell when including `$...$` math inside the macro body: grouping currently runs before expansion and does not infer text-mode boundaries from arbitrary macros. Starred forms and combined vertical/horizontal alignment arguments are not supported.
+
+The demo sets `\extrarowheight` to `0.2em`; use `0pt` for comparison with LaTeX's default extra row height. General scoped length restoration, optional table baseline placement and nonempty `@{material}` are still pending.
+
+Grouping errors caused by an unclosed group before `\end{tabular}` now identify the blocking opening token and include the closing command in the message. Unmatched closing braces return parser errors.
+
 ### ABI 2 runtime version metadata
 
-`MBI_API::abi_version` is the C ABI compatibility major. Compatible feature releases increment `minor_version`, and compatible bug-fix releases increment `patch_version`. These two fields are appended after the original function table. Consumers check table size before reading them so an earlier ABI 2 DLL can still supply the original API.
+`MBI_API::abi_version` is the C ABI compatibility major. Compatible feature releases increment `minor_version`, and compatible bug-fix releases increment `patch_version`. Before ABI 2 was released, these fields were placed at the top of the table after `size_bytes` and `abi_version`, preceding the function pointers. Hosts must require the matching ABI major and validate the table size before accessing required members. The earlier provisional ABI 2 layout with trailing version fields is not compatible with this layout.
 
 ```cpp
 if (pAPI->size_bytes >= offsetof(MBI_API, patch_version) + sizeof(uint32_t)) {

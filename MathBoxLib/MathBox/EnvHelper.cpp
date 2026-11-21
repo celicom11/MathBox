@@ -19,6 +19,7 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx
    m_sEnv.clear();
    m_vColAlignments.clear();
    m_vVLines.clear();
+   m_vColSpacing.clear();
    m_cLeftDelim = m_cRightDelim = 0;
    const STexToken* pToken = parser.GetToken(nTkIdx);
    //nTkIdx must be ettCOMMAND, "\\begin"
@@ -30,7 +31,7 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx
    const STexToken* pTokenFBClose = parser.GetToken(nTkIdx + 3); 
    _ASSERT_RET(pTokenFBClose && pTokenFBClose->nType == ettFB_CLOSE, false);//snbh!
    m_sEnv = parser.TokenText(nTkIdx + 2);
-   if (TextCells() && ctx.bTextMode) {
+   if (TextCells() && ctx.bTextMode && !ctx.bInTabularCell) {
       parser.SetError(nTkIdx, "tabular environment requires math content");
       return false;
    }
@@ -64,7 +65,14 @@ bool CEnvHelper::Init(CTexParser& parser, int nTkIdx, IN OUT SParserContext& ctx
    else
       m_vColAlignments.push_back(ecaCenter); //default matrix alignment
    //set context stles
-   if (m_sEnv == "array" || m_sEnv == "cases" || m_sEnv == "rcases") {
+   if (TextCells()) {
+      if (!ctx.bTextMode)
+         ctx.sFontCmd.clear(); // do not carry math-font commands into text cells
+      ctx.bTextMode = true;
+      ctx.bDisplayFormula = false;
+      ctx.bInLeftRight = false;
+   }
+   else if (m_sEnv == "array" || m_sEnv == "cases" || m_sEnv == "rcases") {
       if (ctx.currentStyle.Style() == etsDisplay)
          ctx.currentStyle.SetStyle(etsText); //cases use text style even in display math
    }
@@ -88,6 +96,7 @@ bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {
    // default is 'c' for each column
    bool bLastWasSep = false; //to avoid two seps in a row
    m_vVLines.push_back(0); // boundary before the first column
+   m_vColSpacing.emplace_back();
    for (int nIdx = nIdxColSpec + 1; nIdx < (int)pTokenColSpecOpen->nTkIdxEnd;) {
       const STexToken* pTkNext = parser.GetToken(nIdx);
       _ASSERT_RET(pTkNext, false);//snbh!
@@ -96,7 +105,26 @@ bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {
          ++nIdx;
          continue;
       }
-      if (pTkNext->nType == ettNonALPHA && 
+      if (pTkNext->nType == ettNonALPHA && sTkText == "@") {
+         int nIdxGroup = nIdx + 1;
+         const STexToken* pGroup = parser.GetToken(nIdxGroup);
+         while (pGroup && (pGroup->nType == ettSPACE || pGroup->nType == ettCOMMENT))
+            pGroup = parser.GetToken(++nIdxGroup);
+         if (!pGroup || pGroup->nType != ettFB_OPEN || !pGroup->nTkIdxEnd) {
+            parser.SetError(nIdx, "Expected {replacement spacing} after @ in column specifications");
+            return false;
+         }
+         for (int nContent = nIdxGroup + 1; nContent < (int)pGroup->nTkIdxEnd; ++nContent) {
+            const STexToken* pContent = parser.GetToken(nContent);
+            if (pContent->nType != ettSPACE && pContent->nType != ettCOMMENT) {
+               parser.SetError(nContent, "Only empty @{} replacement spacing is currently supported");
+               return false;
+            }
+         }
+         m_vColSpacing.back().bOverride = true;
+         nIdx = pGroup->nTkIdxEnd + 1;
+      }
+      else if (pTkNext->nType == ettNonALPHA &&
          (sTkText=="|" || sTkText == ":")) { //|,||,:
          if(bLastWasSep) {
             parser.SetError(nIdx, "Two consecutive column separators in array column specifications");
@@ -128,6 +156,7 @@ bool CEnvHelper::InitArrayColumnSpecs_(CTexParser & parser, int nIdxColSpec) {
             else //c
                m_vColAlignments.push_back(ecaCenter);
             m_vVLines.push_back(0); //no separator after this column yet
+            m_vColSpacing.emplace_back();
          }
          ++nIdx; // one token can contain several alignment letters
          bLastWasSep = false;
